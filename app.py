@@ -38,8 +38,6 @@ def logout():
 # =========================
 def reset_mensal(cur):
     hoje = datetime.now()
-
-    # roda apenas no dia 1
     if hoje.day == 1:
         cur.execute("""
             UPDATE clientes
@@ -49,7 +47,7 @@ def reset_mensal(cur):
 
 
 # =========================
-# HOME
+# INDEX (PAINEL FINANCEIRO)
 # =========================
 @app.route("/")
 def index():
@@ -61,23 +59,42 @@ def index():
 
     reset_mensal(cur)
 
+    # clientes
     cur.execute("""
         SELECT id, nome, telefone, valor, vencimento_dia, status
         FROM clientes
         ORDER BY CASE WHEN status='atrasado' THEN 0 ELSE 1 END, id DESC
     """)
-
     clientes = cur.fetchall()
+
+    # total carteira
+    cur.execute("""
+        SELECT COALESCE(SUM(valor),0) FROM clientes
+    """)
+    total_geral = cur.fetchone()[0]
+
+    # total recebido
+    cur.execute("""
+        SELECT COALESCE(SUM(valor),0)
+        FROM clientes
+        WHERE status='pago'
+    """)
+    total_recebido = cur.fetchone()[0]
 
     conn.commit()
     cur.close()
     conn.close()
 
-    return render_template("index.html", clientes=clientes)
+    return render_template(
+        "index.html",
+        clientes=clientes,
+        total_geral=total_geral,
+        total_recebido=total_recebido
+    )
 
 
 # =========================
-# CADASTRAR
+# ADD CLIENTE
 # =========================
 @app.route("/add", methods=["POST"])
 def add():
@@ -102,7 +119,7 @@ def add():
 
 
 # =========================
-# EDITAR
+# EDITAR CLIENTE
 # =========================
 @app.route("/edit/<int:id>", methods=["POST"])
 def edit(id):
