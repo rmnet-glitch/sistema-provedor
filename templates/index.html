@@ -1,104 +1,125 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sistema de Clientes</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <style>
-        body { font-family: Arial; background:#f2f2f2; padding:20px; }
+<title>Clientes</title>
 
-        .topbar {
-            display:flex;
-            justify-content:space-between;
-            margin-bottom:20px;
-        }
+<style>
+body {
+    font-family: Arial;
+    background:#f4f6f8;
+    margin:0;
+    padding:10px;
+}
 
-        .btn {
-            padding:10px;
-            border:none;
-            cursor:pointer;
-            border-radius:5px;
-        }
+.card {
+    background:white;
+    padding:12px;
+    margin:10px 0;
+    border-radius:12px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
 
-        .add-box, .list-box {
-            background:white;
-            padding:15px;
-            border-radius:10px;
-            margin-bottom:20px;
-        }
+.pago { border-left:6px solid green; }
+.atrasado { border-left:6px solid red; }
 
-        .card {
-            padding:15px;
-            margin:10px 0;
-            border-radius:10px;
-        }
+input, button {
+    width:100%;
+    padding:10px;
+    margin:5px 0;
+    border-radius:8px;
+    border:1px solid #ddd;
+}
 
-        .pago { border-left:8px solid green; }
-        .atrasado { border-left:8px solid red; }
+button {
+    border:none;
+    color:white;
+}
 
-        .whatsapp {
-            background:#25D366;
-            color:white;
-            text-decoration:none;
-            padding:8px;
-            border-radius:5px;
-            display:inline-block;
-        }
-    </style>
+.btn-blue { background:#007bff; }
+.btn-green { background:#28a745; }
+.btn-red { background:#dc3545; }
+.btn-orange { background:#ff9800; }
+
+.small {
+    display:flex;
+    gap:5px;
+    flex-wrap:wrap;
+}
+
+.small a {
+    flex:1;
+}
+
+a button {
+    width:100%;
+}
+</style>
 </head>
 
 <body>
 
-<div class="topbar">
-    <h2>Clientes</h2>
-    <a href="/logout">Sair</a>
-</div>
+<h2>Clientes</h2>
 
-<!-- BOTÃO CADASTRO -->
-<div class="add-box">
-    <h3>Cadastrar Cliente</h3>
+<a href="/reset-mes">
+    <button class="btn-orange">Reset Mensal (Todos Atrasados)</button>
+</a>
 
-    <form action="/add" method="post">
+<hr>
 
-        <input name="nome" placeholder="Nome" required>
-        <input name="telefone" placeholder="Telefone (DDD)" required>
-        <input name="valor" placeholder="Valor" required>
-        <input name="vencimento" type="date" required>
+<h3>Cadastrar</h3>
 
-        <button class="btn" style="background:blue;color:white;">
-            Salvar
-        </button>
+<form action="/add" method="post">
 
-    </form>
-</div>
+<input name="nome" placeholder="Nome">
+<input name="telefone" placeholder="Telefone">
+<input name="valor" placeholder="Valor">
+<input name="vencimento_dia" placeholder="Dia vencimento (1-31)">
 
-<!-- LISTA -->
-<div class="list-box">
+<button class="btn-blue">Salvar</button>
+
+</form>
+
+<hr>
 
 {% for c in clientes %}
 
 <div class="card {{ c[5] }}">
 
-    <p><b>{{ c[1] }}</b></p>
-    <p>Telefone: {{ c[2] }}</p>
-    <p>Valor: R$ {{ c[3] }}</p>
-    <p>Vencimento: {{ c[4] }}</p>
-    <p>Status: <b>{{ c[5] }}</b></p>
+<form action="/edit/{{ c[0] }}" method="post">
 
-    <!-- WHATSAPP -->
-    <a class="whatsapp"
-       href="https://wa.me/55{{ c[2] }}?text=Olá%20{{ c[1] }},%20sua%20mensalidade%20de%20R$%20{{ c[3] }}%20está%20em%20aberto.">
-       WhatsApp
-    </a>
+<input name="nome" value="{{ c[1] }}">
+<input name="telefone" value="{{ c[2] }}">
+<input name="valor" value="{{ c[3] }}">
+<input name="vencimento_dia" value="{{ c[4] }}">
 
-    <a href="/pago/{{ c[0] }}"><button class="btn" style="background:green;color:white;">Pago</button></a>
-    <a href="/atrasado/{{ c[0] }}"><button class="btn" style="background:orange;color:white;">Atrasado</button></a>
-    <a href="/delete/{{ c[0] }}"><button class="btn" style="background:red;color:white;">Excluir</button></a>
+<button class="btn-blue">Editar</button>
+
+</form>
+
+<p>Status: {{ c[5] }}</p>
+
+<div class="small">
+
+<a href="/pago/{{ c[0] }}"><button class="btn-green">Pago</button></a>
+<a href="/atrasado/{{ c[0] }}"><button class="btn-orange">Atrasado</button></a>
+
+<a href="https://wa.me/55{{ c[2] }}"
+target="_blank">
+<button class="btn-green">WhatsApp</button>
+</a>
+
+<a href="/delete/{{ c[0] }}"
+onclick="return confirm('Excluir?')">
+<button class="btn-red">Excluir</button>
+</a>
+
+</div>
 
 </div>
 
 {% endfor %}
-
-</div>
 
 </body>
 </html>
