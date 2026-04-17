@@ -51,7 +51,7 @@ def formatar_moeda(valor):
 
 
 # =========================
-# BANCO (AUTO CRIA + MIGRAÇÃO)
+# BANCO (AUTO MIGRAÇÃO)
 # =========================
 def atualizar_banco():
     os.makedirs("./banco", exist_ok=True)
@@ -239,7 +239,7 @@ def pagar(id):
 
 
 # =========================
-# DESFAZER PAGAMENTO DO MÊS
+# CANCELAR PAGAMENTO DO MÊS
 # =========================
 @app.route("/desfazer/<int:id>")
 def desfazer(id):
@@ -252,6 +252,23 @@ def desfazer(id):
     SET ultimo_pagamento=''
     WHERE id=?
     """, (id,))
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/")
+
+
+# =========================
+# EXCLUIR CLIENTE
+# =========================
+@app.route("/excluir/<int:id>")
+def excluir(id):
+
+    conn = conectar()
+    c = conn.cursor()
+
+    c.execute("DELETE FROM clientes WHERE id=?", (id,))
 
     conn.commit()
     conn.close()
@@ -282,7 +299,7 @@ def cobrar(id):
 
 
 # =========================
-# START (NUVEM RENDER)
+# START (NUVEM)
 # =========================
 if __name__ == "__main__":
     atualizar_banco()
