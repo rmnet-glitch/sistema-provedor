@@ -11,24 +11,18 @@ DB_PATH = "./banco/clientes.db"
 
 
 # =========================
-# LOGIN FIXO
+# LOGIN
 # =========================
 USUARIO = "rubens"
 SENHA = "Rm2412@"
 
 
-# =========================
-# CONEXÃO
-# =========================
 def conectar():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 
-# =========================
-# FORMATAR VALOR
-# =========================
 def limpar_valor(v):
     if v is None:
         return 0.0
@@ -49,6 +43,10 @@ def formatar(v):
     if v.is_integer():
         return f"R$ {int(v):,}".replace(",", ".")
     return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def auth():
+    return session.get("logado")
 
 
 # =========================
@@ -82,12 +80,10 @@ def init_db():
 def login():
 
     if request.method == "POST":
-
         if request.form["usuario"] == USUARIO and request.form["senha"] == SENHA:
             session["logado"] = True
             return redirect("/")
-        else:
-            return render_template("login.html", erro="Login inválido")
+        return render_template("login.html", erro="Login inválido")
 
     return render_template("login.html")
 
@@ -96,10 +92,6 @@ def login():
 def logout():
     session.clear()
     return redirect("/login")
-
-
-def auth():
-    return session.get("logado")
 
 
 # =========================
@@ -121,20 +113,19 @@ def index():
     dia = datetime.now().day
 
     lista = []
-
-    total_geral = 0
-    total_mes = 0
+    total = 0
+    recebido = 0
 
     for cte in clientes:
 
         valor = limpar_valor(cte["valor"])
-        total_geral += valor
+        total += valor
 
         ultimo = cte["ultimo_pagamento"] or ""
 
         if ultimo == mes:
             status = "pago"
-            total_mes += valor
+            recebido += valor
         elif int(cte["vencimento"] or 0) < dia:
             status = "atrasado"
         else:
@@ -154,8 +145,8 @@ def index():
     return render_template(
         "index.html",
         clientes=lista,
-        total=formatar(total_geral),
-        recebido=formatar(total_mes),
+        total=formatar(total),
+        recebido=formatar(recebido),
         search=""
     )
 
@@ -189,7 +180,7 @@ def cadastrar():
 
 
 # =========================
-# EDITAR CLIENTE
+# EDITAR (CORRIGIDO)
 # =========================
 @app.route("/editar/<int:id>", methods=["POST"])
 def editar(id):
@@ -218,7 +209,7 @@ def editar(id):
 
 
 # =========================
-# PAGAR MÊS
+# PAGAR
 # =========================
 @app.route("/pagar/<int:id>")
 def pagar(id):
@@ -240,7 +231,7 @@ def pagar(id):
 
 
 # =========================
-# DESFAZER PAGAMENTO
+# DESFAZER
 # =========================
 @app.route("/desfazer/<int:id>")
 def desfazer(id):
@@ -260,7 +251,7 @@ def desfazer(id):
 
 
 # =========================
-# EXCLUIR CLIENTE
+# EXCLUIR
 # =========================
 @app.route("/excluir/<int:id>")
 def excluir(id):
@@ -280,7 +271,7 @@ def excluir(id):
 
 
 # =========================
-# COBRAR WHATSAPP
+# COBRAR
 # =========================
 @app.route("/cobrar/<int:id>")
 def cobrar(id):
@@ -307,6 +298,4 @@ def cobrar(id):
 # =========================
 if __name__ == "__main__":
     init_db()
-
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
