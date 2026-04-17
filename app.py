@@ -33,7 +33,7 @@ def logout():
 
 
 # =========================
-# GARANTE COBRANÇA DO MÊS
+# CRIA COBRANÇA DO MÊS
 # =========================
 def gerar_cobrancas(cur, mes_ref):
     cur.execute("SELECT id FROM clientes")
@@ -45,9 +45,7 @@ def gerar_cobrancas(cur, mes_ref):
             WHERE cliente_id=%s AND mes_ref=%s
         """, (c[0], mes_ref))
 
-        existe = cur.fetchone()
-
-        if not existe:
+        if not cur.fetchone():
             cur.execute("""
                 INSERT INTO cobrancas (cliente_id, mes_ref, status)
                 VALUES (%s, %s, 'em_dia')
@@ -92,6 +90,7 @@ def index():
         if status == "pago":
             recebido += float(valor)
 
+        # regra de atraso
         if status != "pago":
             if hoje.day > int(venc):
                 status = "atrasado"
@@ -99,6 +98,18 @@ def index():
                 status = "em_dia"
 
         clientes.append((id, nome, tel, valor, venc, status))
+
+    # =========================
+    # ORDENAÇÃO FINAL
+    # atrasado -> em_dia -> pago
+    # =========================
+    ordem = {
+        "atrasado": 0,
+        "em_dia": 1,
+        "pago": 2
+    }
+
+    clientes.sort(key=lambda x: ordem.get(x[5], 1))
 
     conn.commit()
     cur.close()
