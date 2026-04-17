@@ -13,6 +13,9 @@ def conectar():
     return psycopg2.connect(DATABASE_URL)
 
 
+# =========================
+# LOGIN
+# =========================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -29,6 +32,9 @@ def logout():
     return redirect(url_for("login"))
 
 
+# =========================
+# COBRANÇAS MENSAIS
+# =========================
 def gerar_cobrancas(cur, mes_ref):
     cur.execute("SELECT id FROM clientes")
     clientes = cur.fetchall()
@@ -46,6 +52,9 @@ def gerar_cobrancas(cur, mes_ref):
             """, (c[0], mes_ref))
 
 
+# =========================
+# INDEX
+# =========================
 @app.route("/")
 def index():
     if not session.get("logado"):
@@ -56,6 +65,7 @@ def index():
 
     mes_ref = request.args.get("mes") or datetime.now().strftime("%Y-%m")
     busca = request.args.get("busca", "").lower()
+    hoje = datetime.now().strftime("%Y-%m")
 
     gerar_cobrancas(cur, mes_ref)
 
@@ -73,7 +83,7 @@ def index():
     total = 0
     recebido = 0
 
-    hoje = datetime.now()
+    hoje_dia = datetime.now().day
 
     for c in raw:
         id, nome, tel, valor, venc, status = c
@@ -86,13 +96,14 @@ def index():
         if status == "pago":
             recebido += float(valor)
 
-        if mes_ref == hoje.strftime("%Y-%m"):
-            if status != "pago" and hoje.day > int(venc):
+        # regra mês atual / passado / futuro
+        if mes_ref > hoje:
+            status = "em_dia"
+        elif mes_ref == hoje:
+            if status != "pago" and hoje_dia > int(venc):
                 status = "atrasado"
             elif status != "pago":
                 status = "em_dia"
-        elif mes_ref > hoje.strftime("%Y-%m"):
-            status = "em_dia"
         else:
             if status != "pago":
                 status = "atrasado"
@@ -116,14 +127,19 @@ def index():
     )
 
 
+# =========================
+# PAGAR
+# =========================
 @app.route("/pago/<int:id>")
 def pago(id):
     conn = conectar()
     cur = conn.cursor()
+
     mes_ref = request.args.get("mes") or datetime.now().strftime("%Y-%m")
 
     cur.execute("""
-        UPDATE cobrancas SET status='pago', pago_em=NOW()
+        UPDATE cobrancas
+        SET status='pago', pago_em=NOW()
         WHERE cliente_id=%s AND mes_ref=%s
     """, (id, mes_ref))
 
@@ -134,14 +150,19 @@ def pago(id):
     return redirect(url_for("index", mes=mes_ref))
 
 
+# =========================
+# DESFAZER
+# =========================
 @app.route("/desfazer/<int:id>")
 def desfazer(id):
     conn = conectar()
     cur = conn.cursor()
+
     mes_ref = request.args.get("mes") or datetime.now().strftime("%Y-%m")
 
     cur.execute("""
-        UPDATE cobrancas SET status='em_dia', pago_em=NULL
+        UPDATE cobrancas
+        SET status='em_dia', pago_em=NULL
         WHERE cliente_id=%s AND mes_ref=%s
     """, (id, mes_ref))
 
@@ -152,6 +173,9 @@ def desfazer(id):
     return redirect(url_for("index", mes=mes_ref))
 
 
+# =========================
+# ADD CLIENTE
+# =========================
 @app.route("/add", methods=["POST"])
 def add():
     conn = conectar()
@@ -174,6 +198,9 @@ def add():
     return redirect(url_for("index"))
 
 
+# =========================
+# EDITAR
+# =========================
 @app.route("/edit/<int:id>", methods=["POST"])
 def edit(id):
     conn = conectar()
@@ -198,6 +225,9 @@ def edit(id):
     return redirect(url_for("index"))
 
 
+# =========================
+# DELETE
+# =========================
 @app.route("/delete/<int:id>")
 def delete(id):
     conn = conectar()
