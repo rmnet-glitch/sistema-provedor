@@ -19,19 +19,21 @@ def conectar():
 
 
 # =========================
-# LIMPAR VALOR
+# FORMATAR MOEDA
 # =========================
+def formatar_moeda(valor):
+    valor = float(valor)
+    if valor.is_integer():
+        return f"R$ {int(valor):,}".replace(",", ".")
+    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
 def limpar_valor(valor):
     if valor is None:
         return 0.0
-
-    s = str(valor).strip()
-    s = s.replace("R$", "").replace(" ", "")
-
+    s = str(valor).replace("R$", "").replace(" ", "")
     if "," in s:
-        s = s.replace(".", "")
-        s = s.replace(",", ".")
-
+        s = s.replace(".", "").replace(",", ".")
     try:
         return float(s)
     except:
@@ -39,21 +41,9 @@ def limpar_valor(valor):
 
 
 # =========================
-# FORMATAR MOEDA
+# BANCO
 # =========================
-def formatar_moeda(valor):
-    valor = float(valor)
-
-    if valor.is_integer():
-        return f"R$ {int(valor):,}".replace(",", ".")
-    else:
-        return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-
-# =========================
-# BANCO (AUTO MIGRAÇÃO)
-# =========================
-def atualizar_banco():
+def init_db():
     os.makedirs("./banco", exist_ok=True)
 
     conn = conectar()
@@ -65,29 +55,10 @@ def atualizar_banco():
         nome TEXT,
         telefone TEXT,
         valor REAL,
-        vencimento TEXT
+        vencimento TEXT,
+        ultimo_pagamento TEXT
     )
     """)
-
-    try:
-        c.execute("ALTER TABLE clientes ADD COLUMN ultimo_pagamento TEXT")
-    except:
-        pass
-
-    conn.commit()
-    conn.close()
-
-
-def corrigir_banco():
-    conn = conectar()
-    c = conn.cursor()
-
-    c.execute("SELECT id, valor FROM clientes")
-    clientes = c.fetchall()
-
-    for cliente in clientes:
-        valor = limpar_valor(cliente["valor"])
-        c.execute("UPDATE clientes SET valor=? WHERE id=?", (valor, cliente["id"]))
 
     conn.commit()
     conn.close()
@@ -99,6 +70,8 @@ def corrigir_banco():
 @app.route("/")
 def index():
 
+    search = request.args.get("search", "").lower()
+
     conn = conectar()
     c = conn.cursor()
 
@@ -109,43 +82,53 @@ def index():
     mes_atual = datetime.now().strftime("%Y-%m")
 
     lista = []
-    total = 0
 
-    for cliente in clientes:
+    for cte in clientes:
 
-        valor = limpar_valor(cliente["valor"])
+        nome = cte["nome"]
+        telefone = cte["telefone"]
 
-        try:
-            vencimento = int(cliente["vencimento"])
-        except:
-            vencimento = 0
+        if search:
+            if search not in nome.lower() and search not in telefone:
+                continue
 
-        ultimo_pagamento = cliente["ultimo_pagamento"] or ""
+        valor = limpar_valor(cte["valor"])
+        vencimento = int(cte["vencimento"] or 0)
+        ultimo = cte["ultimo_pagamento"] or ""
 
-        # =========================
-        # LÓGICA MENSAL
-        # =========================
-        if ultimo_pagamento == mes_atual:
+        if ultimo == mes_atual:
             status = "pago"
         elif vencimento != 0 and hoje > vencimento:
             status = "atrasado"
         else:
             status = "em_dia"
 
-        total += valor
-
         lista.append({
-            "id": cliente["id"],
-            "nome": cliente["nome"],
-            "telefone": cliente["telefone"],
+            "id": cte["id"],
+            "nome": nome,
+            "telefone": telefone,
             "valor": formatar_moeda(valor),
             "vencimento": vencimento,
             "status": status
         })
 
+    # =========================
+    # ORDEM DE STATUS
+    # atrasado -> em_dia -> pago
+    # =========================
+    ordem = {"atrasado": 0, "em_dia": 1, "pago": 2}
+    lista.sort(key=lambda x: ordem.get(x["status"], 9))
+
+    total = sum(limpar_valor(c["valor"]) for c in clientes)
+
     conn.close()
 
-    return render_template("index.html", clientes=lista, total=formatar_moeda(total))
+    return render_template(
+        "index.html",
+        clientes=lista,
+        total=formatar_moeda(total),
+        search=search
+    )
 
 
 # =========================
@@ -154,26 +137,18 @@ def index():
 @app.route("/cadastrar", methods=["POST"])
 def cadastrar():
 
-    nome = request.form.get("nome", "").strip()
-    telefone = request.form.get("telefone", "").strip()
-    valor = limpar_valor(request.form.get("valor", "0"))
-    vencimento = request.form.get("vencimento", "").strip()
-
-    if not telefone.isdigit():
-        return redirect("/")
-
-    if not vencimento.isdigit():
-        vencimento = "0"
-
-    telefone = "55" + telefone
+    nome = request.form["nome"]
+    telefone = "55" + request.form["telefone"]
+    valor = limpar_valor(request.form["valor"])
+    vencimento = request.form["vencimento"]
 
     conn = conectar()
     c = conn.cursor()
 
     c.execute("""
     INSERT INTO clientes (nome, telefone, valor, vencimento, ultimo_pagamento)
-    VALUES (?, ?, ?, ?, ?)
-    """, (nome, telefone, valor, vencimento, ""))
+    VALUES (?, ?, ?, ?, '')
+    """, (nome, telefone, valor, vencimento))
 
     conn.commit()
     conn.close()
@@ -182,55 +157,17 @@ def cadastrar():
 
 
 # =========================
-# EDITAR
-# =========================
-@app.route("/editar/<int:id>", methods=["POST"])
-def editar(id):
-
-    nome = request.form.get("nome", "").strip()
-    telefone = request.form.get("telefone", "").strip()
-    valor = limpar_valor(request.form.get("valor", "0"))
-    vencimento = request.form.get("vencimento", "").strip()
-
-    if not telefone.isdigit():
-        return redirect("/")
-
-    if not vencimento.isdigit():
-        vencimento = "0"
-
-    telefone = "55" + telefone
-
-    conn = conectar()
-    c = conn.cursor()
-
-    c.execute("""
-    UPDATE clientes
-    SET nome=?, telefone=?, valor=?, vencimento=?
-    WHERE id=?
-    """, (nome, telefone, valor, vencimento, id))
-
-    conn.commit()
-    conn.close()
-
-    return redirect("/")
-
-
-# =========================
-# PAGAR (MÊS ATUAL)
+# PAGAR
 # =========================
 @app.route("/pagar/<int:id>")
 def pagar(id):
 
-    mes_atual = datetime.now().strftime("%Y-%m")
+    mes = datetime.now().strftime("%Y-%m")
 
     conn = conectar()
     c = conn.cursor()
 
-    c.execute("""
-    UPDATE clientes
-    SET ultimo_pagamento=?
-    WHERE id=?
-    """, (mes_atual, id))
+    c.execute("UPDATE clientes SET ultimo_pagamento=? WHERE id=?", (mes, id))
 
     conn.commit()
     conn.close()
@@ -239,7 +176,7 @@ def pagar(id):
 
 
 # =========================
-# CANCELAR PAGAMENTO DO MÊS
+# DESFAZER
 # =========================
 @app.route("/desfazer/<int:id>")
 def desfazer(id):
@@ -247,11 +184,7 @@ def desfazer(id):
     conn = conectar()
     c = conn.cursor()
 
-    c.execute("""
-    UPDATE clientes
-    SET ultimo_pagamento=''
-    WHERE id=?
-    """, (id,))
+    c.execute("UPDATE clientes SET ultimo_pagamento='' WHERE id=?", (id,))
 
     conn.commit()
     conn.close()
@@ -260,7 +193,7 @@ def desfazer(id):
 
 
 # =========================
-# EXCLUIR CLIENTE
+# EXCLUIR
 # =========================
 @app.route("/excluir/<int:id>")
 def excluir(id):
@@ -277,7 +210,7 @@ def excluir(id):
 
 
 # =========================
-# COBRAR WHATSAPP
+# COBRAR
 # =========================
 @app.route("/cobrar/<int:id>")
 def cobrar(id):
@@ -286,24 +219,21 @@ def cobrar(id):
     c = conn.cursor()
 
     c.execute("SELECT * FROM clientes WHERE id=?", (id,))
-    cliente = c.fetchone()
+    cli = c.fetchone()
 
     conn.close()
 
-    mensagem = f"Olá {cliente['nome']}, sua mensalidade de {formatar_moeda(cliente['valor'])} está pendente."
-    mensagem = quote(mensagem)
-
-    link = f"https://wa.me/{cliente['telefone']}?text={mensagem}"
+    msg = f"Olá {cli['nome']}, sua mensalidade está pendente."
+    link = f"https://wa.me/{cli['telefone']}?text={quote(msg)}"
 
     return redirect(link)
 
 
 # =========================
-# START (NUVEM)
+# START
 # =========================
 if __name__ == "__main__":
-    atualizar_banco()
-    corrigir_banco()
+    init_db()
 
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
