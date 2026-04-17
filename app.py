@@ -5,7 +5,7 @@ from urllib.parse import quote
 import os
 
 app = Flask(__name__)
-app.secret_key = "chave_super_secreta"
+app.secret_key = "sistema_provedor_secret"
 
 DB_PATH = "./banco/clientes.db"
 
@@ -27,14 +27,17 @@ def conectar():
 
 
 # =========================
-# VALOR
+# FORMATAR VALOR
 # =========================
 def limpar_valor(v):
     if v is None:
         return 0.0
+
     s = str(v).replace("R$", "").replace(" ", "")
+
     if "," in s:
         s = s.replace(".", "").replace(",", ".")
+
     try:
         return float(s)
     except:
@@ -80,10 +83,7 @@ def login():
 
     if request.method == "POST":
 
-        u = request.form["usuario"]
-        s = request.form["senha"]
-
-        if u == USUARIO and s == SENHA:
+        if request.form["usuario"] == USUARIO and request.form["senha"] == SENHA:
             session["logado"] = True
             return redirect("/")
         else:
@@ -98,9 +98,6 @@ def logout():
     return redirect("/login")
 
 
-# =========================
-# PROTEÇÃO
-# =========================
 def auth():
     return session.get("logado")
 
@@ -124,8 +121,9 @@ def index():
     dia = datetime.now().day
 
     lista = []
-    total_mes = 0
+
     total_geral = 0
+    total_mes = 0
 
     for cte in clientes:
 
@@ -157,7 +155,8 @@ def index():
         "index.html",
         clientes=lista,
         total=formatar(total_geral),
-        recebido=formatar(total_mes)
+        recebido=formatar(total_mes),
+        search=""
     )
 
 
@@ -190,7 +189,36 @@ def cadastrar():
 
 
 # =========================
-# PAGAR
+# EDITAR CLIENTE
+# =========================
+@app.route("/editar/<int:id>", methods=["POST"])
+def editar(id):
+
+    if not auth():
+        return redirect("/login")
+
+    nome = request.form["nome"]
+    telefone = request.form["telefone"]
+    valor = limpar_valor(request.form["valor"])
+    vencimento = request.form["vencimento"]
+
+    conn = conectar()
+    c = conn.cursor()
+
+    c.execute("""
+    UPDATE clientes
+    SET nome=?, telefone=?, valor=?, vencimento=?
+    WHERE id=?
+    """, (nome, telefone, valor, vencimento, id))
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/")
+
+
+# =========================
+# PAGAR MÊS
 # =========================
 @app.route("/pagar/<int:id>")
 def pagar(id):
@@ -212,7 +240,7 @@ def pagar(id):
 
 
 # =========================
-# DESFAZER
+# DESFAZER PAGAMENTO
 # =========================
 @app.route("/desfazer/<int:id>")
 def desfazer(id):
@@ -232,7 +260,7 @@ def desfazer(id):
 
 
 # =========================
-# EXCLUIR
+# EXCLUIR CLIENTE
 # =========================
 @app.route("/excluir/<int:id>")
 def excluir(id):
@@ -252,7 +280,7 @@ def excluir(id):
 
 
 # =========================
-# COBRAR
+# COBRAR WHATSAPP
 # =========================
 @app.route("/cobrar/<int:id>")
 def cobrar(id):
