@@ -86,9 +86,7 @@ def index():
         valor = float(valor)
         total_geral += valor
 
-        if status == "pago":
-            total_recebido += valor
-
+        # regra de status (mantida igual lógica anterior)
         if mes_ref > hoje:
             status = "em_dia"
         elif mes_ref == hoje:
@@ -100,7 +98,9 @@ def index():
             if status != "pago":
                 status = "atrasado"
 
-        if status == "atrasado":
+        if status == "pago":
+            total_recebido += valor
+        elif status == "atrasado":
             total_atrasado += valor
         elif status == "em_dia":
             total_em_dia += valor
@@ -124,6 +124,99 @@ def index():
         total_atrasado=total_atrasado,
         total_em_dia=total_em_dia
     )
+
+
+@app.route("/pago/<int:id>")
+def pago(id):
+    conn = conectar()
+    cur = conn.cursor()
+    mes_ref = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    cur.execute("""
+        UPDATE cobrancas SET status='pago', pago_em=NOW()
+        WHERE cliente_id=%s AND mes_ref=%s
+    """, (id, mes_ref))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index", mes=mes_ref))
+
+
+@app.route("/desfazer/<int:id>")
+def desfazer(id):
+    conn = conectar()
+    cur = conn.cursor()
+    mes_ref = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    cur.execute("""
+        UPDATE cobrancas SET status='em_dia', pago_em=NULL
+        WHERE cliente_id=%s AND mes_ref=%s
+    """, (id, mes_ref))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index", mes=mes_ref))
+
+
+@app.route("/add", methods=["POST"])
+def add():
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO clientes (nome, telefone, valor, vencimento_dia)
+        VALUES (%s,%s,%s,%s)
+    """, (
+        request.form["nome"],
+        request.form["telefone"],
+        request.form["valor"],
+        request.form["vencimento_dia"]
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
+
+
+@app.route("/edit/<int:id>", methods=["POST"])
+def edit(id):
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE clientes
+        SET nome=%s, telefone=%s, valor=%s, vencimento_dia=%s
+        WHERE id=%s
+    """, (
+        request.form["nome"],
+        request.form["telefone"],
+        request.form["valor"],
+        request.form["vencimento_dia"],
+        id
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
+
+
+@app.route("/delete/<int:id>")
+def delete(id):
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM clientes WHERE id=%s", (id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return redirect(url_for("index"))
 
 
 if __name__ == "__main__":
