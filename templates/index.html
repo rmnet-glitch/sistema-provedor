@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema Provedor</title>
+
+<style>
+body { font-family: Arial; margin:0; background:#f4f6f8; }
+
+header {
+    background:#1f2937;
+    color:#fff;
+    text-align:center;
+    padding:15px;
+    font-size:20px;
+}
+
+.total {
+    background:#10b981;
+    color:#fff;
+    text-align:center;
+    padding:15px;
+    font-size:20px;
+    font-weight:bold;
+}
+
+.container {
+    max-width:700px;
+    margin:auto;
+    padding:10px;
+}
+
+/* FORM */
+.form {
+    background:#fff;
+    padding:15px;
+    border-radius:10px;
+    margin-bottom:15px;
+}
+
+input {
+    width:100%;
+    padding:10px;
+    margin:5px 0;
+    border-radius:8px;
+    border:1px solid #ccc;
+    font-size:16px;
+}
+
+button {
+    width:100%;
+    padding:12px;
+    background:#3b82f6;
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    font-size:16px;
+}
+
+/* CARD */
+.card {
+    background:#fff;
+    padding:15px;
+    margin-bottom:10px;
+    border-radius:10px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+.nome { font-size:18px; font-weight:bold; }
+
+.info { margin-top:5px; }
+
+.status { margin-top:8px; font-weight:bold; }
+
+.em_dia { color:green; }
+.atrasado { color:red; }
+.pago { color:blue; }
+
+/* BOTÕES */
+.botoes {
+    display:flex;
+    gap:5px;
+    margin-top:10px;
+    flex-wrap:wrap;
+}
+
+.btn {
+    flex:1;
+    padding:10px;
+    border-radius:8px;
+    text-align:center;
+    color:#fff;
+    text-decoration:none;
+    font-size:14px;
+}
+
+.cobrar { background:#f59e0b; }
+.pagar { background:#10b981; }
+.desfazer { background:#ef4444; }
+.editar { background:#3b82f6; }
+
+/* EDIT */
+.edit-form { display:none; margin-top:10px; }
+</style>
+</head>
+
+<body>
+
+<header>Sistema de Clientes</header>
+
+<div class="total">Total: {{ total }}</div>
+
+<div class="container">
+
+<!-- CADASTRO -->
+<div class="form">
+<form action="/cadastrar" method="POST">
+<input name="nome" placeholder="Nome" required>
+<input name="telefone" placeholder="Telefone (somente números)" required>
+<input name="valor" placeholder="Valor" required>
+<input name="vencimento" placeholder="Dia vencimento" required>
+<button type="submit">Cadastrar</button>
+</form>
+</div>
+
+<!-- LISTA -->
+{% for c in clientes %}
+
+<div class="card">
+
+<div class="nome">{{ c.nome }}</div>
+
+<div class="info">
+💰 {{ c.valor }} <br>
+📅 Venc: {{ c.vencimento }}
+</div>
+
+<div class="status {{ c.status }}">
+{% if c.status == "pago" %}Pago
+{% elif c.status == "atrasado" %}Atrasado
+{% else %}Em dia{% endif %}
+</div>
+
+<div class="botoes">
+<a class="btn cobrar" href="/cobrar/{{ c.id }}">Cobrar</a>
+<a class="btn pagar" href="/pagar/{{ c.id }}">Pago</a>
+<a class="btn desfazer" href="/desfazer/{{ c.id }}">Desfazer</a>
+<a class="btn editar" onclick="toggle({{ c.id }})">Editar</a>
+</div>
+
+<!-- EDIT -->
+<div class="edit-form" id="e{{ c.id }}">
+<form action="/editar/{{ c.id }}" method="POST">
+
+<input name="nome" value="{{ c.nome }}">
+
+<input name="telefone"
+value="{{ c.telefone[2:] if c.telefone else '' }}"
+placeholder="Telefone">
+
+<input name="valor" value="{{ c.valor }}">
+
+<input name="vencimento" value="{{ c.vencimento }}">
+
+<button type="submit">Salvar</button>
+
+</form>
+</div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+<script>
+function toggle(id){
+let el = document.getElementById("e"+id);
+el.style.display = (el.style.display==="block")?"none":"block";
+}
+</script>
+
+</body>
+</html>
