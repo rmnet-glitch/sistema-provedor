@@ -13,9 +13,9 @@ def conectar():
     return psycopg2.connect(DATABASE_URL)
 
 
-# ======================
+# =========================
 # LOGIN
-# ======================
+# =========================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -33,9 +33,24 @@ def logout():
     return redirect(url_for("login"))
 
 
-# ======================
-# INDEX
-# ======================
+# =========================
+# RESET AUTOMÁTICO MENSAL
+# =========================
+def reset_mensal(cur):
+    hoje = datetime.now()
+
+    # roda apenas no dia 1
+    if hoje.day == 1:
+        cur.execute("""
+            UPDATE clientes
+            SET status='atrasado'
+            WHERE status='pago'
+        """)
+
+
+# =========================
+# HOME
+# =========================
 @app.route("/")
 def index():
     if not session.get("logado"):
@@ -43,6 +58,8 @@ def index():
 
     conn = conectar()
     cur = conn.cursor()
+
+    reset_mensal(cur)
 
     cur.execute("""
         SELECT id, nome, telefone, valor, vencimento_dia, status
@@ -52,15 +69,16 @@ def index():
 
     clientes = cur.fetchall()
 
+    conn.commit()
     cur.close()
     conn.close()
 
     return render_template("index.html", clientes=clientes)
 
 
-# ======================
-# ADD
-# ======================
+# =========================
+# CADASTRAR
+# =========================
 @app.route("/add", methods=["POST"])
 def add():
     nome = request.form["nome"]
@@ -73,7 +91,7 @@ def add():
 
     cur.execute("""
         INSERT INTO clientes (nome, telefone, valor, vencimento_dia, status)
-        VALUES (%s,%s,%s,%s,'atrasado')
+        VALUES (%s,%s,%s,%s,'em_dia')
     """, (nome, telefone, valor, vencimento))
 
     conn.commit()
@@ -83,9 +101,9 @@ def add():
     return redirect(url_for("index"))
 
 
-# ======================
+# =========================
 # EDITAR
-# ======================
+# =========================
 @app.route("/edit/<int:id>", methods=["POST"])
 def edit(id):
     nome = request.form["nome"]
@@ -109,9 +127,9 @@ def edit(id):
     return redirect(url_for("index"))
 
 
-# ======================
-# PAGAR
-# ======================
+# =========================
+# STATUS
+# =========================
 @app.route("/pago/<int:id>")
 def pago(id):
     conn = conectar()
@@ -126,9 +144,6 @@ def pago(id):
     return redirect(url_for("index"))
 
 
-# ======================
-# RESET (ATRASADO)
-# ======================
 @app.route("/atrasado/<int:id>")
 def atrasado(id):
     conn = conectar()
@@ -143,35 +158,15 @@ def atrasado(id):
     return redirect(url_for("index"))
 
 
-# ======================
+# =========================
 # DELETE
-# ======================
+# =========================
 @app.route("/delete/<int:id>")
 def delete(id):
     conn = conectar()
     cur = conn.cursor()
 
     cur.execute("DELETE FROM clientes WHERE id=%s", (id,))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index"))
-
-
-# ======================
-# RESET MENSAL AUTOMÁTICO
-# ======================
-@app.route("/reset-mes")
-def reset_mes():
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("UPDATE clientes SET status='atrasado' WHERE status='pago'")
 
     conn.commit()
     cur.close()
