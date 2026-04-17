@@ -5,33 +5,36 @@ from urllib.parse import quote
 import os
 
 app = Flask(__name__)
-app.secret_key = "sistema_provedor_secret"
+app.secret_key = "chave_super_secreta"
 
 DB_PATH = "./banco/clientes.db"
 
 
 # =========================
-# LOGIN
+# LOGIN FIXO
 # =========================
 USUARIO = "rubens"
 SENHA = "Rm2412@"
 
 
+# =========================
+# CONEXÃO
+# =========================
 def conectar():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 
+# =========================
+# VALOR
+# =========================
 def limpar_valor(v):
     if v is None:
         return 0.0
-
     s = str(v).replace("R$", "").replace(" ", "")
-
     if "," in s:
         s = s.replace(".", "").replace(",", ".")
-
     try:
         return float(s)
     except:
@@ -43,10 +46,6 @@ def formatar(v):
     if v.is_integer():
         return f"R$ {int(v):,}".replace(",", ".")
     return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-
-def auth():
-    return session.get("logado")
 
 
 # =========================
@@ -80,10 +79,15 @@ def init_db():
 def login():
 
     if request.method == "POST":
-        if request.form["usuario"] == USUARIO and request.form["senha"] == SENHA:
+
+        u = request.form["usuario"]
+        s = request.form["senha"]
+
+        if u == USUARIO and s == SENHA:
             session["logado"] = True
             return redirect("/")
-        return render_template("login.html", erro="Login inválido")
+        else:
+            return render_template("login.html", erro="Login inválido")
 
     return render_template("login.html")
 
@@ -92,6 +96,13 @@ def login():
 def logout():
     session.clear()
     return redirect("/login")
+
+
+# =========================
+# PROTEÇÃO
+# =========================
+def auth():
+    return session.get("logado")
 
 
 # =========================
@@ -113,19 +124,19 @@ def index():
     dia = datetime.now().day
 
     lista = []
-    total = 0
-    recebido = 0
+    total_mes = 0
+    total_geral = 0
 
     for cte in clientes:
 
         valor = limpar_valor(cte["valor"])
-        total += valor
+        total_geral += valor
 
         ultimo = cte["ultimo_pagamento"] or ""
 
         if ultimo == mes:
             status = "pago"
-            recebido += valor
+            total_mes += valor
         elif int(cte["vencimento"] or 0) < dia:
             status = "atrasado"
         else:
@@ -145,9 +156,8 @@ def index():
     return render_template(
         "index.html",
         clientes=lista,
-        total=formatar(total),
-        recebido=formatar(recebido),
-        search=""
+        total=formatar(total_geral),
+        recebido=formatar(total_mes)
     )
 
 
@@ -172,35 +182,6 @@ def cadastrar():
     INSERT INTO clientes (nome, telefone, valor, vencimento, ultimo_pagamento)
     VALUES (?, ?, ?, ?, '')
     """, (nome, telefone, valor, vencimento))
-
-    conn.commit()
-    conn.close()
-
-    return redirect("/")
-
-
-# =========================
-# EDITAR (CORRIGIDO)
-# =========================
-@app.route("/editar/<int:id>", methods=["POST"])
-def editar(id):
-
-    if not auth():
-        return redirect("/login")
-
-    nome = request.form["nome"]
-    telefone = request.form["telefone"]
-    valor = limpar_valor(request.form["valor"])
-    vencimento = request.form["vencimento"]
-
-    conn = conectar()
-    c = conn.cursor()
-
-    c.execute("""
-    UPDATE clientes
-    SET nome=?, telefone=?, valor=?, vencimento=?
-    WHERE id=?
-    """, (nome, telefone, valor, vencimento, id))
 
     conn.commit()
     conn.close()
@@ -298,4 +279,6 @@ def cobrar(id):
 # =========================
 if __name__ == "__main__":
     init_db()
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
