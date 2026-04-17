@@ -1,12 +1,20 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, session
 import sqlite3
 from datetime import datetime
 from urllib.parse import quote
 import os
 
 app = Flask(__name__)
+app.secret_key = "chave_super_secreta"
 
 DB_PATH = "./banco/clientes.db"
+
+
+# =========================
+# LOGIN FIXO
+# =========================
+USUARIO = "rubens"
+SENHA = "Rm2412@"
 
 
 # =========================
@@ -19,25 +27,25 @@ def conectar():
 
 
 # =========================
-# FORMATAR MOEDA
+# VALOR
 # =========================
-def formatar_moeda(valor):
-    valor = float(valor)
-    if valor.is_integer():
-        return f"R$ {int(valor):,}".replace(",", ".")
-    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-
-def limpar_valor(valor):
-    if valor is None:
+def limpar_valor(v):
+    if v is None:
         return 0.0
-    s = str(valor).replace("R$", "").replace(" ", "")
+    s = str(v).replace("R$", "").replace(" ", "")
     if "," in s:
         s = s.replace(".", "").replace(",", ".")
     try:
         return float(s)
     except:
         return 0.0
+
+
+def formatar(v):
+    v = float(v)
+    if v.is_integer():
+        return f"R$ {int(v):,}".replace(",", ".")
+    return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 # =========================
@@ -65,12 +73,46 @@ def init_db():
 
 
 # =========================
+# LOGIN
+# =========================
+@app.route("/login", methods=["GET", "POST"])
+def login():
+
+    if request.method == "POST":
+
+        u = request.form["usuario"]
+        s = request.form["senha"]
+
+        if u == USUARIO and s == SENHA:
+            session["logado"] = True
+            return redirect("/")
+        else:
+            return render_template("login.html", erro="Login inválido")
+
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
+
+
+# =========================
+# PROTEÇÃO
+# =========================
+def auth():
+    return session.get("logado")
+
+
+# =========================
 # HOME
 # =========================
 @app.route("/")
 def index():
 
-    search = request.args.get("search", "").lower()
+    if not auth():
+        return redirect("/login")
 
     conn = conectar()
     c = conn.cursor()
@@ -78,56 +120,44 @@ def index():
     c.execute("SELECT * FROM clientes")
     clientes = c.fetchall()
 
-    hoje = datetime.now().day
-    mes_atual = datetime.now().strftime("%Y-%m")
+    mes = datetime.now().strftime("%Y-%m")
+    dia = datetime.now().day
 
     lista = []
+    total_mes = 0
+    total_geral = 0
 
     for cte in clientes:
 
-        nome = cte["nome"]
-        telefone = cte["telefone"]
-
-        if search:
-            if search not in nome.lower() and search not in telefone:
-                continue
-
         valor = limpar_valor(cte["valor"])
-        vencimento = int(cte["vencimento"] or 0)
+        total_geral += valor
+
         ultimo = cte["ultimo_pagamento"] or ""
 
-        if ultimo == mes_atual:
+        if ultimo == mes:
             status = "pago"
-        elif vencimento != 0 and hoje > vencimento:
+            total_mes += valor
+        elif int(cte["vencimento"] or 0) < dia:
             status = "atrasado"
         else:
             status = "em_dia"
 
         lista.append({
             "id": cte["id"],
-            "nome": nome,
-            "telefone": telefone,
-            "valor": formatar_moeda(valor),
-            "vencimento": vencimento,
+            "nome": cte["nome"],
+            "telefone": cte["telefone"],
+            "valor": formatar(valor),
+            "vencimento": cte["vencimento"],
             "status": status
         })
-
-    # =========================
-    # ORDEM DE STATUS
-    # atrasado -> em_dia -> pago
-    # =========================
-    ordem = {"atrasado": 0, "em_dia": 1, "pago": 2}
-    lista.sort(key=lambda x: ordem.get(x["status"], 9))
-
-    total = sum(limpar_valor(c["valor"]) for c in clientes)
 
     conn.close()
 
     return render_template(
         "index.html",
         clientes=lista,
-        total=formatar_moeda(total),
-        search=search
+        total=formatar(total_geral),
+        recebido=formatar(total_mes)
     )
 
 
@@ -136,6 +166,9 @@ def index():
 # =========================
 @app.route("/cadastrar", methods=["POST"])
 def cadastrar():
+
+    if not auth():
+        return redirect("/login")
 
     nome = request.form["nome"]
     telefone = "55" + request.form["telefone"]
@@ -162,6 +195,9 @@ def cadastrar():
 @app.route("/pagar/<int:id>")
 def pagar(id):
 
+    if not auth():
+        return redirect("/login")
+
     mes = datetime.now().strftime("%Y-%m")
 
     conn = conectar()
@@ -181,6 +217,9 @@ def pagar(id):
 @app.route("/desfazer/<int:id>")
 def desfazer(id):
 
+    if not auth():
+        return redirect("/login")
+
     conn = conectar()
     c = conn.cursor()
 
@@ -197,6 +236,9 @@ def desfazer(id):
 # =========================
 @app.route("/excluir/<int:id>")
 def excluir(id):
+
+    if not auth():
+        return redirect("/login")
 
     conn = conectar()
     c = conn.cursor()
@@ -215,6 +257,9 @@ def excluir(id):
 @app.route("/cobrar/<int:id>")
 def cobrar(id):
 
+    if not auth():
+        return redirect("/login")
+
     conn = conectar()
     c = conn.cursor()
 
@@ -223,7 +268,7 @@ def cobrar(id):
 
     conn.close()
 
-    msg = f"Olá {cli['nome']}, sua mensalidade está pendente."
+    msg = f"Olá {cli['nome']}, sua mensalidade está em aberto."
     link = f"https://wa.me/{cli['telefone']}?text={quote(msg)}"
 
     return redirect(link)
