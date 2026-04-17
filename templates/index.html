@@ -48,21 +48,28 @@ font-size:13px;
 .em_dia{border-left:4px solid blue}
 .pago{border-left:4px solid green}
 
+/* 🔥 BOTÕES PADRONIZADOS MENORES */
 .actions{
 display:flex;
-gap:5px;
+gap:4px;
 margin-top:5px;
 }
 
-.actions button{
-width:100%;
-padding:6px;
-font-size:11px;
+.btn{
+flex:1;
+padding:4px;
+font-size:10px;
 border:none;
-border-radius:5px;
+border-radius:4px;
 background:#6c757d;
 color:#fff;
+text-align:center;
 }
+
+.btn-danger{background:#dc3545}
+.btn-success{background:#28a745}
+.btn-info{background:#17a2b8}
+.btn-dark{background:#343a40}
 
 .hidden{display:none}
 
@@ -87,7 +94,7 @@ color:#fff;
 <button>OK</button>
 </form>
 
-<!-- TOTAIS (NOVO BLOCO ADICIONADO) -->
+<!-- TOTAIS -->
 <div class="stats">
 💰 Total: {{total_geral}}<br>
 💵 Recebido: {{total_recebido}}<br>
@@ -122,9 +129,9 @@ color:#fff;
 <a target="_blank"
 href="https://wa.me/55{{c[2]}}?text=Olá,%20seu%20boleto%20RM%20NET%20venceu.%20%0A%0A*Essa%20é%20uma%20mensagem%20automática.*">
 
-<button style="width:100%;margin-top:5px;background:#6c757d;color:#fff">
-📲 WhatsApp
-</button>
+<div class="actions">
+<button class="btn btn-success">📲 WhatsApp</button>
+</div>
 
 </a>
 
@@ -132,21 +139,21 @@ href="https://wa.me/55{{c[2]}}?text=Olá,%20seu%20boleto%20RM%20NET%20venceu.%20
 <div class="actions">
 
 <a href="/pago/{{c[0]}}?mes={{mes_ref}}">
-<button>✔ Pago</button>
+<button class="btn btn-info">✔ Pago</button>
 </a>
 
 <a href="/desfazer/{{c[0]}}?mes={{mes_ref}}">
-<button>↩ Voltar</button>
+<button class="btn btn-dark">↩ Voltar</button>
 </a>
 
 </div>
 
 <div class="actions">
 
-<button onclick="toggle('e{{c[0]}}')">✏ Editar</button>
+<button class="btn" onclick="toggle('e{{c[0]}}')">✏ Editar</button>
 
 <a href="/delete/{{c[0]}}">
-<button>🗑 Excluir</button>
+<button class="btn btn-danger">🗑 Excluir</button>
 </a>
 
 </div>
