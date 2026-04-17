@@ -2,10 +2,16 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema RM NET</title>
+<title>RM NET</title>
 
 <style>
 body{font-family:Arial;background:#f4f6f8;padding:10px}
+
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
 
 .topbar{display:flex;gap:5px;flex-wrap:wrap}
 
@@ -39,34 +45,39 @@ background:#6c757d;
 color:#fff;
 }
 
-.btn-primary{background:#6c757d}
-.small{font-size:11px;color:#666}
 .hidden{display:none}
+
+.small{font-size:11px;color:#666}
 </style>
 </head>
 
 <body>
 
-<h3>Clientes RM NET</h3>
+<div class="header">
+<h3>📡 RM NET</h3>
+
+<a href="/logout">
+<button style="background:#dc3545;color:#fff">🚪 Sair</button>
+</a>
+</div>
 
 <form class="topbar">
 <input type="month" name="mes" value="{{mes_ref}}">
-<input type="text" name="busca" placeholder="Buscar cliente..." value="{{busca}}">
+<input type="text" name="busca" placeholder="🔎 Buscar cliente..." value="{{busca}}">
 <button>OK</button>
 </form>
 
 <p class="small">
-Total: {{total_geral}} |
-Recebido: {{total_recebido}}
+💰 Total: {{total_geral}} |
+💵 Recebido: {{total_recebido}}
 </p>
 
-<!-- CADASTRO -->
-<button onclick="toggle('cad')">+ Cliente</button>
+<button onclick="toggle('cad')">➕ Cliente</button>
 
 <div id="cad" class="hidden">
 <form action="/add" method="post">
 <input name="nome" placeholder="Nome">
-<input name="telefone" placeholder="Telefone (DDD+numero)">
+<input name="telefone" placeholder="Telefone">
 <input name="valor" placeholder="Valor">
 <input name="vencimento_dia" placeholder="Dia vencimento">
 <button>Salvar</button>
@@ -79,43 +90,37 @@ Recebido: {{total_recebido}}
 
 <div class="card {{c[5]}}">
 
-<b>{{c[1]}}</b> <span class="small">{{c[2]}}</span><br>
-R$ {{c[3]}} | Dia {{c[4]}} | {{c[5]}}
+<b>👤 {{c[1]}}</b> <span class="small">📞 {{c[2]}}</span><br>
+💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
 
-<!-- WHATSAPP (MESMO ESTILO DOS OUTROS BOTÕES) -->
-<div class="actions">
-
-<a style="width:100%"
-target="_blank"
+<!-- WHATSAPP -->
+<a target="_blank"
 href="https://wa.me/55{{c[2]}}?text=Olá,%20seu%20boleto%20RM%20NET%20venceu.%20%0A%0A*Essa%20é%20uma%20mensagem%20automática.*">
 
-<button class="btn-primary">
-WhatsApp
+<button style="width:100%;margin-top:5px;background:#6c757d;color:#fff">
+📲 WhatsApp
 </button>
 
 </a>
 
-</div>
-
-<!-- AÇÕES -->
 <div class="actions">
 
 <a href="/pago/{{c[0]}}?mes={{mes_ref}}">
-<button class="btn-primary">Pago</button>
+<button>✔ Pago</button>
 </a>
 
 <a href="/desfazer/{{c[0]}}?mes={{mes_ref}}">
-<button class="btn-primary">Voltar</button>
+<button>↩ Voltar</button>
 </a>
 
 </div>
 
 <div class="actions">
 
-<button class="btn-primary" onclick="toggle('e{{c[0]}}')">Editar</button>
+<button onclick="toggle('e{{c[0]}}')">✏ Editar</button>
 
 <a href="/delete/{{c[0]}}">
-<button class="btn-primary">Excluir</button>
+<button>🗑 Excluir</button>
 </a>
 
 </div>
@@ -137,7 +142,7 @@ WhatsApp
 <script>
 function toggle(id){
 let e=document.getElementById(id);
-e.style.display = e.style.display==="block"?"none":"block";
+e.style.display=e.style.display==="block"?"none":"block";
 }
 </script>
 
