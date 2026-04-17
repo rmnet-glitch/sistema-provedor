@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Sistema Provedor</title>
+<title>Sistema Clientes</title>
 
 <style>
 
@@ -15,7 +15,6 @@ body {
     padding: 10px;
 }
 
-/* CABEÇALHO */
 .header {
     text-align: center;
     font-size: 20px;
@@ -23,14 +22,13 @@ body {
     margin-bottom: 10px;
 }
 
-/* INFO TOP */
+/* INFO */
 .info {
     background: #111;
     color: white;
     padding: 10px;
     border-radius: 10px;
     margin-bottom: 10px;
-    font-size: 14px;
 }
 
 /* BOTÕES TOPO */
@@ -47,14 +45,13 @@ body {
     border-radius: 8px;
     color: white;
     text-decoration: none;
-    font-size: 14px;
 }
 
 .green { background: green; }
 .blue { background: #007bff; }
 .gray { background: #555; }
 
-/* FORM */
+/* BOX */
 .box {
     display: none;
     background: white;
@@ -67,19 +64,17 @@ input {
     width: 100%;
     padding: 10px;
     margin: 5px 0;
-    font-size: 14px;
 }
 
 button {
     width: 100%;
     padding: 10px;
-    border: none;
-    border-radius: 6px;
     background: green;
+    border: none;
     color: white;
 }
 
-/* CARD CLIENTE */
+/* CARD */
 .card {
     background: white;
     padding: 12px;
@@ -92,7 +87,7 @@ button {
 .em_dia { color: orange; font-weight: bold; }
 .atrasado { color: red; font-weight: bold; }
 
-/* BOTÕES CLIENTE */
+/* BOTÕES */
 .btn {
     display: inline-block;
     padding: 6px 8px;
@@ -107,6 +102,7 @@ button {
 .undo { background: orange; }
 .del { background: red; }
 .msg { background: purple; }
+.edit { background: blue; }
 
 </style>
 
@@ -114,17 +110,14 @@ button {
 
 <body>
 
-<div class="header">
-📡 Sistema de Clientes
-</div>
+<div class="header">📡 Sistema de Clientes</div>
 
-<!-- INFO -->
 <div class="info">
 💰 Recebido no mês: <b>{{ recebido }}</b><br>
 📊 Total geral: <b>{{ total }}</b>
 </div>
 
-<!-- TOPO BOTÕES -->
+<!-- TOPO -->
 <div class="top">
 
 <a class="green" href="#" onclick="toggleCadastro()">➕ Cadastrar</a>
@@ -154,9 +147,25 @@ button {
 
 <form method="GET" action="/">
 
-<input name="search" placeholder="Buscar nome ou telefone" value="{{ search }}">
+<input name="search" placeholder="Buscar cliente" value="{{ search }}">
 
 <button type="submit">Buscar</button>
+
+</form>
+
+</div>
+
+<!-- EDITAR (NOVO) -->
+<div class="box" id="editar">
+
+<form id="formEditar" method="POST">
+
+<input name="nome" id="edit_nome" required>
+<input name="telefone" id="edit_telefone" required>
+<input name="valor" id="edit_valor" required>
+<input name="vencimento" id="edit_vencimento" required>
+
+<button type="submit">Atualizar Cliente</button>
 
 </form>
 
@@ -179,6 +188,12 @@ Status:
 <a class="btn del" href="/excluir/{{ c.id }}" onclick="return confirm('Excluir cliente?')">Excluir</a>
 <a class="btn msg" href="/cobrar/{{ c.id }}">Cobrar</a>
 
+<!-- BOTÃO EDITAR -->
+<a class="btn edit" href="#"
+onclick="abrirEditar('{{ c.id }}','{{ c.nome }}','{{ c.telefone }}','{{ c.valor }}','{{ c.vencimento }}')">
+Editar
+</a>
+
 </div>
 
 {% endfor %}
@@ -186,13 +201,26 @@ Status:
 <script>
 
 function toggleCadastro() {
-    let x = document.getElementById("cadastro");
-    x.style.display = x.style.display === "block" ? "none" : "block";
+    document.getElementById("cadastro").style.display =
+    document.getElementById("cadastro").style.display === "block" ? "none" : "block";
 }
 
 function toggleBusca() {
-    let x = document.getElementById("busca");
-    x.style.display = x.style.display === "block" ? "none" : "block";
+    document.getElementById("busca").style.display =
+    document.getElementById("busca").style.display === "block" ? "none" : "block";
+}
+
+/* EDITAR */
+function abrirEditar(id, nome, telefone, valor, vencimento) {
+
+    document.getElementById("editar").style.display = "block";
+
+    document.getElementById("edit_nome").value = nome;
+    document.getElementById("edit_telefone").value = telefone;
+    document.getElementById("edit_valor").value = valor;
+    document.getElementById("edit_vencimento").value = vencimento;
+
+    document.getElementById("formEditar").action = "/editar/" + id;
 }
 
 </script>
