@@ -19,13 +19,21 @@ def conectar():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        if request.form["usuario"] == "rubens" and request.form["senha"] == "Rm2412@":
+        usuario = request.form["usuario"]
+        senha = request.form["senha"]
+
+        if usuario == "rubens" and senha == "Rm2412@":
             session["logado"] = True
             return redirect(url_for("index"))
+
         return render_template("login.html", erro="Login inválido")
+
     return render_template("login.html")
 
 
+# =========================
+# LOGOUT
+# =========================
 @app.route("/logout")
 def logout():
     session.clear()
@@ -33,7 +41,7 @@ def logout():
 
 
 # =========================
-# COBRANÇAS MENSAIS
+# COBRANÇA MENSAL
 # =========================
 def gerar_cobrancas(cur, mes_ref):
     cur.execute("SELECT id FROM clientes")
@@ -82,7 +90,6 @@ def index():
     clientes = []
     total = 0
     recebido = 0
-
     hoje_dia = datetime.now().day
 
     for c in raw:
@@ -96,7 +103,6 @@ def index():
         if status == "pago":
             recebido += float(valor)
 
-        # regra mês atual / passado / futuro
         if mes_ref > hoje:
             status = "em_dia"
         elif mes_ref == hoje:
@@ -174,7 +180,7 @@ def desfazer(id):
 
 
 # =========================
-# ADD CLIENTE
+# ADD
 # =========================
 @app.route("/add", methods=["POST"])
 def add():
@@ -199,7 +205,7 @@ def add():
 
 
 # =========================
-# EDITAR
+# EDIT
 # =========================
 @app.route("/edit/<int:id>", methods=["POST"])
 def edit(id):
