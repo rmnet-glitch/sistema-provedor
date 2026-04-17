@@ -4,112 +4,64 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Sistema Provedor</title>
+<title>Clientes</title>
 
 <style>
+body { font-family: Arial; background:#f5f5f5; padding:10px; }
 
-body {
-    font-family: Arial;
-    background: #f4f4f4;
-    margin: 0;
-    padding: 10px;
+.card {
+    background:white;
+    padding:10px;
+    margin-bottom:10px;
+    border-radius:8px;
 }
 
-/* TÍTULO */
-h1 {
-    text-align: center;
-    font-size: 22px;
-}
-
-/* TOTAL */
-.total {
-    background: #222;
-    color: white;
-    padding: 10px;
-    border-radius: 8px;
-    text-align: center;
-    margin-bottom: 15px;
-    font-size: 18px;
-}
-
-/* FORM */
-form {
-    background: white;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 15px;
-}
+.pago { color:green; font-weight:bold; }
+.em_dia { color:orange; font-weight:bold; }
+.atrasado { color:red; font-weight:bold; }
 
 input {
-    width: 100%;
-    padding: 10px;
-    margin: 5px 0;
-    font-size: 16px;
+    width:100%;
+    padding:10px;
+    margin-bottom:10px;
 }
 
-/* BOTÃO */
-button {
-    width: 100%;
-    padding: 10px;
-    background: green;
-    color: white;
-    border: none;
-    font-size: 16px;
-    border-radius: 6px;
-}
-
-/* CARD CLIENTE */
-.card {
-    background: white;
-    padding: 12px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-    font-size: 16px;
-}
-
-/* STATUS */
-.pago { color: green; font-weight: bold; }
-.atrasado { color: red; font-weight: bold; }
-.em_dia { color: orange; font-weight: bold; }
-
-/* BOTÕES */
 .btn {
-    display: inline-block;
-    padding: 6px 10px;
-    margin-top: 5px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-size: 13px;
-    color: white;
+    padding:5px 8px;
+    margin-right:5px;
+    border-radius:5px;
+    color:white;
+    text-decoration:none;
+    font-size:12px;
 }
 
-.pagar { background: green; }
-.desfazer { background: orange; }
-.editar { background: blue; }
-.excluir { background: red; }
-.cobrar { background: purple; }
-
+.green { background:green; }
+.red { background:red; }
+.blue { background:blue; }
+.orange { background:orange; }
+.purple { background:purple; }
 </style>
+
 </head>
 
 <body>
 
-<h1>📡 Sistema de Clientes</h1>
+<h2>Clientes</h2>
 
-<div class="total">
-💰 Total: {{ total }}
-</div>
+<h3>Total: {{ total }}</h3>
+
+<!-- BUSCA -->
+<form method="GET" action="/">
+<input type="text" name="search" placeholder="Buscar cliente..." value="{{ search }}">
+</form>
 
 <!-- CADASTRO -->
-<form action="/cadastrar" method="POST">
+<form method="POST" action="/cadastrar">
 
-<input type="text" name="nome" placeholder="Nome" required>
-
-<input type="text" name="telefone" placeholder="Telefone (DDD+Número)" required>
-
-<input type="text" name="valor" placeholder="Valor (ex: 60)" required>
-
-<input type="text" name="vencimento" placeholder="Dia vencimento (ex: 10)" required>
+<input name="nome" placeholder="Nome" required>
+<input name="telefone" placeholder="Telefone" required>
+<input name="valor" placeholder="Valor" required>
+<input name="vencimento" placeholder="Dia vencimento" required>
 
 <button type="submit">Cadastrar</button>
 
@@ -120,66 +72,20 @@ button {
 
 <div class="card">
 
-<strong>{{ c.nome }}</strong><br>
-📞 {{ c.telefone }}<br>
-💰 {{ c.valor }}<br>
-📅 Venc: {{ c.vencimento }}<br>
+<b>{{ c.nome }}</b><br>
+{{ c.telefone }}<br>
+{{ c.valor }}<br>
 
-Status:
-<span class="{{ c.status }}">{{ c.status }}</span>
+Status: <span class="{{ c.status }}">{{ c.status }}</span><br>
 
-<br>
-
-<!-- BOTÕES -->
-<a class="btn pagar" href="/pagar/{{ c.id }}">Pagar</a>
-
-<a class="btn desfazer" href="/desfazer/{{ c.id }}">Desfazer</a>
-
-<a class="btn editar" href="#" onclick="editarCliente({{ c.id }}, '{{ c.nome }}', '{{ c.telefone }}', '{{ c.vencimento }}')">Editar</a>
-
-<a class="btn excluir" href="/excluir/{{ c.id }}" onclick="return confirm('Deseja excluir este cliente?')">Excluir</a>
-
-<a class="btn cobrar" href="/cobrar/{{ c.id }}">Cobrar</a>
+<a class="btn green" href="/pagar/{{ c.id }}">Pagar</a>
+<a class="btn orange" href="/desfazer/{{ c.id }}">Desfazer</a>
+<a class="btn red" href="/excluir/{{ c.id }}" onclick="return confirm('Excluir?')">Excluir</a>
+<a class="btn purple" href="/cobrar/{{ c.id }}">Cobrar</a>
 
 </div>
 
 {% endfor %}
-
-<!-- EDIT MODAL SIMPLES -->
-<div id="editBox" style="display:none; position:fixed; top:10%; left:5%; right:5%; background:white; padding:15px; border-radius:10px; box-shadow:0 0 10px #000;">
-
-<h3>Editar Cliente</h3>
-
-<form id="editForm" method="POST">
-
-<input type="text" name="nome" id="edit_nome">
-<input type="text" name="telefone" id="edit_telefone">
-<input type="text" name="valor" id="edit_valor">
-<input type="text" name="vencimento" id="edit_vencimento">
-
-<button type="submit">Salvar</button>
-
-</form>
-
-<br>
-<button onclick="document.getElementById('editBox').style.display='none'">Fechar</button>
-
-</div>
-
-<script>
-
-function editarCliente(id, nome, telefone, vencimento) {
-
-    document.getElementById("editBox").style.display = "block";
-
-    document.getElementById("edit_nome").value = nome;
-    document.getElementById("edit_telefone").value = telefone;
-    document.getElementById("edit_vencimento").value = vencimento;
-
-    document.getElementById("editForm").action = "/editar/" + id;
-}
-
-</script>
 
 </body>
 </html>
