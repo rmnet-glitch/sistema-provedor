@@ -13,9 +13,6 @@ def conectar():
     return psycopg2.connect(DATABASE_URL)
 
 
-# =========================
-# LOGIN
-# =========================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -32,9 +29,6 @@ def logout():
     return redirect(url_for("login"))
 
 
-# =========================
-# COBRANÇAS
-# =========================
 def gerar_cobrancas(cur, mes_ref):
     cur.execute("SELECT id FROM clientes")
     clientes = cur.fetchall()
@@ -52,9 +46,6 @@ def gerar_cobrancas(cur, mes_ref):
             """, (c[0], mes_ref))
 
 
-# =========================
-# INDEX
-# =========================
 @app.route("/")
 def index():
     if not session.get("logado"):
@@ -64,7 +55,7 @@ def index():
     cur = conn.cursor()
 
     mes_ref = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-    hoje = datetime.now().strftime("%Y-%m")
+    busca = request.args.get("busca", "").lower()
 
     gerar_cobrancas(cur, mes_ref)
 
@@ -82,69 +73,57 @@ def index():
     total = 0
     recebido = 0
 
-    hoje_dia = datetime.now().day
+    hoje = datetime.now()
 
     for c in raw:
         id, nome, tel, valor, venc, status = c
 
-        total += float(valor)
+        if busca and busca not in nome.lower():
+            continue
 
-        # =========================
-        # REGRA CORRIGIDA DE STATUS
-        # =========================
+        total += float(valor)
 
         if status == "pago":
             recebido += float(valor)
 
-        if mes_ref > hoje:
-            status = "em_dia"   # mês futuro nunca pode estar atrasado
-
-        elif mes_ref == hoje:
-            if status != "pago" and hoje_dia > int(venc):
+        if mes_ref == hoje.strftime("%Y-%m"):
+            if status != "pago" and hoje.day > int(venc):
                 status = "atrasado"
             elif status != "pago":
                 status = "em_dia"
-
+        elif mes_ref > hoje.strftime("%Y-%m"):
+            status = "em_dia"
         else:
-            # mês passado = histórico congelado
             if status != "pago":
                 status = "atrasado"
 
         clientes.append((id, nome, tel, valor, venc, status))
 
-    ordem = {
-        "atrasado": 0,
-        "em_dia": 1,
-        "pago": 2
-    }
-
+    ordem = {"atrasado": 0, "em_dia": 1, "pago": 2}
     clientes.sort(key=lambda x: ordem.get(x[5], 1))
 
     conn.commit()
     cur.close()
     conn.close()
 
-    return render_template("index.html",
+    return render_template(
+        "index.html",
         clientes=clientes,
         mes_ref=mes_ref,
+        busca=busca,
         total_geral=total,
         total_recebido=recebido
     )
 
 
-# =========================
-# PAGAR
-# =========================
 @app.route("/pago/<int:id>")
 def pago(id):
     conn = conectar()
     cur = conn.cursor()
-
     mes_ref = request.args.get("mes") or datetime.now().strftime("%Y-%m")
 
     cur.execute("""
-        UPDATE cobrancas
-        SET status='pago', pago_em=NOW()
+        UPDATE cobrancas SET status='pago', pago_em=NOW()
         WHERE cliente_id=%s AND mes_ref=%s
     """, (id, mes_ref))
 
@@ -155,19 +134,14 @@ def pago(id):
     return redirect(url_for("index", mes=mes_ref))
 
 
-# =========================
-# DESFAZER
-# =========================
 @app.route("/desfazer/<int:id>")
 def desfazer(id):
     conn = conectar()
     cur = conn.cursor()
-
     mes_ref = request.args.get("mes") or datetime.now().strftime("%Y-%m")
 
     cur.execute("""
-        UPDATE cobrancas
-        SET status='em_dia', pago_em=NULL
+        UPDATE cobrancas SET status='em_dia', pago_em=NULL
         WHERE cliente_id=%s AND mes_ref=%s
     """, (id, mes_ref))
 
@@ -178,9 +152,6 @@ def desfazer(id):
     return redirect(url_for("index", mes=mes_ref))
 
 
-# =========================
-# ADD
-# =========================
 @app.route("/add", methods=["POST"])
 def add():
     conn = conectar()
@@ -203,9 +174,6 @@ def add():
     return redirect(url_for("index"))
 
 
-# =========================
-# EDIT
-# =========================
 @app.route("/edit/<int:id>", methods=["POST"])
 def edit(id):
     conn = conectar()
@@ -230,9 +198,6 @@ def edit(id):
     return redirect(url_for("index"))
 
 
-# =========================
-# DELETE
-# =========================
 @app.route("/delete/<int:id>")
 def delete(id):
     conn = conectar()
