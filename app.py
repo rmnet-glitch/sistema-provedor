@@ -1,13 +1,20 @@
 from flask import Flask, render_template, request, redirect, session
-import sqlite3
+import psycopg2
+import os
 from datetime import datetime
 from urllib.parse import quote
-import os
 
 app = Flask(__name__)
-app.secret_key = "chave_super_secreta"
+app.secret_key = "sistema_provedor_secret"
 
-DB_PATH = "./banco/clientes.db"
+# =========================
+# SUPABASE (POSTGRES)
+# =========================
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+
+def conectar():
+    return psycopg2.connect(DATABASE_URL)
 
 
 # =========================
@@ -18,23 +25,17 @@ SENHA = "Rm2412@"
 
 
 # =========================
-# CONEXÃO
-# =========================
-def conectar():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-# =========================
-# VALOR
+# FORMATAÇÃO
 # =========================
 def limpar_valor(v):
     if v is None:
         return 0.0
+
     s = str(v).replace("R$", "").replace(" ", "")
+
     if "," in s:
         s = s.replace(".", "").replace(",", ".")
+
     try:
         return float(s)
     except:
@@ -45,31 +46,11 @@ def formatar(v):
     v = float(v)
     if v.is_integer():
         return f"R$ {int(v):,}".replace(",", ".")
-    return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"R$ {v:,.2f}".replace(".", ",")
 
 
-# =========================
-# BANCO
-# =========================
-def init_db():
-    os.makedirs("./banco", exist_ok=True)
-
-    conn = conectar()
-    c = conn.cursor()
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS clientes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT,
-        telefone TEXT,
-        valor REAL,
-        vencimento TEXT,
-        ultimo_pagamento TEXT
-    )
-    """)
-
-    conn.commit()
-    conn.close()
+def auth():
+    return session.get("logado")
 
 
 # =========================
@@ -80,10 +61,7 @@ def login():
 
     if request.method == "POST":
 
-        u = request.form["usuario"]
-        s = request.form["senha"]
-
-        if u == USUARIO and s == SENHA:
+        if request.form["usuario"] == USUARIO and request.form["senha"] == SENHA:
             session["logado"] = True
             return redirect("/")
         else:
@@ -99,13 +77,6 @@ def logout():
 
 
 # =========================
-# PROTEÇÃO
-# =========================
-def auth():
-    return session.get("logado")
-
-
-# =========================
 # HOME
 # =========================
 @app.route("/")
@@ -115,39 +86,39 @@ def index():
         return redirect("/login")
 
     conn = conectar()
-    c = conn.cursor()
+    cur = conn.cursor()
 
-    c.execute("SELECT * FROM clientes")
-    clientes = c.fetchall()
+    cur.execute("SELECT * FROM clientes")
+    clientes = cur.fetchall()
 
     mes = datetime.now().strftime("%Y-%m")
     dia = datetime.now().day
 
     lista = []
-    total_mes = 0
-    total_geral = 0
+    total = 0
+    recebido = 0
 
-    for cte in clientes:
+    for c in clientes:
 
-        valor = limpar_valor(cte["valor"])
-        total_geral += valor
+        valor = float(c[3])
+        total += valor
 
-        ultimo = cte["ultimo_pagamento"] or ""
+        ultimo = c[5] or ""
 
         if ultimo == mes:
             status = "pago"
-            total_mes += valor
-        elif int(cte["vencimento"] or 0) < dia:
+            recebido += valor
+        elif int(c[4] or 0) < dia:
             status = "atrasado"
         else:
             status = "em_dia"
 
         lista.append({
-            "id": cte["id"],
-            "nome": cte["nome"],
-            "telefone": cte["telefone"],
+            "id": c[0],
+            "nome": c[1],
+            "telefone": c[2],
             "valor": formatar(valor),
-            "vencimento": cte["vencimento"],
+            "vencimento": c[4],
             "status": status
         })
 
@@ -156,8 +127,9 @@ def index():
     return render_template(
         "index.html",
         clientes=lista,
-        total=formatar(total_geral),
-        recebido=formatar(total_mes)
+        total=formatar(total),
+        recebido=formatar(recebido),
+        search=""
     )
 
 
@@ -176,12 +148,41 @@ def cadastrar():
     vencimento = request.form["vencimento"]
 
     conn = conectar()
-    c = conn.cursor()
+    cur = conn.cursor()
 
-    c.execute("""
-    INSERT INTO clientes (nome, telefone, valor, vencimento, ultimo_pagamento)
-    VALUES (?, ?, ?, ?, '')
-    """, (nome, telefone, valor, vencimento))
+    cur.execute("""
+        INSERT INTO clientes (nome, telefone, valor, vencimento, ultimo_pagamento)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (nome, telefone, valor, vencimento, ""))
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/")
+
+
+# =========================
+# EDITAR
+# =========================
+@app.route("/editar/<int:id>", methods=["POST"])
+def editar(id):
+
+    if not auth():
+        return redirect("/login")
+
+    nome = request.form["nome"]
+    telefone = request.form["telefone"]
+    valor = limpar_valor(request.form["valor"])
+    vencimento = request.form["vencimento"]
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE clientes
+        SET nome=%s, telefone=%s, valor=%s, vencimento=%s
+        WHERE id=%s
+    """, (nome, telefone, valor, vencimento, id))
 
     conn.commit()
     conn.close()
@@ -201,9 +202,13 @@ def pagar(id):
     mes = datetime.now().strftime("%Y-%m")
 
     conn = conectar()
-    c = conn.cursor()
+    cur = conn.cursor()
 
-    c.execute("UPDATE clientes SET ultimo_pagamento=? WHERE id=?", (mes, id))
+    cur.execute("""
+        UPDATE clientes
+        SET ultimo_pagamento=%s
+        WHERE id=%s
+    """, (mes, id))
 
     conn.commit()
     conn.close()
@@ -221,9 +226,13 @@ def desfazer(id):
         return redirect("/login")
 
     conn = conectar()
-    c = conn.cursor()
+    cur = conn.cursor()
 
-    c.execute("UPDATE clientes SET ultimo_pagamento='' WHERE id=?", (id,))
+    cur.execute("""
+        UPDATE clientes
+        SET ultimo_pagamento=''
+        WHERE id=%s
+    """, (id,))
 
     conn.commit()
     conn.close()
@@ -241,9 +250,9 @@ def excluir(id):
         return redirect("/login")
 
     conn = conectar()
-    c = conn.cursor()
+    cur = conn.cursor()
 
-    c.execute("DELETE FROM clientes WHERE id=?", (id,))
+    cur.execute("DELETE FROM clientes WHERE id=%s", (id,))
 
     conn.commit()
     conn.close()
@@ -261,15 +270,15 @@ def cobrar(id):
         return redirect("/login")
 
     conn = conectar()
-    c = conn.cursor()
+    cur = conn.cursor()
 
-    c.execute("SELECT * FROM clientes WHERE id=?", (id,))
-    cli = c.fetchone()
+    cur.execute("SELECT * FROM clientes WHERE id=%s", (id,))
+    c = cur.fetchone()
 
     conn.close()
 
-    msg = f"Olá {cli['nome']}, sua mensalidade está em aberto."
-    link = f"https://wa.me/{cli['telefone']}?text={quote(msg)}"
+    msg = f"Olá {c[1]}, sua mensalidade está em aberto."
+    link = f"https://wa.me/{c[2]}?text={quote(msg)}"
 
     return redirect(link)
 
@@ -278,7 +287,4 @@ def cobrar(id):
 # START
 # =========================
 if __name__ == "__main__":
-    init_db()
-
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
