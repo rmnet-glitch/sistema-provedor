@@ -4,58 +4,131 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Clientes</title>
+<title>Sistema Provedor</title>
 
 <style>
-body { font-family: Arial; background:#f5f5f5; padding:10px; }
 
-.card {
-    background:white;
-    padding:10px;
-    margin-bottom:10px;
-    border-radius:8px;
+body {
+    font-family: Arial;
+    background: #f2f4f8;
+    margin: 0;
+    padding: 10px;
 }
 
-.pago { color:green; font-weight:bold; }
-.em_dia { color:orange; font-weight:bold; }
-.atrasado { color:red; font-weight:bold; }
+/* TOPO */
+.header {
+    text-align: center;
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+/* TOTAL */
+.total {
+    background: #111;
+    color: white;
+    padding: 12px;
+    border-radius: 10px;
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+/* BOTÕES PRINCIPAIS */
+.top-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.top-buttons button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+}
+
+.btn-green { background: green; }
+.btn-blue { background: #007bff; }
+.btn-orange { background: orange; }
+
+/* FORM */
+.form-box {
+    display: none;
+    background: white;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
 
 input {
-    width:100%;
-    padding:10px;
-    margin-bottom:10px;
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
 }
 
+/* CARD */
+.card {
+    background: white;
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+/* STATUS */
+.pago { color: green; font-weight: bold; }
+.em_dia { color: orange; font-weight: bold; }
+.atrasado { color: red; font-weight: bold; }
+
+/* BOTÕES CLIENTE */
 .btn {
-    padding:5px 8px;
-    margin-right:5px;
-    border-radius:5px;
-    color:white;
-    text-decoration:none;
-    font-size:12px;
+    display: inline-block;
+    padding: 6px 8px;
+    margin-top: 5px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 12px;
+    color: white;
 }
 
-.green { background:green; }
-.red { background:red; }
-.blue { background:blue; }
-.orange { background:orange; }
-.purple { background:purple; }
+.green { background: green; }
+.red { background: red; }
+.blue { background: blue; }
+.purple { background: purple; }
+.orange { background: orange; }
+
 </style>
 
 </head>
 
 <body>
 
-<h2>Clientes</h2>
+<div class="header">
+📡 Sistema de Clientes
+</div>
 
-<h3>Total: {{ total }}</h3>
+<div class="total">
+💰 Total: {{ total }}
+</div>
 
-<!-- BUSCA -->
-<form method="GET" action="/">
-<input type="text" name="search" placeholder="Buscar cliente..." value="{{ search }}">
-</form>
+<!-- BOTÕES PRINCIPAIS -->
+<div class="top-buttons">
+
+<button class="btn-green" onclick="toggleCadastro()">
+➕ Cadastrar Cliente
+</button>
+
+<button class="btn-blue" onclick="toggleBusca()">
+🔍 Buscar Cliente
+</button>
+
+</div>
 
 <!-- CADASTRO -->
+<div class="form-box" id="cadastroBox">
+
 <form method="POST" action="/cadastrar">
 
 <input name="nome" placeholder="Nome" required>
@@ -63,9 +136,24 @@ input {
 <input name="valor" placeholder="Valor" required>
 <input name="vencimento" placeholder="Dia vencimento" required>
 
-<button type="submit">Cadastrar</button>
+<button class="btn-green" type="submit">Salvar Cliente</button>
 
 </form>
+
+</div>
+
+<!-- BUSCA -->
+<div class="form-box" id="buscaBox">
+
+<form method="GET" action="/">
+
+<input name="search" placeholder="Digite nome ou telefone" value="{{ search }}">
+
+<button class="btn-blue" type="submit">Buscar</button>
+
+</form>
+
+</div>
 
 <!-- LISTA -->
 {% for c in clientes %}
@@ -73,19 +161,34 @@ input {
 <div class="card">
 
 <b>{{ c.nome }}</b><br>
-{{ c.telefone }}<br>
-{{ c.valor }}<br>
+📞 {{ c.telefone }}<br>
+💰 {{ c.valor }}<br>
 
-Status: <span class="{{ c.status }}">{{ c.status }}</span><br>
+Status:
+<span class="{{ c.status }}">{{ c.status }}</span><br>
 
 <a class="btn green" href="/pagar/{{ c.id }}">Pagar</a>
 <a class="btn orange" href="/desfazer/{{ c.id }}">Desfazer</a>
-<a class="btn red" href="/excluir/{{ c.id }}" onclick="return confirm('Excluir?')">Excluir</a>
+<a class="btn red" href="/excluir/{{ c.id }}" onclick="return confirm('Excluir cliente?')">Excluir</a>
 <a class="btn purple" href="/cobrar/{{ c.id }}">Cobrar</a>
 
 </div>
 
 {% endfor %}
+
+<script>
+
+function toggleCadastro() {
+    var x = document.getElementById("cadastroBox");
+    x.style.display = (x.style.display === "block") ? "none" : "block";
+}
+
+function toggleBusca() {
+    var x = document.getElementById("buscaBox");
+    x.style.display = (x.style.display === "block") ? "none" : "block";
+}
+
+</script>
 
 </body>
 </html>
