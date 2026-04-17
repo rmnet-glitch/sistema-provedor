@@ -27,18 +27,15 @@ body {
     box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
-/* STATUS VISUAL */
-.pago { border-left:6px solid green; }
-.em_dia { border-left:6px solid #2196f3; }
 .atrasado { border-left:6px solid red; }
+.em_dia { border-left:6px solid #2196f3; }
+.pago { border-left:6px solid green; }
 
-/* TEXTO ATRASADO FORTE */
 .badge-atrasado {
     color:red;
     font-weight:bold;
 }
 
-/* BOTÕES */
 input, button {
     width:100%;
     padding:10px;
@@ -105,7 +102,7 @@ button {
     <h3>📊 Painel Financeiro</h3>
 
     <p>💰 Total carteira: <b>R$ {{ total_geral }}</b></p>
-    <p>✅ Recebido no mês: <b style="color:green;">R$ {{ total_recebido }}</b></p>
+    <p>💵 Recebido no mês: <b style="color:green;">R$ {{ total_recebido }}</b></p>
 </div>
 
 <!-- CADASTRO -->
@@ -119,7 +116,7 @@ Cadastrar Cliente
 
 <input name="nome" placeholder="Nome">
 <input name="telefone" placeholder="Telefone">
-<input name="valor" placeholder="Valor">
+<input name="valor" placeholder="Valor mensal">
 <input name="vencimento_dia" placeholder="Dia vencimento (1-31)">
 
 <button class="btn-blue">Salvar</button>
@@ -130,24 +127,8 @@ Cadastrar Cliente
 
 <hr>
 
-<!-- CLIENTES -->
-{% set atrasados = [] %}
-{% set em_dia = [] %}
-{% set pagos = [] %}
-
+<!-- CLIENTES ORDENADOS NO BACKEND -->
 {% for c in clientes %}
-    {% if c[5] == 'atrasado' %}
-        {% set _ = atrasados.append(c) %}
-    {% elif c[5] == 'em_dia' %}
-        {% set _ = em_dia.append(c) %}
-    {% else %}
-        {% set _ = pagos.append(c) %}
-    {% endif %}
-{% endfor %}
-
-<!-- ORDEM FINAL -->
-{% for lista in [atrasados, em_dia, pagos] %}
-{% for c in lista %}
 
 <div class="card {{ c[5] }}">
 
@@ -161,7 +142,7 @@ Cadastrar Cliente
 
 <p>📞 {{ c[2] }}</p>
 <p>💰 R$ {{ c[3] }}</p>
-<p>📅 Dia venc: {{ c[4] }}</p>
+<p>📅 Venc: dia {{ c[4] }}</p>
 <p>Status: {{ c[5] }}</p>
 
 <!-- EDITAR -->
@@ -178,7 +159,7 @@ Editar
 <input name="valor" value="{{ c[3] }}">
 <input name="vencimento_dia" value="{{ c[4] }}">
 
-<button class="btn-blue">Salvar alteração</button>
+<button class="btn-blue">Salvar</button>
 
 </form>
 
@@ -186,7 +167,7 @@ Editar
 
 <!-- WHATSAPP -->
 <a class="whatsapp"
-href="https://wa.me/55{{ c[2] }}?text=Olá%20{{ c[1] }},%20sua%20mensalidade%20de%20R$%20{{ c[3] }}%20está%20em%20aberto.">
+href="https://wa.me/55{{ c[2] }}?text=Olá%20{{ c[1] }},%20mensalidade%20de%20R$%20{{ c[3] }}%20referente%20ao%20mês%20está%20em%20aberto.">
 Enviar WhatsApp
 </a>
 
@@ -194,14 +175,12 @@ Enviar WhatsApp
 <div class="small">
 
 <a href="/pago/{{ c[0] }}"><button class="btn-green">Pago</button></a>
-<a href="/atrasado/{{ c[0] }}"><button class="btn-orange">Atrasado</button></a>
 <a href="/delete/{{ c[0] }}"><button class="btn-red">Excluir</button></a>
 
 </div>
 
 </div>
 
-{% endfor %}
 {% endfor %}
 
 <script>
