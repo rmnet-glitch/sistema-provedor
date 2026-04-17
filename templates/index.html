@@ -27,10 +27,18 @@ body {
     box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
+/* STATUS VISUAL */
 .pago { border-left:6px solid green; }
-.atrasado { border-left:6px solid red; }
 .em_dia { border-left:6px solid #2196f3; }
+.atrasado { border-left:6px solid red; }
 
+/* TEXTO ATRASADO FORTE */
+.badge-atrasado {
+    color:red;
+    font-weight:bold;
+}
+
+/* BOTÕES */
 input, button {
     width:100%;
     padding:10px;
@@ -92,14 +100,12 @@ button {
     </a>
 </div>
 
-<!-- PAINEL FINANCEIRO -->
+<!-- PAINEL -->
 <div class="box">
-
     <h3>📊 Painel Financeiro</h3>
 
     <p>💰 Total carteira: <b>R$ {{ total_geral }}</b></p>
     <p>✅ Recebido no mês: <b style="color:green;">R$ {{ total_recebido }}</b></p>
-
 </div>
 
 <!-- CADASTRO -->
@@ -125,11 +131,34 @@ Cadastrar Cliente
 <hr>
 
 <!-- CLIENTES -->
+{% set atrasados = [] %}
+{% set em_dia = [] %}
+{% set pagos = [] %}
+
 {% for c in clientes %}
+    {% if c[5] == 'atrasado' %}
+        {% set _ = atrasados.append(c) %}
+    {% elif c[5] == 'em_dia' %}
+        {% set _ = em_dia.append(c) %}
+    {% else %}
+        {% set _ = pagos.append(c) %}
+    {% endif %}
+{% endfor %}
+
+<!-- ORDEM FINAL -->
+{% for lista in [atrasados, em_dia, pagos] %}
+{% for c in lista %}
 
 <div class="card {{ c[5] }}">
 
-<p><b>{{ c[1] }}</b></p>
+<p>
+<b>{{ c[1] }}</b>
+
+{% if c[5] == 'atrasado' %}
+    <span class="badge-atrasado">— ATRASADO</span>
+{% endif %}
+</p>
+
 <p>📞 {{ c[2] }}</p>
 <p>💰 R$ {{ c[3] }}</p>
 <p>📅 Dia venc: {{ c[4] }}</p>
@@ -172,6 +201,7 @@ Enviar WhatsApp
 
 </div>
 
+{% endfor %}
 {% endfor %}
 
 <script>
