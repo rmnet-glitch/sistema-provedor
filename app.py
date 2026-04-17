@@ -9,8 +9,6 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 def conectar():
-    if not DATABASE_URL:
-        raise Exception("DATABASE_URL não configurada")
     return psycopg2.connect(DATABASE_URL)
 
 
@@ -20,10 +18,7 @@ def conectar():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        usuario = request.form["usuario"]
-        senha = request.form["senha"]
-
-        if usuario == "rubens" and senha == "Rm2412@!@!":
+        if request.form["usuario"] == "rubens" and request.form["senha"] == "Rm2412@!@!":
             session["logado"] = True
             return redirect(url_for("index"))
         return render_template("login.html", erro="Login inválido")
@@ -48,11 +43,10 @@ def index():
     conn = conectar()
     cur = conn.cursor()
 
-    # atrasado primeiro
     cur.execute("""
-        SELECT id, nome, valor, status
+        SELECT id, nome, telefone, valor, vencimento, status
         FROM clientes
-        ORDER BY CASE WHEN status='atrasado' THEN 0 ELSE 1 END, id DESC
+        ORDER BY CASE WHEN status='atrasado' THEN 0 ELSE 1 END, vencimento ASC
     """)
 
     clientes = cur.fetchall()
@@ -64,20 +58,22 @@ def index():
 
 
 # ======================
-# ADD CLIENTE
+# CADASTRO
 # ======================
 @app.route("/add", methods=["POST"])
 def add():
     nome = request.form["nome"]
+    telefone = request.form["telefone"]
     valor = request.form["valor"]
+    vencimento = request.form["vencimento"]
 
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute(
-        "INSERT INTO clientes (nome, valor, status) VALUES (%s, %s, %s)",
-        (nome, valor, "atrasado")
-    )
+    cur.execute("""
+        INSERT INTO clientes (nome, telefone, valor, vencimento, status)
+        VALUES (%s, %s, %s, %s, 'atrasado')
+    """, (nome, telefone, valor, vencimento))
 
     conn.commit()
     cur.close()
@@ -87,30 +83,7 @@ def add():
 
 
 # ======================
-# EDITAR
-# ======================
-@app.route("/edit/<int:id>", methods=["POST"])
-def edit(id):
-    nome = request.form["nome"]
-    valor = request.form["valor"]
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute(
-        "UPDATE clientes SET nome=%s, valor=%s WHERE id=%s",
-        (nome, valor, id)
-    )
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index"))
-
-
-# ======================
-# PAGO
+# STATUS
 # ======================
 @app.route("/pago/<int:id>")
 def pago(id):
@@ -126,9 +99,6 @@ def pago(id):
     return redirect(url_for("index"))
 
 
-# ======================
-# ATRASADO
-# ======================
 @app.route("/atrasado/<int:id>")
 def atrasado(id):
     conn = conectar()
