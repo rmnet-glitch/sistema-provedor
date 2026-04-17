@@ -5,40 +5,52 @@
 <title>Sistema</title>
 
 <style>
-body{font-family:Arial;background:#f4f6f8;padding:10px;}
+body{font-family:Arial;background:#f4f6f8;padding:10px}
 
-.card{background:#fff;padding:10px;margin:10px 0;border-radius:10px;}
+.topbar{display:flex;gap:5px;flex-wrap:wrap}
 
-.atrasado{border-left:5px solid red;}
-.em_dia{border-left:5px solid blue;}
-.pago{border-left:5px solid green;}
+input,button{padding:6px;font-size:14px}
 
-button,input{width:100%;padding:8px;margin:5px 0}
+.card{
+background:#fff;
+padding:8px;
+margin:6px 0;
+border-radius:8px;
+font-size:13px;
+}
 
-.hidden{display:none;}
+.atrasado{border-left:4px solid red}
+.em_dia{border-left:4px solid blue}
+.pago{border-left:4px solid green}
 
-.btn-blue{background:#007bff;color:#fff}
-.btn-green{background:#28a745;color:#fff}
-.btn-red{background:#dc3545;color:#fff}
-.btn-gray{background:#6c757d;color:#fff}
-.btn-orange{background:#ff9800;color:#fff}
+.actions button{
+width:48%;
+padding:5px;
+font-size:12px;
+margin-top:4px;
+}
+
+.hidden{display:none}
+
+.small{font-size:12px;color:#555}
 </style>
 </head>
 
 <body>
 
-<h2>Clientes</h2>
+<h3>Clientes</h3>
 
-<form method="get">
+<!-- BUSCA + FILTRO -->
+<form class="topbar">
 <input type="month" name="mes" value="{{mes_ref}}">
+<input type="text" name="busca" placeholder="Buscar nome..." value="{{busca}}">
 <button>Filtrar</button>
 </form>
 
-<p>Total: {{total_geral}}</p>
-<p>Recebido: {{total_recebido}}</p>
+<p class="small">Total: {{total_geral}} | Recebido: {{total_recebido}}</p>
 
 <!-- CADASTRO -->
-<button class="btn-blue" onclick="toggle('cad')">Cadastrar Cliente</button>
+<button onclick="toggle('cad')">+ Cliente</button>
 
 <div id="cad" class="hidden">
 <form action="/add" method="post">
@@ -46,7 +58,7 @@ button,input{width:100%;padding:8px;margin:5px 0}
 <input name="telefone" placeholder="Telefone">
 <input name="valor" placeholder="Valor">
 <input name="vencimento_dia" placeholder="Dia vencimento">
-<button class="btn-green">Salvar</button>
+<button>Salvar</button>
 </form>
 </div>
 
@@ -56,14 +68,30 @@ button,input{width:100%;padding:8px;margin:5px 0}
 
 <div class="card {{c[5]}}">
 
-<b>{{c[1]}}</b><br>
-{{c[2]}}<br>
-R$ {{c[3]}}<br>
-Dia {{c[4]}}<br>
-Status: {{c[5]}}
+<b>{{c[1]}}</b> <span class="small">({{c[2]}})</span><br>
+R$ {{c[3]}} | Dia {{c[4]}} | {{c[5]}}
 
-<!-- EDITAR -->
-<button class="btn-orange" onclick="toggle('e{{c[0]}}')">Editar</button>
+<div class="actions">
+
+<a href="/pago/{{c[0]}}?mes={{mes_ref}}">
+<button>Pago</button>
+</a>
+
+<a href="/desfazer/{{c[0]}}?mes={{mes_ref}}">
+<button>Voltar</button>
+</a>
+
+</div>
+
+<div class="actions">
+
+<button onclick="toggle('e{{c[0]}}')">Editar</button>
+
+<a href="/delete/{{c[0]}}">
+<button>Excluir</button>
+</a>
+
+</div>
 
 <div id="e{{c[0]}}" class="hidden">
 <form action="/edit/{{c[0]}}" method="post">
@@ -71,27 +99,9 @@ Status: {{c[5]}}
 <input name="telefone" value="{{c[2]}}">
 <input name="valor" value="{{c[3]}}">
 <input name="vencimento_dia" value="{{c[4]}}">
-<button class="btn-blue">Salvar</button>
+<button>Salvar</button>
 </form>
 </div>
-
-<!-- WHATS -->
-<a href="https://wa.me/55{{c[2]}}">
-<button class="btn-green">WhatsApp</button>
-</a>
-
-<!-- AÇÕES -->
-<a href="/pago/{{c[0]}}?mes={{mes_ref}}">
-<button class="btn-green">Pago</button>
-</a>
-
-<a href="/desfazer/{{c[0]}}?mes={{mes_ref}}">
-<button class="btn-gray">Desfazer</button>
-</a>
-
-<a href="/delete/{{c[0]}}">
-<button class="btn-red">Excluir</button>
-</a>
 
 </div>
 
@@ -100,7 +110,7 @@ Status: {{c[5]}}
 <script>
 function toggle(id){
 let e=document.getElementById(id);
-e.style.display = e.style.display==="block"?"none":"block";
+e.style.display=e.style.display==="block"?"none":"block";
 }
 </script>
 
