@@ -1,68 +1,104 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sistema Clientes</title>
+    <title>Sistema de Clientes</title>
 
     <style>
-        body { font-family: Arial; background:#f4f4f4; padding:20px; }
+        body { font-family: Arial; background:#f2f2f2; padding:20px; }
 
-        .card { background:white; padding:15px; margin:10px 0; border-radius:10px; }
+        .topbar {
+            display:flex;
+            justify-content:space-between;
+            margin-bottom:20px;
+        }
+
+        .btn {
+            padding:10px;
+            border:none;
+            cursor:pointer;
+            border-radius:5px;
+        }
+
+        .add-box, .list-box {
+            background:white;
+            padding:15px;
+            border-radius:10px;
+            margin-bottom:20px;
+        }
+
+        .card {
+            padding:15px;
+            margin:10px 0;
+            border-radius:10px;
+        }
 
         .pago { border-left:8px solid green; }
         .atrasado { border-left:8px solid red; }
 
-        button { padding:5px 10px; margin:3px; cursor:pointer; }
-
-        .top { display:flex; gap:10px; margin-bottom:20px; }
+        .whatsapp {
+            background:#25D366;
+            color:white;
+            text-decoration:none;
+            padding:8px;
+            border-radius:5px;
+            display:inline-block;
+        }
     </style>
 </head>
 
 <body>
 
-<h2>Cadastro de Clientes</h2>
-
-<div class="top">
-    <form action="/add" method="post">
-        <input name="nome" placeholder="Nome" required>
-        <input name="valor" placeholder="Valor" required>
-        <button type="submit">Cadastrar</button>
-    </form>
-
+<div class="topbar">
+    <h2>Clientes</h2>
     <a href="/logout">Sair</a>
 </div>
 
-<hr>
+<!-- BOTÃO CADASTRO -->
+<div class="add-box">
+    <h3>Cadastrar Cliente</h3>
 
-<h3>Clientes</h3>
+    <form action="/add" method="post">
+
+        <input name="nome" placeholder="Nome" required>
+        <input name="telefone" placeholder="Telefone (DDD)" required>
+        <input name="valor" placeholder="Valor" required>
+        <input name="vencimento" type="date" required>
+
+        <button class="btn" style="background:blue;color:white;">
+            Salvar
+        </button>
+
+    </form>
+</div>
+
+<!-- LISTA -->
+<div class="list-box">
 
 {% for c in clientes %}
 
-<div class="card {{ c[3] }}">
+<div class="card {{ c[5] }}">
 
-    <form action="/edit/{{ c[0] }}" method="post">
-        <input name="nome" value="{{ c[1] }}">
-        <input name="valor" value="{{ c[2] }}">
+    <p><b>{{ c[1] }}</b></p>
+    <p>Telefone: {{ c[2] }}</p>
+    <p>Valor: R$ {{ c[3] }}</p>
+    <p>Vencimento: {{ c[4] }}</p>
+    <p>Status: <b>{{ c[5] }}</b></p>
 
-        <button type="submit">Salvar</button>
-    </form>
-
-    <p>Status: <b>{{ c[3] }}</b></p>
-
-    <a href="/pago/{{ c[0] }}">
-        <button style="background:green;color:white;">Pago</button>
+    <!-- WHATSAPP -->
+    <a class="whatsapp"
+       href="https://wa.me/55{{ c[2] }}?text=Olá%20{{ c[1] }},%20sua%20mensalidade%20de%20R$%20{{ c[3] }}%20está%20em%20aberto.">
+       WhatsApp
     </a>
 
-    <a href="/atrasado/{{ c[0] }}">
-        <button style="background:orange;color:white;">Atrasado</button>
-    </a>
-
-    <a href="/delete/{{ c[0] }}" onclick="return confirm('Excluir?')">
-        <button style="background:red;color:white;">Excluir</button>
-    </a>
+    <a href="/pago/{{ c[0] }}"><button class="btn" style="background:green;color:white;">Pago</button></a>
+    <a href="/atrasado/{{ c[0] }}"><button class="btn" style="background:orange;color:white;">Atrasado</button></a>
+    <a href="/delete/{{ c[0] }}"><button class="btn" style="background:red;color:white;">Excluir</button></a>
 
 </div>
 
 {% endfor %}
+
+</div>
 
 </body>
 </html>
