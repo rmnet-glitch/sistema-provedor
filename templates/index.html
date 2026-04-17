@@ -7,6 +7,16 @@
 <style>
 body{font-family:Arial;background:#f4f6f8;padding:10px}
 
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.topbar{display:flex;gap:5px;flex-wrap:wrap}
+
+input,button{padding:6px;font-size:13px}
+
 .card{
 background:#fff;
 padding:8px;
@@ -19,37 +29,60 @@ font-size:13px;
 .em_dia{border-left:4px solid blue}
 .pago{border-left:4px solid green}
 
-.topbar{display:flex;gap:5px;flex-wrap:wrap}
-
-input,button{padding:6px;font-size:13px}
-
-.stats{
-background:#fff;
-padding:10px;
-border-radius:8px;
-margin-bottom:10px;
-font-size:12px;
+.actions{
+display:flex;
+gap:5px;
+margin-top:5px;
 }
+
+.actions button{
+width:100%;
+padding:6px;
+font-size:11px;
+border:none;
+border-radius:5px;
+background:#6c757d;
+color:#fff;
+}
+
+.hidden{display:none}
+
+.small{font-size:11px;color:#666}
 </style>
 </head>
 
 <body>
 
-<h3>📊 Dashboard RM NET</h3>
+<div class="header">
+<h3>📡 RM NET</h3>
 
-<!-- STATS NOVAS -->
-<div class="stats">
-💰 Total Geral: {{total_geral}}<br>
-💵 Recebido: {{total_recebido}}<br>
-🔴 Em Atraso: {{total_atrasado}}<br>
-🔵 Em Dia: {{total_em_dia}}
+<a href="/logout">
+<button style="background:#dc3545;color:#fff">🚪 Sair</button>
+</a>
 </div>
 
 <form class="topbar">
 <input type="month" name="mes" value="{{mes_ref}}">
-<input type="text" name="busca" placeholder="Buscar..." value="{{busca}}">
+<input type="text" name="busca" placeholder="🔎 Buscar cliente..." value="{{busca}}">
 <button>OK</button>
 </form>
+
+<p class="small">
+💰 Total: {{total_geral}} |
+💵 Recebido: {{total_recebido}}
+</p>
+
+<button onclick="toggle('cad')">➕ Cliente</button>
+
+<div id="cad" class="hidden">
+<form action="/add" method="post">
+<input name="nome" placeholder="Nome">
+<input name="telefone" placeholder="Telefone">
+<input name="valor" placeholder="Valor">
+<input name="vencimento_dia" placeholder="Dia vencimento">
+<button>Salvar</button>
+</form>
+</div>
 
 <hr>
 
@@ -57,13 +90,61 @@ font-size:12px;
 
 <div class="card {{c[5]}}">
 
-<b>{{c[1]}}</b><br>
-📞 {{c[2]}}<br>
-💰 {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
+<b>👤 {{c[1]}}</b> <span class="small">📞 {{c[2]}}</span><br>
+💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
+
+<!-- WHATSAPP -->
+<a target="_blank"
+href="https://wa.me/55{{c[2]}}?text=Olá,%20seu%20boleto%20RM%20NET%20venceu.%20%0A%0A*Essa%20é%20uma%20mensagem%20automática.*">
+
+<button style="width:100%;margin-top:5px;background:#6c757d;color:#fff">
+📲 WhatsApp
+</button>
+
+</a>
+
+<div class="actions">
+
+<a href="/pago/{{c[0]}}?mes={{mes_ref}}">
+<button>✔ Pago</button>
+</a>
+
+<a href="/desfazer/{{c[0]}}?mes={{mes_ref}}">
+<button>↩ Voltar</button>
+</a>
+
+</div>
+
+<div class="actions">
+
+<button onclick="toggle('e{{c[0]}}')">✏ Editar</button>
+
+<a href="/delete/{{c[0]}}">
+<button>🗑 Excluir</button>
+</a>
+
+</div>
+
+<div id="e{{c[0]}}" class="hidden">
+<form action="/edit/{{c[0]}}" method="post">
+<input name="nome" value="{{c[1]}}">
+<input name="telefone" value="{{c[2]}}">
+<input name="valor" value="{{c[3]}}">
+<input name="vencimento_dia" value="{{c[4]}}">
+<button>Salvar</button>
+</form>
+</div>
 
 </div>
 
 {% endfor %}
+
+<script>
+function toggle(id){
+let e=document.getElementById(id);
+e.style.display=e.style.display==="block"?"none":"block";
+}
+</script>
 
 </body>
 </html>
