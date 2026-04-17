@@ -34,20 +34,7 @@ def logout():
 
 
 # =========================
-# RESET AUTOMÁTICO MENSAL
-# =========================
-def reset_mensal(cur):
-    hoje = datetime.now()
-    if hoje.day == 1:
-        cur.execute("""
-            UPDATE clientes
-            SET status='atrasado'
-            WHERE status='pago'
-        """)
-
-
-# =========================
-# INDEX (PAINEL FINANCEIRO)
+# INDEX (COM STATUS AUTOMÁTICO)
 # =========================
 @app.route("/")
 def index():
@@ -57,29 +44,41 @@ def index():
     conn = conectar()
     cur = conn.cursor()
 
+    # pega dia atual
+    hoje = datetime.now().day
+
+    # reset mensal automático (opcional)
     reset_mensal(cur)
 
-    # clientes
     cur.execute("""
         SELECT id, nome, telefone, valor, vencimento_dia, status
         FROM clientes
-        ORDER BY CASE WHEN status='atrasado' THEN 0 ELSE 1 END, id DESC
     """)
-    clientes = cur.fetchall()
 
-    # total carteira
-    cur.execute("""
-        SELECT COALESCE(SUM(valor),0) FROM clientes
-    """)
-    total_geral = cur.fetchone()[0]
+    clientes_raw = cur.fetchall()
 
-    # total recebido
-    cur.execute("""
-        SELECT COALESCE(SUM(valor),0)
-        FROM clientes
-        WHERE status='pago'
-    """)
-    total_recebido = cur.fetchone()[0]
+    clientes = []
+
+    total_geral = 0
+    total_recebido = 0
+
+    for c in clientes_raw:
+        id, nome, telefone, valor, vencimento, status = c
+
+        total_geral += float(valor)
+
+        # regra de pagamento
+        if status == "pago":
+            final_status = "pago"
+            total_recebido += float(valor)
+
+        else:
+            if hoje > int(vencimento):
+                final_status = "atrasado"
+            else:
+                final_status = "em_dia"
+
+        clientes.append((id, nome, telefone, valor, vencimento, final_status))
 
     conn.commit()
     cur.close()
@@ -91,6 +90,20 @@ def index():
         total_geral=total_geral,
         total_recebido=total_recebido
     )
+
+
+# =========================
+# RESET MENSAL (opcional)
+# =========================
+def reset_mensal(cur):
+    hoje = datetime.now()
+
+    if hoje.day == 1:
+        cur.execute("""
+            UPDATE clientes
+            SET status='atrasado'
+            WHERE status='pago'
+        """)
 
 
 # =========================
@@ -145,7 +158,7 @@ def edit(id):
 
 
 # =========================
-# STATUS
+# STATUS MANUAL (SÓ PAGO)
 # =========================
 @app.route("/pago/<int:id>")
 def pago(id):
