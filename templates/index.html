@@ -23,15 +23,24 @@ font-size:13px;
 .em_dia{border-left:4px solid blue}
 .pago{border-left:4px solid green}
 
-.actions button{
-width:48%;
-padding:5px;
-font-size:11px;
-margin-top:4px;
+.actions{
+display:flex;
+gap:5px;
+margin-top:5px;
 }
 
-.small{font-size:11px;color:#666}
+.actions button{
+width:100%;
+padding:6px;
+font-size:11px;
+border:none;
+border-radius:5px;
+background:#6c757d;
+color:#fff;
+}
 
+.btn-primary{background:#6c757d}
+.small{font-size:11px;color:#666}
 .hidden{display:none}
 </style>
 </head>
@@ -40,7 +49,6 @@ margin-top:4px;
 
 <h3>Clientes RM NET</h3>
 
-<!-- BUSCA -->
 <form class="topbar">
 <input type="month" name="mes" value="{{mes_ref}}">
 <input type="text" name="busca" placeholder="Buscar cliente..." value="{{busca}}">
@@ -74,34 +82,40 @@ Recebido: {{total_recebido}}
 <b>{{c[1]}}</b> <span class="small">{{c[2]}}</span><br>
 R$ {{c[3]}} | Dia {{c[4]}} | {{c[5]}}
 
-<!-- WHATSAPP -->
-<a target="_blank"
+<!-- WHATSAPP (MESMO ESTILO DOS OUTROS BOTÕES) -->
+<div class="actions">
+
+<a style="width:100%"
+target="_blank"
 href="https://wa.me/55{{c[2]}}?text=Olá,%20seu%20boleto%20RM%20NET%20venceu.%20%0A%0A*Essa%20é%20uma%20mensagem%20automática.*">
 
-<button style="background:#25D366;color:#fff;width:100%;font-size:11px;margin-top:5px">
+<button class="btn-primary">
 WhatsApp
 </button>
 
 </a>
 
+</div>
+
+<!-- AÇÕES -->
 <div class="actions">
 
 <a href="/pago/{{c[0]}}?mes={{mes_ref}}">
-<button>Pago</button>
+<button class="btn-primary">Pago</button>
 </a>
 
 <a href="/desfazer/{{c[0]}}?mes={{mes_ref}}">
-<button>Voltar</button>
+<button class="btn-primary">Voltar</button>
 </a>
 
 </div>
 
 <div class="actions">
 
-<button onclick="toggle('e{{c[0]}}')">Editar</button>
+<button class="btn-primary" onclick="toggle('e{{c[0]}}')">Editar</button>
 
 <a href="/delete/{{c[0]}}">
-<button>Excluir</button>
+<button class="btn-primary">Excluir</button>
 </a>
 
 </div>
