@@ -35,17 +35,15 @@ def logout():
 # =========================
 # GARANTE COBRANÇA DO MÊS
 # =========================
-def gerar_cobrancas_mes(cur, mes_ref):
-    cur.execute("SELECT id, valor, vencimento_dia FROM clientes")
+def gerar_cobrancas(cur, mes_ref):
+    cur.execute("SELECT id FROM clientes")
     clientes = cur.fetchall()
 
     for c in clientes:
-        cliente_id = c[0]
-
         cur.execute("""
             SELECT id FROM cobrancas
             WHERE cliente_id=%s AND mes_ref=%s
-        """, (cliente_id, mes_ref))
+        """, (c[0], mes_ref))
 
         existe = cur.fetchone()
 
@@ -53,7 +51,7 @@ def gerar_cobrancas_mes(cur, mes_ref):
             cur.execute("""
                 INSERT INTO cobrancas (cliente_id, mes_ref, status)
                 VALUES (%s, %s, 'em_dia')
-            """, (cliente_id, mes_ref))
+            """, (c[0], mes_ref))
 
 
 # =========================
@@ -70,7 +68,7 @@ def index():
     hoje = datetime.now()
     mes_ref = hoje.strftime("%Y-%m")
 
-    gerar_cobrancas_mes(cur, mes_ref)
+    gerar_cobrancas(cur, mes_ref)
 
     cur.execute("""
         SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
@@ -80,19 +78,19 @@ def index():
         ON c.id = cb.cliente_id AND cb.mes_ref=%s
     """, (mes_ref,))
 
-    clientes_raw = cur.fetchall()
+    raw = cur.fetchall()
 
     clientes = []
     total = 0
-    recebidos = 0
+    recebido = 0
 
-    for c in clientes_raw:
+    for c in raw:
         id, nome, tel, valor, venc, status = c
 
         total += float(valor)
 
         if status == "pago":
-            recebidos += float(valor)
+            recebido += float(valor)
 
         if status != "pago":
             if hoje.day > int(venc):
@@ -109,12 +107,12 @@ def index():
     return render_template("index.html",
         clientes=clientes,
         total_geral=total,
-        total_recebido=recebidos
+        total_recebido=recebido
     )
 
 
 # =========================
-# PAGAMENTO
+# PAGAR
 # =========================
 @app.route("/pago/<int:id>")
 def pago(id):
@@ -137,6 +135,29 @@ def pago(id):
 
 
 # =========================
+# DESFAZER PAGAMENTO
+# =========================
+@app.route("/desfazer/<int:id>")
+def desfazer(id):
+    conn = conectar()
+    cur = conn.cursor()
+
+    mes_ref = datetime.now().strftime("%Y-%m")
+
+    cur.execute("""
+        UPDATE cobrancas
+        SET status='em_dia', pago_em=NULL
+        WHERE cliente_id=%s AND mes_ref=%s
+    """, (id, mes_ref))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
+
+
+# =========================
 # ADD CLIENTE
 # =========================
 @app.route("/add", methods=["POST"])
@@ -144,7 +165,7 @@ def add():
     nome = request.form["nome"]
     telefone = request.form["telefone"]
     valor = request.form["valor"]
-    vencimento = request.form["vencimento_dia"]
+    venc = request.form["vencimento_dia"]
 
     conn = conectar()
     cur = conn.cursor()
@@ -152,7 +173,7 @@ def add():
     cur.execute("""
         INSERT INTO clientes (nome, telefone, valor, vencimento_dia)
         VALUES (%s,%s,%s,%s)
-    """, (nome, telefone, valor, vencimento))
+    """, (nome, telefone, valor, venc))
 
     conn.commit()
     cur.close()
@@ -169,7 +190,7 @@ def edit(id):
     nome = request.form["nome"]
     telefone = request.form["telefone"]
     valor = request.form["valor"]
-    vencimento = request.form["vencimento_dia"]
+    venc = request.form["vencimento_dia"]
 
     conn = conectar()
     cur = conn.cursor()
@@ -178,7 +199,7 @@ def edit(id):
         UPDATE clientes
         SET nome=%s, telefone=%s, valor=%s, vencimento_dia=%s
         WHERE id=%s
-    """, (nome, telefone, valor, vencimento, id))
+    """, (nome, telefone, valor, venc, id))
 
     conn.commit()
     cur.close()
