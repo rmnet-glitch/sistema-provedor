@@ -1,6 +1,7 @@
 import os
 from flask import Flask, render_template, request, redirect, session, url_for
 import psycopg2
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = "sistema-secreto-123"
@@ -33,7 +34,7 @@ def logout():
 
 
 # ======================
-# HOME
+# INDEX
 # ======================
 @app.route("/")
 def index():
@@ -44,9 +45,9 @@ def index():
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT id, nome, telefone, valor, vencimento, status
+        SELECT id, nome, telefone, valor, vencimento_dia, status
         FROM clientes
-        ORDER BY CASE WHEN status='atrasado' THEN 0 ELSE 1 END, vencimento ASC
+        ORDER BY CASE WHEN status='atrasado' THEN 0 ELSE 1 END, id DESC
     """)
 
     clientes = cur.fetchall()
@@ -58,21 +59,21 @@ def index():
 
 
 # ======================
-# CADASTRO
+# ADD
 # ======================
 @app.route("/add", methods=["POST"])
 def add():
     nome = request.form["nome"]
     telefone = request.form["telefone"]
     valor = request.form["valor"]
-    vencimento = request.form["vencimento"]
+    vencimento = request.form["vencimento_dia"]
 
     conn = conectar()
     cur = conn.cursor()
 
     cur.execute("""
-        INSERT INTO clientes (nome, telefone, valor, vencimento, status)
-        VALUES (%s, %s, %s, %s, 'atrasado')
+        INSERT INTO clientes (nome, telefone, valor, vencimento_dia, status)
+        VALUES (%s,%s,%s,%s,'atrasado')
     """, (nome, telefone, valor, vencimento))
 
     conn.commit()
@@ -83,7 +84,33 @@ def add():
 
 
 # ======================
-# STATUS
+# EDITAR
+# ======================
+@app.route("/edit/<int:id>", methods=["POST"])
+def edit(id):
+    nome = request.form["nome"]
+    telefone = request.form["telefone"]
+    valor = request.form["valor"]
+    vencimento = request.form["vencimento_dia"]
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE clientes
+        SET nome=%s, telefone=%s, valor=%s, vencimento_dia=%s
+        WHERE id=%s
+    """, (nome, telefone, valor, vencimento, id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
+
+
+# ======================
+# PAGAR
 # ======================
 @app.route("/pago/<int:id>")
 def pago(id):
@@ -99,6 +126,9 @@ def pago(id):
     return redirect(url_for("index"))
 
 
+# ======================
+# RESET (ATRASADO)
+# ======================
 @app.route("/atrasado/<int:id>")
 def atrasado(id):
     conn = conectar()
@@ -122,6 +152,26 @@ def delete(id):
     cur = conn.cursor()
 
     cur.execute("DELETE FROM clientes WHERE id=%s", (id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
+
+
+# ======================
+# RESET MENSAL AUTOMÁTICO
+# ======================
+@app.route("/reset-mes")
+def reset_mes():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("UPDATE clientes SET status='atrasado' WHERE status='pago'")
 
     conn.commit()
     cur.close()
