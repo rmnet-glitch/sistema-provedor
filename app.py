@@ -13,41 +13,25 @@ def conectar():
     return psycopg2.connect(DATABASE_URL)
 
 
-# =========================
-# LOGIN
-# =========================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        usuario = request.form["usuario"]
-        senha = request.form["senha"]
-
-        if usuario == "rubens" and senha == "Rm2412@":
+        if request.form["usuario"] == "rubens" and request.form["senha"] == "Rm2412@":
             session["logado"] = True
             return redirect(url_for("index"))
-
         return render_template("login.html", erro="Login inválido")
-
     return render_template("login.html")
 
 
-# =========================
-# LOGOUT
-# =========================
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
 
 
-# =========================
-# COBRANÇA MENSAL
-# =========================
 def gerar_cobrancas(cur, mes_ref):
     cur.execute("SELECT id FROM clientes")
-    clientes = cur.fetchall()
-
-    for c in clientes:
+    for c in cur.fetchall():
         cur.execute("""
             SELECT id FROM cobrancas
             WHERE cliente_id=%s AND mes_ref=%s
@@ -56,13 +40,10 @@ def gerar_cobrancas(cur, mes_ref):
         if not cur.fetchone():
             cur.execute("""
                 INSERT INTO cobrancas (cliente_id, mes_ref, status)
-                VALUES (%s, %s, 'em_dia')
+                VALUES (%s,%s,'em_dia')
             """, (c[0], mes_ref))
 
 
-# =========================
-# INDEX
-# =========================
 @app.route("/")
 def index():
     if not session.get("logado"):
@@ -88,8 +69,12 @@ def index():
     raw = cur.fetchall()
 
     clientes = []
-    total = 0
-    recebido = 0
+
+    total_geral = 0
+    total_recebido = 0
+    total_atrasado = 0
+    total_em_dia = 0
+
     hoje_dia = datetime.now().day
 
     for c in raw:
@@ -98,10 +83,11 @@ def index():
         if busca and busca not in nome.lower():
             continue
 
-        total += float(valor)
+        valor = float(valor)
+        total_geral += valor
 
         if status == "pago":
-            recebido += float(valor)
+            total_recebido += valor
 
         if mes_ref > hoje:
             status = "em_dia"
@@ -113,6 +99,11 @@ def index():
         else:
             if status != "pago":
                 status = "atrasado"
+
+        if status == "atrasado":
+            total_atrasado += valor
+        elif status == "em_dia":
+            total_em_dia += valor
 
         clientes.append((id, nome, tel, valor, venc, status))
 
@@ -128,124 +119,11 @@ def index():
         clientes=clientes,
         mes_ref=mes_ref,
         busca=busca,
-        total_geral=total,
-        total_recebido=recebido
+        total_geral=total_geral,
+        total_recebido=total_recebido,
+        total_atrasado=total_atrasado,
+        total_em_dia=total_em_dia
     )
-
-
-# =========================
-# PAGAR
-# =========================
-@app.route("/pago/<int:id>")
-def pago(id):
-    conn = conectar()
-    cur = conn.cursor()
-
-    mes_ref = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-
-    cur.execute("""
-        UPDATE cobrancas
-        SET status='pago', pago_em=NOW()
-        WHERE cliente_id=%s AND mes_ref=%s
-    """, (id, mes_ref))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index", mes=mes_ref))
-
-
-# =========================
-# DESFAZER
-# =========================
-@app.route("/desfazer/<int:id>")
-def desfazer(id):
-    conn = conectar()
-    cur = conn.cursor()
-
-    mes_ref = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-
-    cur.execute("""
-        UPDATE cobrancas
-        SET status='em_dia', pago_em=NULL
-        WHERE cliente_id=%s AND mes_ref=%s
-    """, (id, mes_ref))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index", mes=mes_ref))
-
-
-# =========================
-# ADD
-# =========================
-@app.route("/add", methods=["POST"])
-def add():
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO clientes (nome, telefone, valor, vencimento_dia)
-        VALUES (%s,%s,%s,%s)
-    """, (
-        request.form["nome"],
-        request.form["telefone"],
-        request.form["valor"],
-        request.form["vencimento_dia"]
-    ))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index"))
-
-
-# =========================
-# EDIT
-# =========================
-@app.route("/edit/<int:id>", methods=["POST"])
-def edit(id):
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        UPDATE clientes
-        SET nome=%s, telefone=%s, valor=%s, vencimento_dia=%s
-        WHERE id=%s
-    """, (
-        request.form["nome"],
-        request.form["telefone"],
-        request.form["valor"],
-        request.form["vencimento_dia"],
-        id
-    ))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index"))
-
-
-# =========================
-# DELETE
-# =========================
-@app.route("/delete/<int:id>")
-def delete(id):
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("DELETE FROM clientes WHERE id=%s", (id,))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index"))
 
 
 if __name__ == "__main__":
