@@ -2,8 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Clientes</title>
+<title>Sistema Clientes</title>
 
 <style>
 body {
@@ -11,6 +10,13 @@ body {
     background:#f4f6f8;
     margin:0;
     padding:10px;
+}
+
+.header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
 }
 
 .card {
@@ -23,6 +29,7 @@ body {
 
 .pago { border-left:6px solid green; }
 .atrasado { border-left:6px solid red; }
+.em_dia { border-left:6px solid #2196f3; }
 
 input, button {
     width:100%;
@@ -74,9 +81,18 @@ button {
 
 <body>
 
-<h2>📋 Clientes</h2>
+<!-- HEADER -->
+<div class="header">
+    <h2>📋 Clientes</h2>
 
-<!-- DASHBOARD FINANCEIRO -->
+    <a href="/logout">
+        <button style="background:#dc3545;padding:8px 12px;border-radius:8px;">
+            Sair
+        </button>
+    </a>
+</div>
+
+<!-- PAINEL FINANCEIRO -->
 <div class="box">
 
     <h3>📊 Painel Financeiro</h3>
@@ -108,6 +124,7 @@ Cadastrar Cliente
 
 <hr>
 
+<!-- CLIENTES -->
 {% for c in clientes %}
 
 <div class="card {{ c[5] }}">
@@ -144,6 +161,7 @@ href="https://wa.me/55{{ c[2] }}?text=Olá%20{{ c[1] }},%20sua%20mensalidade%20d
 Enviar WhatsApp
 </a>
 
+<!-- AÇÕES -->
 <div class="small">
 
 <a href="/pago/{{ c[0] }}"><button class="btn-green">Pago</button></a>
