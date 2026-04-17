@@ -3,7 +3,7 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Sistema Clientes</title>
+<title>Clientes</title>
 
 <style>
 body {
@@ -74,9 +74,19 @@ button {
 
 <body>
 
-<h2>Clientes</h2>
+<h2>📋 Clientes</h2>
 
-<!-- BOTÃO CADASTRO -->
+<!-- DASHBOARD FINANCEIRO -->
+<div class="box">
+
+    <h3>📊 Painel Financeiro</h3>
+
+    <p>💰 Total carteira: <b>R$ {{ total_geral }}</b></p>
+    <p>✅ Recebido no mês: <b style="color:green;">R$ {{ total_recebido }}</b></p>
+
+</div>
+
+<!-- CADASTRO -->
 <button class="btn-blue" onclick="toggle('cadastro')">
 Cadastrar Cliente
 </button>
@@ -86,7 +96,7 @@ Cadastrar Cliente
 <form action="/add" method="post">
 
 <input name="nome" placeholder="Nome">
-<input name="telefone" placeholder="Telefone (DDD)">
+<input name="telefone" placeholder="Telefone">
 <input name="valor" placeholder="Valor">
 <input name="vencimento_dia" placeholder="Dia vencimento (1-31)">
 
