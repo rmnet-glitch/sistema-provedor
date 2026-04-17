@@ -33,7 +33,7 @@ def logout():
 
 
 # =========================
-# CRIA COBRANÇA DO MÊS
+# GARANTE COBRANÇA MENSAL
 # =========================
 def gerar_cobrancas(cur, mes_ref):
     cur.execute("SELECT id FROM clientes")
@@ -53,7 +53,7 @@ def gerar_cobrancas(cur, mes_ref):
 
 
 # =========================
-# INDEX
+# INDEX COM HISTÓRICO
 # =========================
 @app.route("/")
 def index():
@@ -63,8 +63,11 @@ def index():
     conn = conectar()
     cur = conn.cursor()
 
-    hoje = datetime.now()
-    mes_ref = hoje.strftime("%Y-%m")
+    # mês selecionado via query (?mes=2026-04)
+    mes_ref = request.args.get("mes")
+
+    if not mes_ref:
+        mes_ref = datetime.now().strftime("%Y-%m")
 
     gerar_cobrancas(cur, mes_ref)
 
@@ -82,6 +85,8 @@ def index():
     total = 0
     recebido = 0
 
+    hoje = datetime.now()
+
     for c in raw:
         id, nome, tel, valor, venc, status = c
 
@@ -90,19 +95,16 @@ def index():
         if status == "pago":
             recebido += float(valor)
 
-        # regra de atraso
         if status != "pago":
-            if hoje.day > int(venc):
+            if hoje.day > int(venc) and mes_ref == hoje.strftime("%Y-%m"):
+                status = "atrasado"
+            elif mes_ref != hoje.strftime("%Y-%m") and status != "pago":
                 status = "atrasado"
             else:
                 status = "em_dia"
 
         clientes.append((id, nome, tel, valor, venc, status))
 
-    # =========================
-    # ORDENAÇÃO FINAL
-    # atrasado -> em_dia -> pago
-    # =========================
     ordem = {
         "atrasado": 0,
         "em_dia": 1,
@@ -117,6 +119,7 @@ def index():
 
     return render_template("index.html",
         clientes=clientes,
+        mes_ref=mes_ref,
         total_geral=total,
         total_recebido=recebido
     )
@@ -130,7 +133,7 @@ def pago(id):
     conn = conectar()
     cur = conn.cursor()
 
-    mes_ref = datetime.now().strftime("%Y-%m")
+    mes_ref = request.args.get("mes", datetime.now().strftime("%Y-%m"))
 
     cur.execute("""
         UPDATE cobrancas
@@ -142,7 +145,7 @@ def pago(id):
     cur.close()
     conn.close()
 
-    return redirect(url_for("index"))
+    return redirect(url_for("index", mes=mes_ref))
 
 
 # =========================
@@ -153,7 +156,7 @@ def desfazer(id):
     conn = conectar()
     cur = conn.cursor()
 
-    mes_ref = datetime.now().strftime("%Y-%m")
+    mes_ref = request.args.get("mes", datetime.now().strftime("%Y-%m"))
 
     cur.execute("""
         UPDATE cobrancas
@@ -165,7 +168,7 @@ def desfazer(id):
     cur.close()
     conn.close()
 
-    return redirect(url_for("index"))
+    return redirect(url_for("index", mes=mes_ref))
 
 
 # =========================
@@ -194,7 +197,7 @@ def add():
 
 
 # =========================
-# EDITAR CLIENTE
+# EDITAR
 # =========================
 @app.route("/edit/<int:id>", methods=["POST"])
 def edit(id):
