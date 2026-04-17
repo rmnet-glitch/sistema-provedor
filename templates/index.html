@@ -5,7 +5,11 @@
 <title>RM NET</title>
 
 <style>
-body{font-family:Arial;background:#f4f6f8;padding:10px}
+body{
+font-family:Arial;
+background:#f4f6f8;
+padding:10px;
+}
 
 .header{
 display:flex;
@@ -13,9 +17,24 @@ justify-content:space-between;
 align-items:center;
 }
 
-.topbar{display:flex;gap:5px;flex-wrap:wrap}
+.topbar{
+display:flex;
+gap:5px;
+flex-wrap:wrap;
+}
 
-input,button{padding:6px;font-size:13px}
+input,button{
+padding:6px;
+font-size:13px;
+}
+
+.stats{
+background:#fff;
+padding:10px;
+border-radius:8px;
+margin-bottom:10px;
+font-size:12px;
+}
 
 .card{
 background:#fff;
@@ -61,17 +80,22 @@ color:#fff;
 </a>
 </div>
 
+<!-- FILTRO -->
 <form class="topbar">
 <input type="month" name="mes" value="{{mes_ref}}">
 <input type="text" name="busca" placeholder="🔎 Buscar cliente..." value="{{busca}}">
 <button>OK</button>
 </form>
 
-<p class="small">
-💰 Total: {{total_geral}} |
-💵 Recebido: {{total_recebido}}
-</p>
+<!-- TOTAIS (NOVO BLOCO ADICIONADO) -->
+<div class="stats">
+💰 Total: {{total_geral}}<br>
+💵 Recebido: {{total_recebido}}<br>
+🔴 Em Atraso: {{total_atrasado}}<br>
+🔵 Em Dia: {{total_em_dia}}
+</div>
 
+<!-- CADASTRO -->
 <button onclick="toggle('cad')">➕ Cliente</button>
 
 <div id="cad" class="hidden">
@@ -90,7 +114,8 @@ color:#fff;
 
 <div class="card {{c[5]}}">
 
-<b>👤 {{c[1]}}</b> <span class="small">📞 {{c[2]}}</span><br>
+<b>👤 {{c[1]}}</b><br>
+📞 {{c[2]}}<br>
 💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
 
 <!-- WHATSAPP -->
@@ -103,6 +128,7 @@ href="https://wa.me/55{{c[2]}}?text=Olá,%20seu%20boleto%20RM%20NET%20venceu.%20
 
 </a>
 
+<!-- AÇÕES -->
 <div class="actions">
 
 <a href="/pago/{{c[0]}}?mes={{mes_ref}}">
@@ -125,6 +151,7 @@ href="https://wa.me/55{{c[2]}}?text=Olá,%20seu%20boleto%20RM%20NET%20venceu.%20
 
 </div>
 
+<!-- EDITAR -->
 <div id="e{{c[0]}}" class="hidden">
 <form action="/edit/{{c[0]}}" method="post">
 <input name="nome" value="{{c[1]}}">
@@ -142,7 +169,7 @@ href="https://wa.me/55{{c[2]}}?text=Olá,%20seu%20boleto%20RM%20NET%20venceu.%20
 <script>
 function toggle(id){
 let e=document.getElementById(id);
-e.style.display=e.style.display==="block"?"none":"block";
+e.style.display = e.style.display==="block"?"none":"block";
 }
 </script>
 
