@@ -19,7 +19,7 @@ def conectar():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        if request.form["usuario"] == "rubens" and request.form["senha"] == "Rm2412@!@!":
+        if request.form["usuario"] == "rubens" and request.form["senha"] == "Rm2412@":
             session["logado"] = True
             return redirect(url_for("index"))
         return render_template("login.html", erro="Login inválido")
@@ -27,6 +27,9 @@ def login():
     return render_template("login.html")
 
 
+# =========================
+# LOGOUT
+# =========================
 @app.route("/logout")
 def logout():
     session.clear()
@@ -34,7 +37,20 @@ def logout():
 
 
 # =========================
-# INDEX (COM STATUS AUTOMÁTICO)
+# RESET MENSAL
+# =========================
+def reset_mensal(cur):
+    hoje = datetime.now()
+    if hoje.day == 1:
+        cur.execute("""
+            UPDATE clientes
+            SET status='atrasado'
+            WHERE status='pago'
+        """)
+
+
+# =========================
+# INDEX
 # =========================
 @app.route("/")
 def index():
@@ -44,10 +60,7 @@ def index():
     conn = conectar()
     cur = conn.cursor()
 
-    # pega dia atual
     hoje = datetime.now().day
-
-    # reset mensal automático (opcional)
     reset_mensal(cur)
 
     cur.execute("""
@@ -58,7 +71,6 @@ def index():
     clientes_raw = cur.fetchall()
 
     clientes = []
-
     total_geral = 0
     total_recebido = 0
 
@@ -67,11 +79,9 @@ def index():
 
         total_geral += float(valor)
 
-        # regra de pagamento
         if status == "pago":
             final_status = "pago"
             total_recebido += float(valor)
-
         else:
             if hoje > int(vencimento):
                 final_status = "atrasado"
@@ -93,21 +103,7 @@ def index():
 
 
 # =========================
-# RESET MENSAL (opcional)
-# =========================
-def reset_mensal(cur):
-    hoje = datetime.now()
-
-    if hoje.day == 1:
-        cur.execute("""
-            UPDATE clientes
-            SET status='atrasado'
-            WHERE status='pago'
-        """)
-
-
-# =========================
-# ADD CLIENTE
+# ADD
 # =========================
 @app.route("/add", methods=["POST"])
 def add():
@@ -132,7 +128,7 @@ def add():
 
 
 # =========================
-# EDITAR CLIENTE
+# EDIT
 # =========================
 @app.route("/edit/<int:id>", methods=["POST"])
 def edit(id):
@@ -158,7 +154,7 @@ def edit(id):
 
 
 # =========================
-# STATUS MANUAL (SÓ PAGO)
+# STATUS
 # =========================
 @app.route("/pago/<int:id>")
 def pago(id):
