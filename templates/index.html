@@ -1,217 +1,33 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- BOTÃO EDITAR CORRETO -->
+<a class="btn edit" href="#"
+onclick="abrirEditar({{ c.id }}, '{{ c.nome }}', '{{ c.telefone }}', '{{ c.valor }}', '{{ c.vencimento }}')">
+Editar
+</a>
 
-<title>Sistema Clientes</title>
-
-<style>
-
-body {
-    font-family: Arial;
-    background: #eef2f7;
-    margin: 0;
-    padding: 10px;
-}
-
-.header {
-    text-align: center;
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 10px;
-}
-
-/* INFO */
-.info {
-    background: #111;
-    color: white;
-    padding: 10px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-}
-
-/* BOTÕES TOPO */
-.top {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.top a {
-    flex: 1;
-    text-align: center;
-    padding: 10px;
-    border-radius: 8px;
-    color: white;
-    text-decoration: none;
-}
-
-.green { background: green; }
-.blue { background: #007bff; }
-.gray { background: #555; }
-
-/* BOX */
-.box {
-    display: none;
-    background: white;
-    padding: 10px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-}
-
-input {
-    width: 100%;
-    padding: 10px;
-    margin: 5px 0;
-}
-
-button {
-    width: 100%;
-    padding: 10px;
-    background: green;
-    border: none;
-    color: white;
-}
-
-/* CARD */
-.card {
-    background: white;
-    padding: 12px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-}
-
-/* STATUS */
-.pago { color: green; font-weight: bold; }
-.em_dia { color: orange; font-weight: bold; }
-.atrasado { color: red; font-weight: bold; }
-
-/* BOTÕES */
-.btn {
-    display: inline-block;
-    padding: 6px 8px;
-    margin-top: 5px;
-    border-radius: 6px;
-    font-size: 12px;
-    color: white;
-    text-decoration: none;
-}
-
-.pay { background: green; }
-.undo { background: orange; }
-.del { background: red; }
-.msg { background: purple; }
-.edit { background: blue; }
-
-</style>
-
-</head>
-
-<body>
-
-<div class="header">📡 Sistema de Clientes</div>
-
-<div class="info">
-💰 Recebido no mês: <b>{{ recebido }}</b><br>
-📊 Total geral: <b>{{ total }}</b>
-</div>
-
-<!-- TOPO -->
-<div class="top">
-
-<a class="green" href="#" onclick="toggleCadastro()">➕ Cadastrar</a>
-<a class="blue" href="#" onclick="toggleBusca()">🔍 Buscar</a>
-<a class="gray" href="/logout">Sair</a>
-
-</div>
-
-<!-- CADASTRO -->
-<div class="box" id="cadastro">
-
-<form method="POST" action="/cadastrar">
-
-<input name="nome" placeholder="Nome" required>
-<input name="telefone" placeholder="Telefone" required>
-<input name="valor" placeholder="Valor" required>
-<input name="vencimento" placeholder="Dia vencimento" required>
-
-<button type="submit">Salvar Cliente</button>
-
-</form>
-
-</div>
-
-<!-- BUSCA -->
-<div class="box" id="busca">
-
-<form method="GET" action="/">
-
-<input name="search" placeholder="Buscar cliente" value="{{ search }}">
-
-<button type="submit">Buscar</button>
-
-</form>
-
-</div>
-
-<!-- EDITAR (NOVO) -->
+<!-- FORM EDITAR -->
 <div class="box" id="editar">
 
 <form id="formEditar" method="POST">
 
-<input name="nome" id="edit_nome" required>
-<input name="telefone" id="edit_telefone" required>
-<input name="valor" id="edit_valor" required>
-<input name="vencimento" id="edit_vencimento" required>
+<input id="edit_nome" name="nome">
+<input id="edit_telefone" name="telefone">
+<input id="edit_valor" name="valor">
+<input id="edit_vencimento" name="vencimento">
 
-<button type="submit">Atualizar Cliente</button>
+<button type="submit">Salvar</button>
 
 </form>
 
 </div>
 
-<!-- LISTA -->
-{% for c in clientes %}
-
-<div class="card">
-
-<b>{{ c.nome }}</b><br>
-📞 {{ c.telefone }}<br>
-💰 {{ c.valor }}<br>
-
-Status:
-<span class="{{ c.status }}">{{ c.status }}</span><br>
-
-<a class="btn pay" href="/pagar/{{ c.id }}">Pagar</a>
-<a class="btn undo" href="/desfazer/{{ c.id }}">Desfazer</a>
-<a class="btn del" href="/excluir/{{ c.id }}" onclick="return confirm('Excluir cliente?')">Excluir</a>
-<a class="btn msg" href="/cobrar/{{ c.id }}">Cobrar</a>
-
-<!-- BOTÃO EDITAR -->
-<a class="btn edit" href="#"
-onclick="abrirEditar('{{ c.id }}','{{ c.nome }}','{{ c.telefone }}','{{ c.valor }}','{{ c.vencimento }}')">
-Editar
-</a>
-
-</div>
-
-{% endfor %}
-
 <script>
 
-function toggleCadastro() {
-    document.getElementById("cadastro").style.display =
-    document.getElementById("cadastro").style.display === "block" ? "none" : "block";
-}
-
-function toggleBusca() {
-    document.getElementById("busca").style.display =
-    document.getElementById("busca").style.display === "block" ? "none" : "block";
-}
-
-/* EDITAR */
 function abrirEditar(id, nome, telefone, valor, vencimento) {
+
+    if (!id) {
+        alert("Erro: ID inválido");
+        return;
+    }
 
     document.getElementById("editar").style.display = "block";
 
@@ -224,6 +40,3 @@ function abrirEditar(id, nome, telefone, valor, vencimento) {
 }
 
 </script>
-
-</body>
-</html>
