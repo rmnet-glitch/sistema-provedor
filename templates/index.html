@@ -6,52 +6,103 @@
 
 <style>
 body{font-family:Arial;background:#f4f6f8;padding:10px;}
+
 .card{background:#fff;padding:10px;margin:10px 0;border-radius:10px;}
+
 .atrasado{border-left:5px solid red;}
 .em_dia{border-left:5px solid blue;}
 .pago{border-left:5px solid green;}
-button{padding:8px;margin:3px;width:100%}
+
+button,input{width:100%;padding:8px;margin:5px 0}
+
+.hidden{display:none;}
+
+.btn-blue{background:#007bff;color:#fff}
+.btn-green{background:#28a745;color:#fff}
+.btn-red{background:#dc3545;color:#fff}
+.btn-gray{background:#6c757d;color:#fff}
+.btn-orange{background:#ff9800;color:#fff}
 </style>
 </head>
 
 <body>
 
-<h2>Sistema de Clientes</h2>
+<h2>Clientes</h2>
 
-<!-- SELETOR DE MÊS -->
 <form method="get">
-    <input type="month" name="mes" value="{{ mes_ref }}">
-    <button>Filtrar</button>
+<input type="month" name="mes" value="{{mes_ref}}">
+<button>Filtrar</button>
 </form>
 
-<p>Total: R$ {{ total_geral }}</p>
-<p>Recebido: R$ {{ total_recebido }}</p>
+<p>Total: {{total_geral}}</p>
+<p>Recebido: {{total_recebido}}</p>
+
+<!-- CADASTRO -->
+<button class="btn-blue" onclick="toggle('cad')">Cadastrar Cliente</button>
+
+<div id="cad" class="hidden">
+<form action="/add" method="post">
+<input name="nome" placeholder="Nome">
+<input name="telefone" placeholder="Telefone">
+<input name="valor" placeholder="Valor">
+<input name="vencimento_dia" placeholder="Dia vencimento">
+<button class="btn-green">Salvar</button>
+</form>
+</div>
 
 <hr>
 
 {% for c in clientes %}
 
-<div class="card {{ c[5] }}">
+<div class="card {{c[5]}}">
 
-<b>{{ c[1] }}</b><br>
-{{ c[2] }}<br>
-R$ {{ c[3] }}<br>
-Dia {{ c[4] }}<br>
-Status: {{ c[5] }}
+<b>{{c[1]}}</b><br>
+{{c[2]}}<br>
+R$ {{c[3]}}<br>
+Dia {{c[4]}}<br>
+Status: {{c[5]}}
 
-<br>
+<!-- EDITAR -->
+<button class="btn-orange" onclick="toggle('e{{c[0]}}')">Editar</button>
 
+<div id="e{{c[0]}}" class="hidden">
+<form action="/edit/{{c[0]}}" method="post">
+<input name="nome" value="{{c[1]}}">
+<input name="telefone" value="{{c[2]}}">
+<input name="valor" value="{{c[3]}}">
+<input name="vencimento_dia" value="{{c[4]}}">
+<button class="btn-blue">Salvar</button>
+</form>
+</div>
+
+<!-- WHATS -->
+<a href="https://wa.me/55{{c[2]}}">
+<button class="btn-green">WhatsApp</button>
+</a>
+
+<!-- AÇÕES -->
 <a href="/pago/{{c[0]}}?mes={{mes_ref}}">
-<button style="background:green;color:#fff">Pago</button>
+<button class="btn-green">Pago</button>
 </a>
 
 <a href="/desfazer/{{c[0]}}?mes={{mes_ref}}">
-<button style="background:gray;color:#fff">Desfazer</button>
+<button class="btn-gray">Desfazer</button>
+</a>
+
+<a href="/delete/{{c[0]}}">
+<button class="btn-red">Excluir</button>
 </a>
 
 </div>
 
 {% endfor %}
+
+<script>
+function toggle(id){
+let e=document.getElementById(id);
+e.style.display = e.style.display==="block"?"none":"block";
+}
+</script>
 
 </body>
 </html>
