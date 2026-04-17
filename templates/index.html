@@ -3,7 +3,7 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Clientes</title>
+<title>Sistema Clientes</title>
 
 <style>
 body {
@@ -35,6 +35,7 @@ input, button {
 button {
     border:none;
     color:white;
+    cursor:pointer;
 }
 
 .btn-blue { background:#007bff; }
@@ -42,18 +43,31 @@ button {
 .btn-red { background:#dc3545; }
 .btn-orange { background:#ff9800; }
 
+.box {
+    background:white;
+    padding:10px;
+    border-radius:10px;
+    margin-bottom:10px;
+}
+
 .small {
     display:flex;
     gap:5px;
     flex-wrap:wrap;
 }
 
-.small a {
-    flex:1;
-}
+.small a { flex:1; }
 
-a button {
-    width:100%;
+.hidden { display:none; }
+
+.whatsapp {
+    background:#25D366;
+    color:white;
+    text-align:center;
+    padding:10px;
+    border-radius:8px;
+    display:block;
+    text-decoration:none;
 }
 </style>
 </head>
@@ -62,18 +76,17 @@ a button {
 
 <h2>Clientes</h2>
 
-<a href="/reset-mes">
-    <button class="btn-orange">Reset Mensal (Todos Atrasados)</button>
-</a>
+<!-- BOTÃO CADASTRO -->
+<button class="btn-blue" onclick="toggle('cadastro')">
+Cadastrar Cliente
+</button>
 
-<hr>
-
-<h3>Cadastrar</h3>
+<div id="cadastro" class="box hidden">
 
 <form action="/add" method="post">
 
 <input name="nome" placeholder="Nome">
-<input name="telefone" placeholder="Telefone">
+<input name="telefone" placeholder="Telefone (DDD)">
 <input name="valor" placeholder="Valor">
 <input name="vencimento_dia" placeholder="Dia vencimento (1-31)">
 
@@ -81,11 +94,26 @@ a button {
 
 </form>
 
+</div>
+
 <hr>
 
 {% for c in clientes %}
 
 <div class="card {{ c[5] }}">
+
+<p><b>{{ c[1] }}</b></p>
+<p>📞 {{ c[2] }}</p>
+<p>💰 R$ {{ c[3] }}</p>
+<p>📅 Dia venc: {{ c[4] }}</p>
+<p>Status: {{ c[5] }}</p>
+
+<!-- EDITAR -->
+<button class="btn-orange" onclick="toggle('edit{{ c[0] }}')">
+Editar
+</button>
+
+<div id="edit{{ c[0] }}" class="hidden">
 
 <form action="/edit/{{ c[0] }}" method="post">
 
@@ -94,32 +122,36 @@ a button {
 <input name="valor" value="{{ c[3] }}">
 <input name="vencimento_dia" value="{{ c[4] }}">
 
-<button class="btn-blue">Editar</button>
+<button class="btn-blue">Salvar alteração</button>
 
 </form>
 
-<p>Status: {{ c[5] }}</p>
+</div>
+
+<!-- WHATSAPP -->
+<a class="whatsapp"
+href="https://wa.me/55{{ c[2] }}?text=Olá%20{{ c[1] }},%20sua%20mensalidade%20de%20R$%20{{ c[3] }}%20está%20em%20aberto.">
+Enviar WhatsApp
+</a>
 
 <div class="small">
 
 <a href="/pago/{{ c[0] }}"><button class="btn-green">Pago</button></a>
 <a href="/atrasado/{{ c[0] }}"><button class="btn-orange">Atrasado</button></a>
-
-<a href="https://wa.me/55{{ c[2] }}"
-target="_blank">
-<button class="btn-green">WhatsApp</button>
-</a>
-
-<a href="/delete/{{ c[0] }}"
-onclick="return confirm('Excluir?')">
-<button class="btn-red">Excluir</button>
-</a>
+<a href="/delete/{{ c[0] }}"><button class="btn-red">Excluir</button></a>
 
 </div>
 
 </div>
 
 {% endfor %}
+
+<script>
+function toggle(id){
+    let el = document.getElementById(id);
+    el.style.display = (el.style.display === "block") ? "none" : "block";
+}
+</script>
 
 </body>
 </html>
