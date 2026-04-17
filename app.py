@@ -8,24 +8,31 @@ app = Flask(__name__)
 app.secret_key = "sistema_provedor_secret"
 
 # =========================
-# SUPABASE (POSTGRES)
+# SUPABASE
 # =========================
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 def conectar():
-    return psycopg2.connect(DATABASE_URL)
+    return psycopg2.connect(
+        DATABASE_URL,
+        sslmode="require"
+    )
 
 
 # =========================
-# LOGIN FIXO
+# LOGIN
 # =========================
 USUARIO = "rubens"
 SENHA = "Rm2412@"
 
 
+def auth():
+    return session.get("logado")
+
+
 # =========================
-# FORMATAÇÃO
+# FORMATAR VALOR
 # =========================
 def limpar_valor(v):
     if v is None:
@@ -49,10 +56,6 @@ def formatar(v):
     return f"R$ {v:,.2f}".replace(".", ",")
 
 
-def auth():
-    return session.get("logado")
-
-
 # =========================
 # LOGIN
 # =========================
@@ -64,8 +67,7 @@ def login():
         if request.form["usuario"] == USUARIO and request.form["senha"] == SENHA:
             session["logado"] = True
             return redirect("/")
-        else:
-            return render_template("login.html", erro="Login inválido")
+        return render_template("login.html", erro="Login inválido")
 
     return render_template("login.html")
 
@@ -128,8 +130,7 @@ def index():
         "index.html",
         clientes=lista,
         total=formatar(total),
-        recebido=formatar(recebido),
-        search=""
+        recebido=formatar(recebido)
     )
 
 
