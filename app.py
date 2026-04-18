@@ -60,6 +60,7 @@ def config():
 
     conn = conectar()
     cur = conn.cursor()
+
     user_id = session["user_id"]
 
     if request.method == "POST":
@@ -90,7 +91,8 @@ def config():
     cur.close()
     conn.close()
 
-    return render_template("config.html",
+    return render_template(
+        "config.html",
         usuario=user[0],
         mensagem=user[1] or ""
     )
@@ -239,7 +241,6 @@ def add():
     return redirect("/")
 
 
-# ================= EDIT CLIENTE (GARANTIDO FUNCIONANDO) =================
 @app.route("/edit/<int:id>", methods=["POST"])
 def edit(id):
     if not session.get("logado"):
@@ -271,7 +272,6 @@ def edit(id):
     return redirect("/")
 
 
-# ================= DELETE CLIENTE =================
 @app.route("/delete/<int:id>")
 def delete(id):
     if not session.get("logado"):
@@ -283,7 +283,7 @@ def delete(id):
     cur.execute("""
         DELETE FROM clientes 
         WHERE id=%s AND usuario_id=%s
-    """,(id, session["user_id"]))
+    """,(id,session["user_id"]))
 
     conn.commit()
     cur.close()
@@ -339,7 +339,7 @@ def desfazer(id):
     return redirect(f"/?mes={mes}")
 
 
-# ================= INDEX =================
+# ================= INDEX (CORRIGIDO TOTALMENTE) =================
 @app.route("/")
 def index():
     if not session.get("logado"):
@@ -351,9 +351,10 @@ def index():
     cur = conn.cursor()
 
     mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+    busca = request.args.get("busca","").lower()
 
     cur.execute("""
-        SELECT c.id,c.nome,c.telefone,c.valor,c.vencimento_dia,
+        SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
                COALESCE(cb.status,'em_dia')
         FROM clientes c
         LEFT JOIN cobrancas cb
@@ -366,17 +367,67 @@ def index():
     cur.execute("SELECT whatsapp_msg FROM usuarios WHERE id=%s",(user_id,))
     msg = cur.fetchone()[0]
 
-    clientes=[]
+    clientes = []
+
+    total = 0
+    recebido = 0
+    atrasado = 0
+    emdia = 0
+    total_clientes = 0
+
+    hoje = datetime.now()
+    hoje_mes = hoje.strftime("%Y-%m")
+    hoje_dia = hoje.day
 
     for c in dados:
-        clientes.append(c)
+        id,nome,tel,valor,venc,status = c
 
-    conn.close()
+        if busca and busca not in nome.lower():
+            continue
+
+        valor = float(valor)
+
+        # STATUS CORRETO
+        if mes < hoje_mes:
+            if status != "pago":
+                status = "atrasado"
+
+        elif mes == hoje_mes:
+            if status != "pago":
+                if hoje_dia > int(venc):
+                    status = "atrasado"
+                else:
+                    status = "em_dia"
+
+        else:
+            if status != "pago":
+                status = "em_dia"
+
+        # SOMAS CORRETAS
+        total += valor
+        total_clientes += 1
+
+        if status == "pago":
+            recebido += valor
+        elif status == "atrasado":
+            atrasado += valor
+        else:
+            emdia += valor
+
+        clientes.append((id,nome,tel,valor,venc,status))
+
     cur.close()
+    conn.close()
 
     return render_template("index.html",
         clientes=clientes,
         mes_ref=mes,
+        busca=busca,
+        total_geral=total,
+        total_recebido=recebido,
+        total_atrasado=atrasado,
+        total_em_dia=emdia,
+        total_clientes=total_clientes,
         usuario=session["usuario"],
         mensagem=msg
     )
