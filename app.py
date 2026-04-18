@@ -52,254 +52,52 @@ def logout():
     return redirect("/login")
 
 
-# ================= USUÁRIOS =================
-@app.route("/usuarios")
-def usuarios():
-    if not session.get("logado"):
-        return redirect("/login")
-
-    if not session.get("is_admin"):
-        return redirect("/")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("SELECT id, usuario, ativo FROM usuarios")
-    lista = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return render_template("usuarios.html", usuarios=lista)
-
-
-# ================= CRIAR USUÁRIO (CORRIGIDO) =================
-@app.route("/add_user", methods=["POST"])
-def add_user():
-    if not session.get("is_admin"):
-        return redirect("/")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    usuario = request.form["usuario"]
-    senha = request.form["senha"]
-
-    cur.execute("""
-        INSERT INTO usuarios (usuario, senha, ativo)
-        VALUES (%s,%s,TRUE)
-    """, (usuario, senha))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect("/usuarios")
-
-
-# ================= EDITAR USUÁRIO =================
-@app.route("/edit_user/<int:id>", methods=["POST"])
-def edit_user(id):
-    if not session.get("is_admin"):
-        return redirect("/")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    usuario = request.form["usuario"]
-    senha = request.form.get("senha","")
-
-    if senha.strip() == "":
-        cur.execute("""
-            UPDATE usuarios
-            SET usuario=%s
-            WHERE id=%s
-        """,(usuario,id))
-    else:
-        cur.execute("""
-            UPDATE usuarios
-            SET usuario=%s, senha=%s
-            WHERE id=%s
-        """,(usuario,senha,id))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect("/usuarios")
-
-
-# ================= DESATIVAR =================
-@app.route("/desativar_user/<int:id>")
-def desativar_user(id):
-    if id == session["user_id"]:
-        return redirect("/usuarios")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("UPDATE usuarios SET ativo=FALSE WHERE id=%s",(id,))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect("/usuarios")
-
-
-# ================= ATIVAR =================
-@app.route("/ativar_user/<int:id>")
-def ativar_user(id):
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("UPDATE usuarios SET ativo=TRUE WHERE id=%s",(id,))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect("/usuarios")
-
-
-# ================= EXCLUIR USUÁRIO =================
-@app.route("/del_user/<int:id>")
-def del_user(id):
-    if id == session["user_id"]:
-        return redirect("/usuarios")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("DELETE FROM usuarios WHERE id=%s",(id,))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect("/usuarios")
-
-
-# ================= CLIENTES =================
-@app.route("/add", methods=["POST"])
-def add():
+# ================= CONFIG (CORRIGIDO) =================
+@app.route("/config", methods=["GET", "POST"])
+def config():
     if not session.get("logado"):
         return redirect("/login")
 
     conn = conectar()
     cur = conn.cursor()
+    user_id = session["user_id"]
+
+    if request.method == "POST":
+
+        # 🔐 ALTERAR SENHA
+        if "senha" in request.form and request.form.get("senha"):
+            cur.execute("""
+                UPDATE usuarios
+                SET senha=%s
+                WHERE id=%s
+            """,(request.form["senha"], user_id))
+
+        # 💬 ALTERAR MENSAGEM WHATSAPP
+        if "mensagem" in request.form:
+            cur.execute("""
+                UPDATE usuarios
+                SET whatsapp_msg=%s
+                WHERE id=%s
+            """,(request.form["mensagem"], user_id))
+
+        conn.commit()
 
     cur.execute("""
-    INSERT INTO clientes (nome, telefone, valor, vencimento_dia, usuario_id)
-    VALUES (%s,%s,%s,%s,%s)
-    """, (
-        request.form["nome"],
-        request.form["telefone"],
-        request.form["valor"],
-        request.form["vencimento_dia"],
-        session["user_id"]
-    ))
+        SELECT usuario, whatsapp_msg
+        FROM usuarios
+        WHERE id=%s
+    """,(user_id,))
 
-    conn.commit()
+    user = cur.fetchone()
+
     cur.close()
     conn.close()
 
-    return redirect("/")
-
-
-@app.route("/edit/<int:id>", methods=["POST"])
-def edit(id):
-    if not session.get("logado"):
-        return redirect("/login")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-    UPDATE clientes 
-    SET nome=%s, telefone=%s, valor=%s, vencimento_dia=%s
-    WHERE id=%s AND usuario_id=%s
-    """, (
-        request.form["nome"],
-        request.form["telefone"],
-        request.form["valor"],
-        request.form["vencimento_dia"],
-        id,
-        session["user_id"]
-    ))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect("/")
-
-
-@app.route("/delete/<int:id>")
-def delete(id):
-    if not session.get("logado"):
-        return redirect("/login")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-    DELETE FROM clientes 
-    WHERE id=%s AND usuario_id=%s
-    """,(id, session["user_id"]))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect("/")
-
-
-# ================= PAGAMENTO =================
-@app.route("/pago/<int:id>")
-def pago(id):
-    if not session.get("logado"):
-        return redirect("/login")
-
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        UPDATE cobrancas 
-        SET status='pago'
-        WHERE cliente_id=%s AND mes_ref=%s AND usuario_id=%s
-    """,(id, mes, session["user_id"]))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(f"/?mes={mes}")
-
-
-@app.route("/desfazer/<int:id>")
-def desfazer(id):
-    if not session.get("logado"):
-        return redirect("/login")
-
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        UPDATE cobrancas 
-        SET status='em_dia'
-        WHERE cliente_id=%s AND mes_ref=%s AND usuario_id=%s
-    """,(id, mes, session["user_id"]))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(f"/?mes={mes}")
+    return render_template(
+        "config.html",
+        usuario=user[0],
+        mensagem=user[1] or ""
+    )
 
 
 # ================= INDEX =================
@@ -328,7 +126,10 @@ def index():
 
     dados = cur.fetchall()
 
-    cur.execute("SELECT whatsapp_msg FROM usuarios WHERE id=%s",(user_id,))
+    cur.execute("""
+        SELECT whatsapp_msg FROM usuarios WHERE id=%s
+    """,(user_id,))
+
     msg = cur.fetchone()[0]
 
     clientes=[]
