@@ -94,14 +94,19 @@ text-decoration:none;
 
 <div style="display:flex; gap:5px;">
 
+<!-- ⚙️ CONFIGURAÇÕES -->
+<a href="/config">
+<button style="background:#6c757d;color:#fff">⚙️</button>
+</a>
+
 {% if session["is_admin"] %}
 <a href="/usuarios">
-<button style="background:#343a40;color:#fff">👥 Usuários</button>
+<button style="background:#343a40;color:#fff">👥</button>
 </a>
 {% endif %}
 
 <a href="/logout">
-<button style="background:#dc3545;color:#fff">🚪 Sair</button>
+<button style="background:#dc3545;color:#fff">🚪</button>
 </a>
 
 </div>
@@ -152,10 +157,10 @@ text-decoration:none;
 📞 {{c[2]}}<br>
 💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
 
-<!-- WHATSAPP DINÂMICO -->
+<!-- WHATSAPP PERSONALIZADO -->
 <a class="whatsapp"
 target="_blank"
-href="https://wa.me/55{{c[2]}}?text=Olá,%20seu%20boleto%20{{usuario}}%20venceu.%20%0A%0A*Essa%20é%20uma%20mensagem%20automática.*">
+href="https://wa.me/55{{c[2]}}?text={{mensagem}}">
 
 <button class="btn btn-secondary">📲 WhatsApp</button>
 </a>
