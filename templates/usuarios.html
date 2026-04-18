@@ -1,24 +1,100 @@
 <!DOCTYPE html>
 <html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+font-family:Arial;
+background:#f4f6f8;
+padding:10px;
+}
+
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.card{
+background:#fff;
+padding:10px;
+margin:8px 0;
+border-radius:8px;
+font-size:13px;
+}
+
+.actions{
+display:flex;
+gap:5px;
+margin-top:5px;
+}
+
+.btn{
+flex:1;
+padding:5px;
+font-size:11px;
+border:none;
+border-radius:5px;
+color:#fff;
+}
+
+.btn-danger{background:#dc3545}
+.btn-dark{background:#343a40}
+.btn-success{background:#28a745}
+
+input{
+padding:6px;
+margin:3px 0;
+width:100%;
+}
+</style>
+
+</head>
+
 <body>
 
-<h3>Usuários</h3>
+<div class="header">
+<h3>👥 Usuários</h3>
 
-<form method="post" action="/add_user">
-<input name="usuario" placeholder="Usuário">
-<input name="senha" placeholder="Senha">
-<button>Adicionar</button>
-</form>
+<a href="/">
+<button class="btn btn-dark">⬅ Voltar</button>
+</a>
+</div>
 
 <hr>
 
-{% for u in usuarios %}
-{{u[1]}}
-<a href="/del_user/{{u[0]}}">Excluir</a>
-<br>
-{% endfor %}
+<!-- NOVO -->
+<div class="card">
 
-<a href="/">Voltar</a>
+<b>➕ Novo Usuário</b>
+
+<form method="post" action="/add_user">
+<input name="usuario" placeholder="Usuário" required>
+<input name="senha" placeholder="Senha" required>
+<button class="btn btn-success">Criar</button>
+</form>
+
+</div>
+
+<!-- LISTA -->
+{% for u in usuarios %}
+
+<div class="card">
+
+<b>👤 {{u[1]}}</b>
+
+<div class="actions">
+
+<a href="/del_user/{{u[0]}}">
+<button class="btn btn-danger">🗑 Excluir</button>
+</a>
+
+</div>
+
+</div>
+
+{% endfor %}
 
 </body>
 </html>
