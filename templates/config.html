@@ -4,7 +4,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{font-family:Arial;background:#f4f6f8;padding:10px;}
+body{
+font-family:Arial;
+background:#f4f6f8;
+padding:10px;
+}
 
 input,textarea{
 width:100%;
@@ -48,15 +52,25 @@ border-radius:8px;
 
 <p><b>Usuário:</b> {{usuario}}</p>
 
-<form method="POST">
+<form action="/config" method="post">
 
-<label>🔑 Nova senha</label>
+<!-- SENHA -->
+<label>🔑 Nova Senha</label>
 <input name="senha" type="password" placeholder="Digite nova senha">
 
+<button class="btn gray" name="senha_btn" value="1">
+🔐 Salvar Senha
+</button>
+
+<hr>
+
+<!-- MENSAGEM WHATSAPP -->
 <label>💬 Mensagem WhatsApp</label>
 <textarea name="mensagem" rows="5">{{mensagem}}</textarea>
 
-<button class="btn green">💾 Salvar alterações</button>
+<button class="btn green" name="msg_btn" value="1">
+💾 Salvar Mensagem
+</button>
 
 </form>
 
