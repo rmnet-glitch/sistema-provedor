@@ -339,7 +339,7 @@ def desfazer(id):
     return redirect(f"/?mes={mes}")
 
 
-# ================= INDEX (CORRIGIDO TOTALMENTE) =================
+# ================= INDEX (FILTRO CORRIGIDO) =================
 @app.route("/")
 def index():
     if not session.get("logado"):
@@ -352,6 +352,7 @@ def index():
 
     mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
     busca = request.args.get("busca","").lower()
+    filtro = request.args.get("filtro","")
 
     cur.execute("""
         SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
@@ -367,13 +368,12 @@ def index():
     cur.execute("SELECT whatsapp_msg FROM usuarios WHERE id=%s",(user_id,))
     msg = cur.fetchone()[0]
 
-    clientes = []
+    clientes=[]
 
-    total = 0
-    recebido = 0
-    atrasado = 0
-    emdia = 0
-    total_clientes = 0
+    total=0
+    recebido=0
+    atrasado=0
+    emdia=0
 
     hoje = datetime.now()
     hoje_mes = hoje.strftime("%Y-%m")
@@ -387,25 +387,20 @@ def index():
 
         valor = float(valor)
 
-        # STATUS CORRETO
+        # STATUS CORRIGIDO
         if mes < hoje_mes:
             if status != "pago":
                 status = "atrasado"
 
         elif mes == hoje_mes:
             if status != "pago":
-                if hoje_dia > int(venc):
-                    status = "atrasado"
-                else:
-                    status = "em_dia"
+                status = "atrasado" if hoje_dia > int(venc) else "em_dia"
 
         else:
             if status != "pago":
                 status = "em_dia"
 
-        # SOMAS CORRETAS
         total += valor
-        total_clientes += 1
 
         if status == "pago":
             recebido += valor
@@ -416,6 +411,17 @@ def index():
 
         clientes.append((id,nome,tel,valor,venc,status))
 
+    # ================= FILTRO FUNCIONANDO =================
+    if filtro == "nome":
+        clientes.sort(key=lambda x: x[1].lower())
+
+    elif filtro == "status":
+        ordem={"atrasado":0,"em_dia":1,"pago":2}
+        clientes.sort(key=lambda x: ordem.get(x[5],1))
+
+    elif filtro == "valor":
+        clientes.sort(key=lambda x: x[3], reverse=True)
+
     cur.close()
     conn.close()
 
@@ -423,11 +429,11 @@ def index():
         clientes=clientes,
         mes_ref=mes,
         busca=busca,
+        filtro=filtro,
         total_geral=total,
         total_recebido=recebido,
         total_atrasado=atrasado,
         total_em_dia=emdia,
-        total_clientes=total_clientes,
         usuario=session["usuario"],
         mensagem=msg
     )
