@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, session
 import psycopg2
 from datetime import datetime
 
@@ -18,8 +18,11 @@ def login():
         conn = conectar()
         cur = conn.cursor()
 
-        cur.execute("SELECT id, is_admin FROM usuarios WHERE usuario=%s AND senha=%s",
-                    (request.form["usuario"], request.form["senha"]))
+        cur.execute("""
+        SELECT id, is_admin 
+        FROM usuarios 
+        WHERE usuario=%s AND senha=%s
+        """,(request.form["usuario"],request.form["senha"]))
 
         user = cur.fetchone()
         cur.close()
@@ -42,20 +45,25 @@ def logout():
     return redirect("/login")
 
 
-# GERAR COBRANÇA
+# GERAR COBRANÇAS
 def gerar_cobrancas(cur, mes, user_id):
-    cur.execute("SELECT id FROM clientes WHERE usuario_id=%s", (user_id,))
+    cur.execute("""
+    SELECT id FROM clientes 
+    WHERE usuario_id=%s OR usuario_id IS NULL
+    """,(user_id,))
+
     for c in cur.fetchall():
         cur.execute("""
         SELECT id FROM cobrancas
-        WHERE cliente_id=%s AND mes_ref=%s AND usuario_id=%s
-        """, (c[0], mes, user_id))
+        WHERE cliente_id=%s AND mes_ref=%s 
+        AND (usuario_id=%s OR usuario_id IS NULL)
+        """,(c[0], mes, user_id))
 
         if not cur.fetchone():
             cur.execute("""
             INSERT INTO cobrancas (cliente_id, mes_ref, status, usuario_id)
             VALUES (%s,%s,'em_dia',%s)
-            """, (c[0], mes, user_id))
+            """,(c[0], mes, user_id))
 
 
 # INDEX
@@ -79,8 +87,10 @@ def index():
            COALESCE(cb.status,'em_dia')
     FROM clientes c
     LEFT JOIN cobrancas cb
-    ON c.id=cb.cliente_id AND cb.mes_ref=%s AND cb.usuario_id=%s
-    WHERE c.usuario_id=%s
+    ON c.id=cb.cliente_id 
+    AND cb.mes_ref=%s 
+    AND (cb.usuario_id=%s OR cb.usuario_id IS NULL)
+    WHERE c.usuario_id=%s OR c.usuario_id IS NULL
     """,(mes, user_id, user_id))
 
     dados = cur.fetchall()
@@ -142,7 +152,7 @@ def index():
     )
 
 
-# CRUD CLIENTES
+# CRUD
 @app.route("/add", methods=["POST"])
 def add():
     conn=conectar()
@@ -165,8 +175,10 @@ def add():
 def delete(id):
     conn=conectar()
     cur=conn.cursor()
-    cur.execute("DELETE FROM clientes WHERE id=%s AND usuario_id=%s",
-                (id,session["user_id"]))
+    cur.execute("""
+    DELETE FROM clientes 
+    WHERE id=%s AND usuario_id=%s
+    """,(id,session["user_id"]))
     conn.commit()
     cur.close()
     conn.close()
@@ -179,7 +191,8 @@ def edit(id):
     cur=conn.cursor()
 
     cur.execute("""
-    UPDATE clientes SET nome=%s,telefone=%s,valor=%s,vencimento_dia=%s
+    UPDATE clientes 
+    SET nome=%s,telefone=%s,valor=%s,vencimento_dia=%s
     WHERE id=%s AND usuario_id=%s
     """,(request.form["nome"],request.form["telefone"],
          request.form["valor"],request.form["vencimento_dia"],
@@ -199,9 +212,10 @@ def pago(id):
     mes=request.args.get("mes")
 
     cur.execute("""
-    UPDATE cobrancas SET status='pago'
-    WHERE cliente_id=%s AND mes_ref=%s AND usuario_id=%s
-    """,(id,mes,session["user_id"]))
+    UPDATE cobrancas 
+    SET status='pago', usuario_id=%s
+    WHERE cliente_id=%s AND mes_ref=%s
+    """,(session["user_id"], id, mes))
 
     conn.commit()
     cur.close()
@@ -216,7 +230,8 @@ def desfazer(id):
     mes=request.args.get("mes")
 
     cur.execute("""
-    UPDATE cobrancas SET status='em_dia'
+    UPDATE cobrancas 
+    SET status='em_dia'
     WHERE cliente_id=%s AND mes_ref=%s AND usuario_id=%s
     """,(id,mes,session["user_id"]))
 
@@ -226,7 +241,7 @@ def desfazer(id):
     return redirect(f"/?mes={mes}")
 
 
-# 👑 ADMIN - USUÁRIOS
+# USUÁRIOS
 @app.route("/usuarios")
 def usuarios():
     if not session.get("is_admin"):
