@@ -11,7 +11,6 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 def conectar():
     return psycopg2.connect(DATABASE_URL)
 
-
 # ================= LOGIN =================
 @app.route("/login", methods=["GET","POST"])
 def login():
@@ -57,7 +56,6 @@ def logout():
 def config():
     if not session.get("logado"):
         return redirect("/login")
-
     return render_template("config.html")
 
 
@@ -66,14 +64,11 @@ def salvar_config():
     conn = conectar()
     cur = conn.cursor()
 
-    nova_senha = request.form["senha"]
-    mensagem = request.form["mensagem"]
-
     cur.execute("""
     UPDATE usuarios 
     SET senha=%s, mensagem_whatsapp=%s
     WHERE id=%s
-    """,(nova_senha, mensagem, session["user_id"]))
+    """,(request.form["senha"], request.form["mensagem"], session["user_id"]))
 
     conn.commit()
     cur.close()
@@ -88,42 +83,32 @@ def index():
     if not session.get("logado"):
         return redirect("/login")
 
-    user_id = session["user_id"]
-
     conn = conectar()
     cur = conn.cursor()
 
-    busca = request.args.get("busca","").lower()
-
     cur.execute("""
-    SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia
-    FROM clientes c
-    WHERE c.usuario_id=%s
-    """,(user_id,))
+    SELECT id, nome, telefone, valor, vencimento_dia, status
+    FROM clientes
+    WHERE usuario_id=%s
+    """,(session["user_id"],))
 
     dados = cur.fetchall()
 
-    clientes = []
-    total = 0
-
+    clientes=[]
+    total=0
     hoje = datetime.now().day
 
     for c in dados:
-        id, nome, tel, valor, venc = c
-
-        if busca and busca not in nome.lower():
-            continue
+        id,nome,tel,valor,venc,status = c
 
         valor = float(valor or 0)
         total += valor
 
-        # 🔥 STATUS AUTOMÁTICO
-        if hoje > venc:
-            status = "atrasado"
-        else:
-            status = "em_dia"
+        # corrige status automático se não pago
+        if status != "pago":
+            status = "atrasado" if hoje > venc else "em_dia"
 
-        clientes.append((id, nome, tel, valor, venc, status))
+        clientes.append((id,nome,tel,valor,venc,status))
 
     cur.close()
     conn.close()
@@ -136,15 +121,15 @@ def index():
     )
 
 
-# ================= ADD CLIENTE =================
+# ================= ADD =================
 @app.route("/add", methods=["POST"])
 def add():
     conn = conectar()
     cur = conn.cursor()
 
     cur.execute("""
-    INSERT INTO clientes (nome, telefone, valor, vencimento_dia, usuario_id)
-    VALUES (%s,%s,%s,%s,%s)
+    INSERT INTO clientes (nome, telefone, valor, vencimento_dia, usuario_id, status)
+    VALUES (%s,%s,%s,%s,%s,'em_dia')
     """, (
         request.form["nome"],
         request.form["telefone"],
@@ -159,17 +144,62 @@ def add():
     return redirect("/")
 
 
+# ================= PAGAR =================
+@app.route("/pagar/<int:id>")
+def pagar(id):
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("UPDATE clientes SET status='pago' WHERE id=%s",(id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/")
+
+
+# ================= DESFAZER =================
+@app.route("/desfazer/<int:id>")
+def desfazer(id):
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("UPDATE clientes SET status='em_dia' WHERE id=%s",(id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/")
+
+
+# ================= DELETE =================
+@app.route("/delete/<int:id>")
+def delete(id):
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM clientes WHERE id=%s",(id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/")
+
+
 # ================= USUÁRIOS =================
 @app.route("/usuarios")
 def usuarios():
     if not session.get("is_admin"):
         return redirect("/")
 
-    conn = conectar()
-    cur = conn.cursor()
+    conn=conectar()
+    cur=conn.cursor()
 
     cur.execute("SELECT id, usuario, ativo FROM usuarios")
-    lista = cur.fetchall()
+    lista=cur.fetchall()
 
     cur.close()
     conn.close()
@@ -177,6 +207,6 @@ def usuarios():
     return render_template("usuarios.html", usuarios=lista)
 
 
-# ================= EXECUÇÃO =================
-if __name__ == "__main__":
+# ================= RUN =================
+if __name__=="__main__":
     app.run(debug=True)
