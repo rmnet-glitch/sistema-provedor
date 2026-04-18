@@ -17,6 +17,11 @@ margin:5px 0;
 font-size:13px;
 }
 
+textarea{
+white-space: pre-wrap;
+font-family: inherit;
+}
+
 .btn{
 padding:6px;
 font-size:12px;
@@ -54,23 +59,19 @@ border-radius:8px;
 
 <form action="/config" method="post">
 
-<!-- SENHA -->
 <label>🔑 Nova Senha</label>
 <input name="senha" type="password" placeholder="Digite nova senha">
 
-<button class="btn gray" name="senha_btn" value="1">
-🔐 Salvar Senha
-</button>
+<button class="btn gray" name="senha_btn" value="1">🔐 Salvar Senha</button>
 
 <hr>
 
-<!-- MENSAGEM WHATSAPP -->
 <label>💬 Mensagem WhatsApp</label>
-<textarea name="mensagem" rows="5">{{mensagem}}</textarea>
 
-<button class="btn green" name="msg_btn" value="1">
-💾 Salvar Mensagem
-</button>
+<!-- ✔ CORREÇÃO PRINCIPAL -->
+<textarea name="mensagem" rows="8" style="white-space: pre-wrap;">{{mensagem}}</textarea>
+
+<button class="btn green" name="msg_btn" value="1">💾 Salvar Mensagem</button>
 
 </form>
 
