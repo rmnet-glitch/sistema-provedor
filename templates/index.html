@@ -1,212 +1,150 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema</title>
+    <meta charset="UTF-8">
+    <title>Painel</title>
 
-<style>
-body{
-font-family:Arial;
-background:#f4f6f8;
-padding:10px;
-}
+    <style>
+        body {
+            font-family: Arial;
+            background: #f4f4f4;
+            padding: 20px;
+        }
 
-.header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:10px;
-}
+        .topo {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-.topbar{
-display:flex;
-gap:5px;
-flex-wrap:wrap;
-}
+        .menu a {
+            margin-left: 10px;
+            text-decoration: none;
+            padding: 8px 12px;
+            background: #333;
+            color: #fff;
+            border-radius: 5px;
+        }
 
-input,button{
-padding:6px;
-font-size:13px;
-}
+        .menu a:hover {
+            background: #555;
+        }
 
-/* ESTATÍSTICAS */
-.stats{
-background:#fff;
-padding:10px;
-border-radius:8px;
-margin-bottom:10px;
-font-size:12px;
-line-height:1.5;
-}
+        .box {
+            background: #fff;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
 
-/* CARD */
-.card{
-background:#fff;
-padding:7px;
-margin:5px 0;
-border-radius:8px;
-font-size:12px;
-}
+        input, button {
+            padding: 8px;
+            margin: 5px 0;
+        }
 
-.atrasado{border-left:4px solid red;}
-.em_dia{border-left:4px solid blue;}
-.pago{border-left:4px solid green;}
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
 
-/* BOTÕES */
-.actions{
-display:flex;
-gap:4px;
-margin-top:4px;
-}
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
 
-.btn{
-flex:1;
-padding:4px;
-font-size:10px;
-border:none;
-border-radius:4px;
-color:#fff;
-text-align:center;
-}
+        .em_dia {
+            color: green;
+            font-weight: bold;
+        }
 
-.btn-success{background:#28a745}
-.btn-danger{background:#dc3545}
-.btn-info{background:#17a2b8}
-.btn-dark{background:#343a40}
-.btn-secondary{background:#6c757d}
+        .atrasado {
+            color: red;
+            font-weight: bold;
+        }
 
-.whatsapp{
-margin-top:4px;
-display:block;
-text-decoration:none;
-}
-
-.hidden{display:none;}
-</style>
+        .total {
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
 </head>
-
 <body>
 
-<!-- HEADER -->
-<div class="header">
+<div class="topo">
+    <h2>Olá, {{ usuario }}</h2>
 
-<h3>👤 {{usuario}}</h3>
+    <div class="menu">
+        <a href="/config">Definições</a>
 
-<div style="display:flex; gap:5px;">
+        {% if session["is_admin"] %}
+            <a href="/usuarios">Usuários</a>
+        {% endif %}
 
-<!-- ⚙️ CONFIGURAÇÕES -->
-<a href="/config">
-<button style="background:#6c757d;color:#fff">⚙️</button>
-</a>
-
-{% if session["is_admin"] %}
-<a href="/usuarios">
-<button style="background:#343a40;color:#fff">👥</button>
-</a>
-{% endif %}
-
-<a href="/logout">
-<button style="background:#dc3545;color:#fff">🚪</button>
-</a>
-
+        <a href="/logout">Sair</a>
+    </div>
 </div>
 
+<div class="box">
+    <strong>Mensagem padrão:</strong><br>
+    {{ mensagem }}
 </div>
 
-<!-- FILTROS -->
-<form class="topbar">
-<input type="month" name="mes" value="{{mes_ref}}">
-<input type="text" name="busca" placeholder="🔎 Buscar cliente..." value="{{busca}}">
-<button>OK</button>
-</form>
-
-<!-- TOTAIS -->
-<div class="stats">
-💰 Total: {{total_geral}}<br>
-💵 Recebido: {{total_recebido}}<br>
-🔴 Em Atraso: {{total_atrasado}}<br>
-🔵 Em Dia: {{total_em_dia}}<br>
-👥 Clientes: {{total_clientes}}
+<!-- BUSCA -->
+<div class="box">
+    <form method="get">
+        <input type="text" name="busca" placeholder="Buscar cliente...">
+        <button type="submit">Buscar</button>
+    </form>
 </div>
 
-<!-- BOTÃO CADASTRO -->
-<button onclick="toggle('cad')">➕ Cliente</button>
+<!-- CADASTRO -->
+<div class="box">
+    <h3>Adicionar Cliente</h3>
 
-<!-- FORM -->
-<div id="cad" class="hidden">
-<form action="/add" method="post">
-<input name="nome" placeholder="Nome" required>
-<input name="telefone" placeholder="Telefone" required>
-<input name="valor" placeholder="Valor" required>
-<input name="vencimento_dia" placeholder="Dia vencimento" required>
-<button>Salvar</button>
-</form>
+    <form method="post" action="/add">
+        <input type="text" name="nome" placeholder="Nome" required><br>
+        <input type="text" name="telefone" placeholder="Telefone"><br>
+        <input type="number" step="0.01" name="valor" placeholder="Valor" required><br>
+        <input type="number" name="vencimento_dia" placeholder="Dia do vencimento" required><br>
+        <button type="submit">Cadastrar</button>
+    </form>
 </div>
 
-<hr>
+<!-- LISTA -->
+<div class="box">
+    <h3>Clientes</h3>
 
-<!-- CLIENTES -->
-{% for c in clientes %}
+    <table>
+        <tr>
+            <th>Nome</th>
+            <th>Telefone</th>
+            <th>Valor</th>
+            <th>Vencimento</th>
+            <th>Status</th>
+        </tr>
 
-<div class="card {{c[5]}}">
-
-<b {% if c[5]=='atrasado' %}style="color:red"{% endif %}>
-👤 {{c[1]}}
-</b><br>
-
-📞 {{c[2]}}<br>
-💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
-
-<!-- WHATSAPP PERSONALIZADO -->
-<a class="whatsapp"
-target="_blank"
-href="https://wa.me/55{{c[2]}}?text={{mensagem}}">
-
-<button class="btn btn-secondary">📲 WhatsApp</button>
-</a>
-
-<div class="actions">
-
-<a href="/pago/{{c[0]}}?mes={{mes_ref}}">
-<button class="btn btn-info">✔ Pago</button>
-</a>
-
-<a href="/desfazer/{{c[0]}}?mes={{mes_ref}}">
-<button class="btn btn-dark">↩ Voltar</button>
-</a>
-
+        {% for c in clientes %}
+        <tr>
+            <td>{{ c[1] }}</td>
+            <td>{{ c[2] }}</td>
+            <td>R$ {{ "%.2f"|format(c[3]) }}</td>
+            <td>Dia {{ c[4] }}</td>
+            <td class="{{ c[5] }}">
+                {% if c[5] == 'em_dia' %}
+                    Em dia
+                {% else %}
+                    Atrasado
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
 </div>
 
-<div class="actions">
-
-<button class="btn btn-secondary" onclick="toggle('e{{c[0]}}')">✏ Editar</button>
-
-<a href="/delete/{{c[0]}}">
-<button class="btn btn-danger">🗑 Excluir</button>
-</a>
-
+<!-- TOTAL -->
+<div class="box total">
+    Total geral: R$ {{ "%.2f"|format(total_geral) }}
 </div>
-
-<div id="e{{c[0]}}" class="hidden">
-<form action="/edit/{{c[0]}}" method="post">
-<input name="nome" value="{{c[1]}}" required>
-<input name="telefone" value="{{c[2]}}" required>
-<input name="valor" value="{{c[3]}}" required>
-<input name="vencimento_dia" value="{{c[4]}}" required>
-<button>Salvar</button>
-</form>
-</div>
-
-</div>
-
-{% endfor %}
-
-<script>
-function toggle(id){
-let e=document.getElementById(id);
-e.style.display = e.style.display==="block"?"none":"block";
-}
-</script>
 
 </body>
 </html>
