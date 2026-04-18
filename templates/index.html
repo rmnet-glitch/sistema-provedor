@@ -100,7 +100,6 @@ text-decoration:none;
 </a>
 {% endif %}
 
-<!-- 🔧 CONFIGURAÇÕES (NOVO BOTÃO) -->
 <a href="/config">
 <button style="background:#6c757d;color:#fff">⚙️ Config</button>
 </a>
@@ -132,7 +131,6 @@ text-decoration:none;
 <!-- BOTÃO CADASTRO -->
 <button onclick="toggle('cad')">➕ Cliente</button>
 
-<!-- FORM -->
 <div id="cad" class="hidden">
 <form action="/add" method="post">
 <input name="nome" placeholder="Nome" required>
@@ -157,10 +155,10 @@ text-decoration:none;
 📞 {{c[2]}}<br>
 💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
 
-<!-- WHATSAPP -->
+<!-- WHATSAPP DINÂMICO -->
 <a class="whatsapp"
 target="_blank"
-href="https://wa.me/55{{c[2]}}?text=Olá,%20seu%20boleto%20{{usuario}}%20venceu.%20%0A%0A*Mensagem%20automática.*">
+href="https://wa.me/55{{c[2]}}?text={{mensagem}}">
 
 <button class="btn btn-secondary">📲 WhatsApp</button>
 </a>
