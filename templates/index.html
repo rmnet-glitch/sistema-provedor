@@ -6,35 +6,86 @@
 
 <style>
 body{font-family:Arial;background:#f4f4f4;padding:20px}
+
+.topo{display:flex;justify-content:space-between;align-items:center}
+
+.menu a{
+margin-left:10px;
+padding:8px 12px;
+background:#333;
+color:#fff;
+border-radius:6px;
+text-decoration:none;
+}
+
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+gap:10px;
+margin-top:15px;
+}
+
+.card{
+padding:15px;
+border-radius:8px;
+color:#fff;
+font-weight:bold;
+}
+
+.total{background:#333}
+.recebido{background:green}
+.atrasado{background:red}
+.emdia{background:orange}
+
 .box{background:#fff;padding:15px;margin-top:15px;border-radius:8px}
-.menu a{margin:5px;padding:8px 12px;background:#333;color:#fff;text-decoration:none;border-radius:5px}
-.em_dia{color:green}
-.atrasado{color:red}
-.pago{color:blue;font-weight:bold}
-button{padding:5px 10px}
+
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px;border-bottom:1px solid #ddd}
+
+.btn{
+padding:5px 10px;
+border:none;
+border-radius:5px;
+cursor:pointer;
+}
+
+.pagar{background:green;color:#fff}
+.desfazer{background:orange;color:#fff}
+.delete{background:red;color:#fff}
 </style>
 </head>
 
 <body>
 
-<h2>Olá, {{usuario}}</h2>
-
+<div class="topo">
+<h2>{{usuario}}</h2>
 <div class="menu">
-<a href="/config">Definições</a>
-{% if session["is_admin"] %}<a href="/usuarios">Usuários</a>{% endif %}
+<a href="/config">⚙️</a>
+{% if session["is_admin"] %}<a href="/usuarios">👤</a>{% endif %}
 <a href="/logout">Sair</a>
 </div>
+</div>
 
+<!-- CARDS -->
+<div class="cards">
+<div class="card total">Total<br>R$ {{total_geral}}</div>
+<div class="card recebido">Recebido<br>R$ {{total_recebido}}</div>
+<div class="card atrasado">Atrasado<br>R$ {{total_atrasado}}</div>
+<div class="card emdia">Em dia<br>R$ {{total_em_dia}}</div>
+</div>
+
+<!-- CADASTRO -->
 <div class="box">
 <form method="post" action="/add">
 <input name="nome" placeholder="Nome" required>
 <input name="telefone" placeholder="Telefone">
-<input name="valor" placeholder="Valor" required>
+<input name="valor" placeholder="Valor">
 <input name="vencimento_dia" placeholder="Vencimento">
 <button>Cadastrar</button>
 </form>
 </div>
 
+<!-- LISTA -->
 <div class="box">
 <table>
 <tr>
@@ -46,26 +97,28 @@ button{padding:5px 10px}
 <td>{{c[1]}}</td>
 <td>R$ {{c[3]}}</td>
 
-<td class="{{c[5]}}">
-{% if c[5]=="pago" %}Pago{% elif c[5]=="atrasado" %}Atrasado{% else %}Em dia{% endif %}
+<td>
+{% if c[5]=="pago" %}
+<span style="color:green">Pago</span>
+{% elif c[5]=="atrasado" %}
+<span style="color:red">Atrasado</span>
+{% else %}
+<span style="color:orange">Em dia</span>
+{% endif %}
 </td>
 
 <td>
 {% if c[5]!="pago" %}
-<a href="/pagar/{{c[0]}}"><button>Pagar</button></a>
+<a href="/pagar/{{c[0]}}"><button class="btn pagar">Pagar</button></a>
 {% else %}
-<a href="/desfazer/{{c[0]}}"><button>Desfazer</button></a>
+<a href="/desfazer/{{c[0]}}"><button class="btn desfazer">Desfazer</button></a>
 {% endif %}
 
-<a href="/delete/{{c[0]}}"><button>Excluir</button></a>
+<a href="/delete/{{c[0]}}"><button class="btn delete">Excluir</button></a>
 </td>
 </tr>
 {% endfor %}
 </table>
-</div>
-
-<div class="box">
-<b>Total: R$ {{total_geral}}</b>
 </div>
 
 </body>
