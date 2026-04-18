@@ -49,6 +49,54 @@ def logout():
     return redirect("/login")
 
 
+# ================= CONFIGURAÇÕES (NOVO) =================
+@app.route("/config", methods=["GET", "POST"])
+def config():
+    if not session.get("logado"):
+        return redirect("/login")
+
+    conn = conectar()
+    cur = conn.cursor()
+    user_id = session["user_id"]
+
+    if request.method == "POST":
+
+        senha = request.form.get("senha")
+        mensagem = request.form.get("mensagem")
+
+        if senha:
+            cur.execute("""
+                UPDATE usuarios
+                SET senha=%s
+                WHERE id=%s
+            """, (senha, user_id))
+
+        cur.execute("""
+            UPDATE usuarios
+            SET whatsapp_msg=%s
+            WHERE id=%s
+        """, (mensagem, user_id))
+
+        conn.commit()
+
+    cur.execute("""
+        SELECT usuario, whatsapp_msg
+        FROM usuarios
+        WHERE id=%s
+    """, (user_id,))
+
+    user = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "config.html",
+        usuario=user[0],
+        mensagem=user[1] or ""
+    )
+
+
 # ================= GERAR COBRANÇAS =================
 def gerar_cobrancas(cur, mes, user_id):
     cur.execute("SELECT id FROM clientes WHERE usuario_id=%s",(user_id,))
@@ -281,12 +329,11 @@ def add_user():
     return redirect("/usuarios")
 
 
-# 🔴 DESATIVAR (PROTEGIDO)
 @app.route("/desativar_user/<int:id>")
 def desativar_user(id):
 
     if id == session["user_id"]:
-        return redirect("/usuarios")  # bloqueia auto-desativação
+        return redirect("/usuarios")
 
     conn=conectar()
     cur=conn.cursor()
@@ -299,7 +346,6 @@ def desativar_user(id):
     return redirect("/usuarios")
 
 
-# 🟢 ATIVAR
 @app.route("/ativar_user/<int:id>")
 def ativar_user(id):
     conn=conectar()
@@ -313,12 +359,11 @@ def ativar_user(id):
     return redirect("/usuarios")
 
 
-# ❌ EXCLUIR (PROTEGIDO)
 @app.route("/del_user/<int:id>")
 def del_user(id):
 
     if id == session["user_id"]:
-        return redirect("/usuarios")  # bloqueia auto-exclusão
+        return redirect("/usuarios")
 
     conn=conectar()
     cur=conn.cursor()
