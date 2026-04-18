@@ -75,6 +75,7 @@ def index():
     total_recebido = 0
     total_atrasado = 0
     total_em_dia = 0
+    total_clientes = 0
 
     for c in raw:
         id, nome, tel, valor, venc, status = c
@@ -82,10 +83,11 @@ def index():
         if busca and busca not in nome.lower():
             continue
 
+        total_clientes += 1
         valor = float(valor)
         total_geral += valor
 
-        # REGRA DE STATUS (SEM ALTERAR LÓGICA ORIGINAL)
+        # regra de status (mantida igual lógica anterior)
         if mes_ref > hoje:
             status = "em_dia"
         elif mes_ref == hoje:
@@ -97,7 +99,6 @@ def index():
             if status != "pago":
                 status = "atrasado"
 
-        # TOTAIS
         if status == "pago":
             total_recebido += valor
         elif status == "atrasado":
@@ -122,7 +123,8 @@ def index():
         total_geral=total_geral,
         total_recebido=total_recebido,
         total_atrasado=total_atrasado,
-        total_em_dia=total_em_dia
+        total_em_dia=total_em_dia,
+        total_clientes=total_clientes
     )
 
 
