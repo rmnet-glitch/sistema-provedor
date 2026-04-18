@@ -11,7 +11,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 def conectar():
     return psycopg2.connect(DATABASE_URL)
 
-# LOGIN
+# ================= LOGIN =================
 @app.route("/login", methods=["GET","POST"])
 def login():
     if request.method == "POST":
@@ -46,10 +46,12 @@ def logout():
     return redirect("/login")
 
 
-# GERAR COBRANÇAS
+# ================= GERAR COBRANÇAS =================
 def gerar_cobrancas(cur, mes, user_id):
     cur.execute("SELECT id FROM clientes WHERE usuario_id=%s",(user_id,))
-    for c in cur.fetchall():
+    clientes = cur.fetchall()
+
+    for c in clientes:
         cur.execute("""
         SELECT id FROM cobrancas
         WHERE cliente_id=%s AND mes_ref=%s AND usuario_id=%s
@@ -62,7 +64,7 @@ def gerar_cobrancas(cur, mes, user_id):
             """,(c[0], mes, user_id))
 
 
-# INDEX
+# ================= INDEX =================
 @app.route("/")
 def index():
     if not session.get("logado"):
@@ -147,7 +149,108 @@ def index():
     )
 
 
-# USUÁRIOS
+# ================= ADICIONAR CLIENTE (CORRIGIDO) =================
+@app.route("/add", methods=["POST"])
+def add():
+    if not session.get("logado"):
+        return redirect("/login")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+    INSERT INTO clientes (nome, telefone, valor, vencimento_dia, usuario_id)
+    VALUES (%s,%s,%s,%s,%s)
+    """, (
+        request.form["nome"],
+        request.form["telefone"],
+        request.form["valor"],
+        request.form["vencimento_dia"],
+        session["user_id"]
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/")
+
+
+# ================= EDITAR =================
+@app.route("/edit/<int:id>", methods=["POST"])
+def edit(id):
+    conn=conectar()
+    cur=conn.cursor()
+
+    cur.execute("""
+    UPDATE clientes 
+    SET nome=%s,telefone=%s,valor=%s,vencimento_dia=%s
+    WHERE id=%s AND usuario_id=%s
+    """,(request.form["nome"],request.form["telefone"],
+         request.form["valor"],request.form["vencimento_dia"],
+         id,session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    return redirect("/")
+
+
+# ================= EXCLUIR =================
+@app.route("/delete/<int:id>")
+def delete(id):
+    conn=conectar()
+    cur=conn.cursor()
+
+    cur.execute("""
+    DELETE FROM clientes 
+    WHERE id=%s AND usuario_id=%s
+    """,(id,session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    return redirect("/")
+
+
+# ================= PAGAMENTO =================
+@app.route("/pago/<int:id>")
+def pago(id):
+    conn=conectar()
+    cur=conn.cursor()
+    mes=request.args.get("mes")
+
+    cur.execute("""
+    UPDATE cobrancas 
+    SET status='pago'
+    WHERE cliente_id=%s AND mes_ref=%s AND usuario_id=%s
+    """,(id, mes, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    return redirect(f"/?mes={mes}")
+
+
+@app.route("/desfazer/<int:id>")
+def desfazer(id):
+    conn=conectar()
+    cur=conn.cursor()
+    mes=request.args.get("mes")
+
+    cur.execute("""
+    UPDATE cobrancas 
+    SET status='em_dia'
+    WHERE cliente_id=%s AND mes_ref=%s AND usuario_id=%s
+    """,(id,mes,session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    return redirect(f"/?mes={mes}")
+
+
+# ================= USUÁRIOS =================
 @app.route("/usuarios")
 def usuarios():
     if not session.get("is_admin"):
