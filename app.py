@@ -94,7 +94,8 @@ def config():
     cur.close()
     conn.close()
 
-    return render_template("config.html",
+    return render_template(
+        "config.html",
         usuario=user[0],
         mensagem=user[1] or ""
     )
@@ -186,7 +187,7 @@ def del_user(id):
     return redirect("/usuarios")
 
 
-# ================= INDEX =================
+# ================= INDEX (COM FILTRO) =================
 @app.route("/")
 def index():
     if not session.get("logado"):
@@ -199,6 +200,7 @@ def index():
 
     mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
     busca = request.args.get("busca","").lower()
+    filtro = request.args.get("filtro","")
 
     cur.execute("""
     SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
@@ -255,6 +257,17 @@ def index():
 
         clientes.append((id,nome,tel,valor,venc,status))
 
+    # ================= FILTRO =================
+    if filtro == "nome":
+        clientes.sort(key=lambda x: x[1].lower())
+
+    elif filtro == "status":
+        ordem = {"atrasado":0,"em_dia":1,"pago":2}
+        clientes.sort(key=lambda x: ordem.get(x[5],1))
+
+    elif filtro == "valor":
+        clientes.sort(key=lambda x: float(x[3]), reverse=True)
+
     conn.commit()
     cur.close()
     conn.close()
@@ -263,6 +276,7 @@ def index():
         clientes=clientes,
         mes_ref=mes,
         busca=busca,
+        filtro=filtro,
         total_geral=total,
         total_recebido=recebido,
         total_atrasado=atrasado,
@@ -273,7 +287,7 @@ def index():
     )
 
 
-# ================= PAGAMENTO (CORRIGIDO DE VERDADE) =================
+# ================= PAGAMENTO =================
 @app.route("/pago/<int:id>")
 def pago(id):
     if not session.get("logado"):
