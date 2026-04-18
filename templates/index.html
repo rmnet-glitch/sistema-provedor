@@ -122,10 +122,10 @@ text-decoration:none;
 
 <!-- TOTAIS -->
 <div class="stats">
-💰 Total: {{total_geral}}<br>
-💵 Recebido: {{total_recebido}}<br>
-🔴 Em Atraso: {{total_atrasado}}<br>
-🔵 Em Dia: {{total_em_dia}}<br>
+💰 Total: R$ {{ "%.2f"|format(total_geral) }}<br>
+💵 Recebido: R$ {{ "%.2f"|format(total_recebido) }}<br>
+🔴 Em Atraso: R$ {{ "%.2f"|format(total_atrasado) }}<br>
+🔵 Em Dia: R$ {{ "%.2f"|format(total_em_dia) }}<br>
 👥 Clientes: {{total_clientes}}
 </div>
 
@@ -148,30 +148,30 @@ text-decoration:none;
 <!-- CLIENTES -->
 {% for c in clientes %}
 
-<div class="card {{c[5]}}">
+<div class="card {{c.status}}">
 
-<b {% if c[5]=='atrasado' %}style="color:red"{% endif %}>
-👤 {{c[1]}}
+<b {% if c.status=='atrasado' %}style="color:red"{% endif %}>
+👤 {{c.nome}}
 </b><br>
 
-📞 {{c[2]}}<br>
-💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
+📞 {{c.telefone}}<br>
+💰 R$ {{ "%.2f"|format(c.valor) }} | 📅 Dia {{c.vencimento_dia}} | ⚡ {{c.status}}
 
 <!-- WHATSAPP PERSONALIZADO -->
 <a class="whatsapp"
 target="_blank"
-href="https://wa.me/55{{c[2]}}?text={{mensagem}}">
+href="https://wa.me/55{{c.telefone}}?text={{mensagem_whatsapp}}">
 
 <button class="btn btn-secondary">📲 WhatsApp</button>
 </a>
 
 <div class="actions">
 
-<a href="/pago/{{c[0]}}?mes={{mes_ref}}">
+<a href="/pago/{{c.id}}?mes={{mes_ref}}">
 <button class="btn btn-info">✔ Pago</button>
 </a>
 
-<a href="/desfazer/{{c[0]}}?mes={{mes_ref}}">
+<a href="/desfazer/{{c.id}}?mes={{mes_ref}}">
 <button class="btn btn-dark">↩ Voltar</button>
 </a>
 
@@ -179,20 +179,20 @@ href="https://wa.me/55{{c[2]}}?text={{mensagem}}">
 
 <div class="actions">
 
-<button class="btn btn-secondary" onclick="toggle('e{{c[0]}}')">✏ Editar</button>
+<button class="btn btn-secondary" onclick="toggle('e{{c.id}}')">✏ Editar</button>
 
-<a href="/delete/{{c[0]}}">
+<a href="/delete/{{c.id}}">
 <button class="btn btn-danger">🗑 Excluir</button>
 </a>
 
 </div>
 
-<div id="e{{c[0]}}" class="hidden">
-<form action="/edit/{{c[0]}}" method="post">
-<input name="nome" value="{{c[1]}}" required>
-<input name="telefone" value="{{c[2]}}" required>
-<input name="valor" value="{{c[3]}}" required>
-<input name="vencimento_dia" value="{{c[4]}}" required>
+<div id="e{{c.id}}" class="hidden">
+<form action="/edit/{{c.id}}" method="post">
+<input name="nome" value="{{c.nome}}" required>
+<input name="telefone" value="{{c.telefone}}" required>
+<input name="valor" value="{{c.valor}}" required>
+<input name="vencimento_dia" value="{{c.vencimento_dia}}" required>
 <button>Salvar</button>
 </form>
 </div>
