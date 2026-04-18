@@ -2,7 +2,6 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema</title>
 
 <style>
 body{font-family:Arial;background:#f4f6f8;padding:10px;}
@@ -39,7 +38,11 @@ font-size:12px;
 .em_dia{border-left:4px solid blue;}
 .pago{border-left:4px solid green;}
 
-.actions{display:flex;gap:5px;margin-top:5px;}
+.actions{
+display:flex;
+gap:5px;
+margin-top:5px;
+}
 
 .btn{
 flex:1;
@@ -61,6 +64,7 @@ color:#fff;
 
 <body>
 
+<!-- HEADER -->
 <div class="header">
 <h3>👤 {{usuario}}</h3>
 
@@ -79,12 +83,14 @@ color:#fff;
 </div>
 </div>
 
+<!-- FILTROS -->
 <form>
 <input type="month" name="mes" value="{{mes_ref}}">
-<input type="text" name="busca" placeholder="Buscar..." value="{{busca}}">
+<input type="text" name="busca" value="{{busca}}" placeholder="Buscar cliente">
 <button>OK</button>
 </form>
 
+<!-- TOTAIS -->
 <div class="stats">
 💰 Total: {{total_geral}}<br>
 💵 Recebido: {{total_recebido}}<br>
@@ -94,13 +100,14 @@ color:#fff;
 
 <hr>
 
+<!-- CLIENTES -->
 {% for c in clientes %}
 
 <div class="card {{c[5]}}">
 
 <b>{{c[1]}}</b><br>
 📞 {{c[2]}}<br>
-💰 {{c[3]}} | 📅 {{c[4]}} | {{c[5]}}
+💰 R$ {{c[3]}} | 📅 {{c[4]}} | {{c[5]}}
 
 <div class="actions">
 
@@ -112,11 +119,36 @@ color:#fff;
 <button class="btn btn-dark">Voltar</button>
 </a>
 
+<button class="btn btn-secondary" onclick="toggle('e{{c[0]}}')">
+Editar
+</button>
+
+<a href="/delete/{{c[0]}}">
+<button class="btn btn-danger">Excluir</button>
+</a>
+
+</div>
+
+<div id="e{{c[0]}}" class="hidden">
+<form action="/edit/{{c[0]}}" method="post">
+<input name="nome" value="{{c[1]}}">
+<input name="telefone" value="{{c[2]}}">
+<input name="valor" value="{{c[3]}}">
+<input name="vencimento_dia" value="{{c[4]}}">
+<button>Salvar</button>
+</form>
 </div>
 
 </div>
 
 {% endfor %}
+
+<script>
+function toggle(id){
+let e=document.getElementById(id);
+e.style.display = e.style.display==="block"?"none":"block";
+}
+</script>
 
 </body>
 </html>
