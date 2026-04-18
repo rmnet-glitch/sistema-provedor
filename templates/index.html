@@ -118,7 +118,6 @@ text-decoration:none;
 <input type="month" name="mes" value="{{mes_ref}}">
 <input type="text" name="busca" placeholder="🔎 Buscar cliente..." value="{{busca}}">
 
-<!-- 🔽 FILTRO NOVO -->
 <select name="filtro">
     <option value="">Ordenar</option>
     <option value="nome" {% if filtro=='nome' %}selected{% endif %}>Nome (A-Z)</option>
@@ -167,10 +166,10 @@ text-decoration:none;
 📞 {{c[2]}}<br>
 💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
 
-<!-- WHATSAPP DINÂMICO -->
+<!-- WHATSAPP CORRIGIDO -->
 <a class="whatsapp"
 target="_blank"
-href="https://wa.me/55{{c[2]}}?text={{mensagem}}">
+href="https://wa.me/55{{c[2]}}?text={{ mensagem | urlencode }}">
 
 <button class="btn btn-secondary">📲 WhatsApp</button>
 </a>
