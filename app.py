@@ -67,7 +67,7 @@ def gerar_cobrancas(cur, mes, user_id):
             """,(c[0], mes, user_id))
 
 
-# ================= INDEX (CORRIGIDO) =================
+# ================= INDEX =================
 @app.route("/")
 def index():
     if not session.get("logado"):
@@ -112,7 +112,6 @@ def index():
         valor=float(valor)
         total+=valor
 
-        # lógica de status
         if mes > hoje_mes:
             status="em_dia"
         elif mes == hoje_mes:
@@ -282,8 +281,13 @@ def add_user():
     return redirect("/usuarios")
 
 
+# 🔴 DESATIVAR (PROTEGIDO)
 @app.route("/desativar_user/<int:id>")
 def desativar_user(id):
+
+    if id == session["user_id"]:
+        return redirect("/usuarios")  # bloqueia auto-desativação
+
     conn=conectar()
     cur=conn.cursor()
 
@@ -295,6 +299,7 @@ def desativar_user(id):
     return redirect("/usuarios")
 
 
+# 🟢 ATIVAR
 @app.route("/ativar_user/<int:id>")
 def ativar_user(id):
     conn=conectar()
@@ -308,8 +313,13 @@ def ativar_user(id):
     return redirect("/usuarios")
 
 
+# ❌ EXCLUIR (PROTEGIDO)
 @app.route("/del_user/<int:id>")
 def del_user(id):
+
+    if id == session["user_id"]:
+        return redirect("/usuarios")  # bloqueia auto-exclusão
+
     conn=conectar()
     cur=conn.cursor()
 
