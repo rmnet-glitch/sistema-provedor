@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, session, url_for, flash
 import sqlite3
 from datetime import datetime
 import os
@@ -11,7 +11,9 @@ DB = 'clientes.db'
 
 # ---------------- BANCO ----------------
 def get_db():
-    return sqlite3.connect(DB)
+    conn = sqlite3.connect(DB)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
 def criar_tabelas():
@@ -41,6 +43,12 @@ def criar_tabelas():
     )
     ''')
 
+    # 🔥 GARANTE USUÁRIO PADRÃO
+    c.execute("SELECT * FROM usuarios WHERE username='RM_NET'")
+    if not c.fetchone():
+        c.execute("INSERT INTO usuarios (username, senha, ativo) VALUES (?, ?, ?)",
+                  ('RM_NET', 'Rm2412@', 1))
+
     conn.commit()
     conn.close()
 
@@ -57,13 +65,18 @@ def login():
 
         conn = get_db()
         c = conn.cursor()
-        c.execute("SELECT * FROM usuarios WHERE username=? AND senha=? AND ativo=1", (user, senha))
-        u = c.fetchone()
+
+        c.execute("SELECT * FROM usuarios WHERE username=? AND senha=? AND ativo=1",
+                  (user, senha))
+        usuario = c.fetchone()
+
         conn.close()
 
-        if u:
-            session['user'] = user
+        if usuario:
+            session['user'] = usuario['username']
             return redirect('/index')
+        else:
+            flash('Usuário ou senha inválidos!')
 
     return render_template('login.html')
 
@@ -80,10 +93,10 @@ def index():
     c.execute("SELECT * FROM clientes WHERE usuario=?", (session['user'],))
     clientes = c.fetchall()
 
-    total = sum([c[3] for c in clientes])
-    recebido = sum([c[3] for c in clientes if c[5] == 'pago'])
-    atrasados = len([c for c in clientes if c[5] == 'atrasado'])
-    em_dia = len([c for c in clientes if c[5] == 'em_dia'])
+    total = sum([c['valor'] for c in clientes])
+    recebido = sum([c['valor'] for c in clientes if c['status'] == 'pago'])
+    atrasados = len([c for c in clientes if c['status'] == 'atrasado'])
+    em_dia = len([c for c in clientes if c['status'] == 'em_dia'])
 
     conn.close()
 
@@ -95,7 +108,7 @@ def index():
                            em_dia=em_dia)
 
 
-# ---------------- CADASTRAR CLIENTE ----------------
+# ---------------- ADD CLIENTE ----------------
 @app.route('/add', methods=['POST'])
 def add():
     if 'user' not in session:
@@ -108,10 +121,9 @@ def add():
 
     hoje = datetime.now().day
 
+    status = 'em_dia'
     if hoje > vencimento:
         status = 'atrasado'
-    else:
-        status = 'em_dia'
 
     conn = get_db()
     c = conn.cursor()
@@ -127,7 +139,7 @@ def add():
     return redirect('/index')
 
 
-# ---------------- PAGAMENTO ----------------
+# ---------------- PAGAR ----------------
 @app.route('/pagar/<int:id>')
 def pagar(id):
     conn = get_db()
@@ -135,7 +147,8 @@ def pagar(id):
 
     hoje = datetime.now().strftime('%d/%m/%Y')
 
-    c.execute("UPDATE clientes SET status='pago', ultimo_pagamento=? WHERE id=?", (hoje, id))
+    c.execute("UPDATE clientes SET status='pago', ultimo_pagamento=? WHERE id=?",
+              (hoje, id))
 
     conn.commit()
     conn.close()
@@ -143,6 +156,7 @@ def pagar(id):
     return redirect('/index')
 
 
+# ---------------- DESFAZER ----------------
 @app.route('/desfazer/<int:id>')
 def desfazer(id):
     conn = get_db()
@@ -151,14 +165,14 @@ def desfazer(id):
     hoje = datetime.now().day
 
     c.execute("SELECT vencimento FROM clientes WHERE id=?", (id,))
-    venc = c.fetchone()[0]
+    vencimento = c.fetchone()['vencimento']
 
-    if hoje > venc:
+    status = 'em_dia'
+    if hoje > vencimento:
         status = 'atrasado'
-    else:
-        status = 'em_dia'
 
-    c.execute("UPDATE clientes SET status=?, ultimo_pagamento='' WHERE id=?", (status, id))
+    c.execute("UPDATE clientes SET status=?, ultimo_pagamento='' WHERE id=?",
+              (status, id))
 
     conn.commit()
     conn.close()
@@ -166,7 +180,7 @@ def desfazer(id):
     return redirect('/index')
 
 
-# ---------------- DELETAR ----------------
+# ---------------- DELETE ----------------
 @app.route('/delete/<int:id>')
 def delete(id):
     conn = get_db()
@@ -187,7 +201,7 @@ def logout():
     return redirect('/')
 
 
-# ---------------- RUN (CORRIGIDO RENDER) ----------------
+# ---------------- RUN (RENDER) ----------------
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
