@@ -7,33 +7,53 @@ app = Flask(__name__)
 app.secret_key = 'rm_net_2026'
 
 
-# ---------------- CONEXÃO NEON ----------------
+# ---------------- CONEXÃO SEGURA ----------------
 def get_db():
-    return psycopg2.connect(os.environ['DATABASE_URL'])
+    try:
+        url = os.environ.get('DATABASE_URL')
+
+        if not url:
+            raise Exception("DATABASE_URL não configurada")
+
+        return psycopg2.connect(url)
+
+    except Exception as e:
+        print("ERRO CONEXÃO:", e)
+        return None
 
 
 # ---------------- CRIAR TABELA ----------------
 def criar_tabelas():
     conn = get_db()
-    c = conn.cursor()
+    if not conn:
+        return
 
-    c.execute('''
-    CREATE TABLE IF NOT EXISTS clientes (
-        id SERIAL PRIMARY KEY,
-        nome TEXT,
-        telefone TEXT,
-        valor NUMERIC,
-        vencimento INTEGER,
-        status TEXT,
-        ultimo_pagamento TEXT,
-        usuario TEXT
-    )
-    ''')
+    try:
+        c = conn.cursor()
 
-    conn.commit()
-    conn.close()
+        c.execute('''
+        CREATE TABLE IF NOT EXISTS clientes (
+            id SERIAL PRIMARY KEY,
+            nome TEXT,
+            telefone TEXT,
+            valor NUMERIC,
+            vencimento INTEGER,
+            status TEXT,
+            ultimo_pagamento TEXT,
+            usuario TEXT
+        )
+        ''')
+
+        conn.commit()
+
+    except Exception as e:
+        print("ERRO AO CRIAR TABELA:", e)
+
+    finally:
+        conn.close()
 
 
+# ⚠️ NÃO derruba o app se falhar
 criar_tabelas()
 
 
@@ -58,80 +78,90 @@ def index():
         return redirect('/')
 
     conn = get_db()
-    c = conn.cursor()
+    if not conn:
+        return "Erro de conexão com banco"
 
-    c.execute("SELECT * FROM clientes WHERE usuario=%s", (session['user'],))
-    clientes = c.fetchall()
+    try:
+        c = conn.cursor()
 
-    hoje = datetime.now().day
+        c.execute("SELECT * FROM clientes WHERE usuario=%s", (session['user'],))
+        clientes = c.fetchall()
 
-    total = 0
-    recebido = 0
+        hoje = datetime.now().day
 
-    clientes_tratados = []
+        total = 0
+        recebido = 0
+        clientes_tratados = []
 
-    for cte in clientes:
-        valor = float(cte[3] or 0)
-        vencimento = cte[4]
-        status = cte[5]
+        for cte in clientes:
+            valor = float(cte[3] or 0)
+            vencimento = cte[4]
+            status = cte[5]
 
-        # 🔥 CORRIGE STATUS AUTOMATICAMENTE
-        if status != 'pago':
-            if hoje > vencimento:
-                status = 'atrasado'
-            else:
-                status = 'em_dia'
+            if status != 'pago':
+                status = 'atrasado' if hoje > vencimento else 'em_dia'
 
-        if status == 'pago':
-            recebido += valor
+            if status == 'pago':
+                recebido += valor
 
-        total += valor
+            total += valor
 
-        clientes_tratados.append((
-            cte[0],
-            cte[1],
-            cte[2],
-            valor,
-            vencimento,
-            status,
-            cte[6]
-        ))
+            clientes_tratados.append((
+                cte[0],
+                cte[1],
+                cte[2],
+                valor,
+                vencimento,
+                status,
+                cte[6]
+            ))
 
-    conn.close()
+        return render_template('index.html',
+                               clientes=clientes_tratados,
+                               total=total,
+                               recebido=recebido)
 
-    return render_template('index.html',
-                           clientes=clientes_tratados,
-                           total=total,
-                           recebido=recebido)
+    except Exception as e:
+        print("ERRO INDEX:", e)
+        return "Erro ao carregar clientes"
+
+    finally:
+        conn.close()
 
 
-# ---------------- ADD CLIENTE ----------------
+# ---------------- ADD ----------------
 @app.route('/add', methods=['POST'])
 def add():
     if 'user' not in session:
         return redirect('/')
 
-    nome = request.form['nome']
-    telefone = request.form['telefone']
-    valor = float(request.form['valor'])
-    vencimento = int(request.form['vencimento'])
-
-    hoje = datetime.now().day
-
-    status = 'em_dia'
-    if hoje > vencimento:
-        status = 'atrasado'
-
     conn = get_db()
-    c = conn.cursor()
+    if not conn:
+        return "Erro banco"
 
-    c.execute('''
-    INSERT INTO clientes (nome, telefone, valor, vencimento, status, ultimo_pagamento, usuario)
-    VALUES (%s, %s, %s, %s, %s, %s, %s)
-    ''', (nome, telefone, valor, vencimento, status, '', session['user']))
+    try:
+        c = conn.cursor()
 
-    conn.commit()
-    conn.close()
+        nome = request.form['nome']
+        telefone = request.form['telefone']
+        valor = float(request.form['valor'])
+        vencimento = int(request.form['vencimento'])
+
+        hoje = datetime.now().day
+        status = 'atrasado' if hoje > vencimento else 'em_dia'
+
+        c.execute('''
+        INSERT INTO clientes (nome, telefone, valor, vencimento, status, ultimo_pagamento, usuario)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ''', (nome, telefone, valor, vencimento, status, '', session['user']))
+
+        conn.commit()
+
+    except Exception as e:
+        print("ERRO ADD:", e)
+
+    finally:
+        conn.close()
 
     return redirect('/index')
 
@@ -140,45 +170,57 @@ def add():
 @app.route('/pagar/<int:id>')
 def pagar(id):
     conn = get_db()
-    c = conn.cursor()
+    if not conn:
+        return redirect('/index')
 
-    data_pagamento = datetime.now().strftime('%d/%m/%Y')
+    try:
+        c = conn.cursor()
 
-    c.execute("""
-        UPDATE clientes 
-        SET status='pago', ultimo_pagamento=%s 
-        WHERE id=%s
-    """, (data_pagamento, id))
+        data = datetime.now().strftime('%d/%m/%Y')
 
-    conn.commit()
-    conn.close()
+        c.execute("""
+        UPDATE clientes SET status='pago', ultimo_pagamento=%s WHERE id=%s
+        """, (data, id))
+
+        conn.commit()
+
+    except Exception as e:
+        print("ERRO PAGAR:", e)
+
+    finally:
+        conn.close()
 
     return redirect('/index')
 
 
-# ---------------- DESFAZER PAGAMENTO ----------------
+# ---------------- DESFAZER ----------------
 @app.route('/desfazer/<int:id>')
 def desfazer(id):
     conn = get_db()
-    c = conn.cursor()
+    if not conn:
+        return redirect('/index')
 
-    hoje = datetime.now().day
+    try:
+        c = conn.cursor()
 
-    c.execute("SELECT vencimento FROM clientes WHERE id=%s", (id,))
-    vencimento = c.fetchone()[0]
+        hoje = datetime.now().day
 
-    status = 'em_dia'
-    if hoje > vencimento:
-        status = 'atrasado'
+        c.execute("SELECT vencimento FROM clientes WHERE id=%s", (id,))
+        vencimento = c.fetchone()[0]
 
-    c.execute("""
-        UPDATE clientes 
-        SET status=%s, ultimo_pagamento='' 
-        WHERE id=%s
-    """, (status, id))
+        status = 'atrasado' if hoje > vencimento else 'em_dia'
 
-    conn.commit()
-    conn.close()
+        c.execute("""
+        UPDATE clientes SET status=%s, ultimo_pagamento='' WHERE id=%s
+        """, (status, id))
+
+        conn.commit()
+
+    except Exception as e:
+        print("ERRO DESFAZER:", e)
+
+    finally:
+        conn.close()
 
     return redirect('/index')
 
@@ -187,12 +229,19 @@ def desfazer(id):
 @app.route('/delete/<int:id>')
 def delete(id):
     conn = get_db()
-    c = conn.cursor()
+    if not conn:
+        return redirect('/index')
 
-    c.execute("DELETE FROM clientes WHERE id=%s", (id,))
+    try:
+        c = conn.cursor()
+        c.execute("DELETE FROM clientes WHERE id=%s", (id,))
+        conn.commit()
 
-    conn.commit()
-    conn.close()
+    except Exception as e:
+        print("ERRO DELETE:", e)
+
+    finally:
+        conn.close()
 
     return redirect('/index')
 
@@ -206,4 +255,4 @@ def logout():
 
 # ---------------- RUN ----------------
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
