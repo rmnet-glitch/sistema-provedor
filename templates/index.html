@@ -24,7 +24,7 @@ gap:5px;
 flex-wrap:wrap;
 }
 
-input,button{
+input,select,button{
 padding:6px;
 font-size:13px;
 }
@@ -114,9 +114,20 @@ text-decoration:none;
 
 <!-- FILTROS -->
 <form class="topbar">
+
 <input type="month" name="mes" value="{{mes_ref}}">
 <input type="text" name="busca" placeholder="🔎 Buscar cliente..." value="{{busca}}">
+
+<!-- 🔽 FILTRO NOVO -->
+<select name="filtro">
+    <option value="">Ordenar</option>
+    <option value="nome" {% if filtro=='nome' %}selected{% endif %}>Nome (A-Z)</option>
+    <option value="status" {% if filtro=='status' %}selected{% endif %}>Status</option>
+    <option value="valor" {% if filtro=='valor' %}selected{% endif %}>Maior valor</option>
+</select>
+
 <button>OK</button>
+
 </form>
 
 <!-- TOTAIS -->
@@ -131,6 +142,7 @@ text-decoration:none;
 <!-- BOTÃO CADASTRO -->
 <button onclick="toggle('cad')">➕ Cliente</button>
 
+<!-- FORM -->
 <div id="cad" class="hidden">
 <form action="/add" method="post">
 <input name="nome" placeholder="Nome" required>
