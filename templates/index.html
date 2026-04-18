@@ -38,7 +38,7 @@ font-size:12px;
 line-height:1.5;
 }
 
-/* CARD MENOR E LIMPO */
+/* CARD */
 .card{
 background:#fff;
 padding:7px;
@@ -51,14 +51,13 @@ font-size:12px;
 .em_dia{border-left:4px solid blue}
 .pago{border-left:4px solid green}
 
-/* 🔥 BOTÕES COMPACTOS */
+/* BOTÕES */
 .actions{
 display:flex;
 gap:4px;
 margin-top:4px;
 }
 
-/* padrão pequeno */
 .btn{
 flex:1;
 padding:4px;
@@ -69,14 +68,12 @@ color:#fff;
 text-align:center;
 }
 
-/* CORES ORIGINAIS RESTAURADAS */
 .btn-success{background:#28a745}
 .btn-danger{background:#dc3545}
 .btn-info{background:#17a2b8}
 .btn-dark{background:#343a40}
 .btn-secondary{background:#6c757d}
 
-/* WHATSAPP SEM CRESCER CARD */
 .whatsapp{
 margin-top:4px;
 display:block;
@@ -84,8 +81,6 @@ text-decoration:none;
 }
 
 .hidden{display:none}
-
-.small{font-size:11px;color:#666}
 </style>
 </head>
 
@@ -93,11 +88,23 @@ text-decoration:none;
 
 <!-- HEADER -->
 <div class="header">
+
 <h3>📡 RM NET</h3>
+
+<div style="display:flex; gap:5px;">
+
+{% if session["is_admin"] %}
+<a href="/usuarios">
+<button style="background:#343a40;color:#fff">👥 Usuários</button>
+</a>
+{% endif %}
 
 <a href="/logout">
 <button style="background:#dc3545;color:#fff">🚪 Sair</button>
 </a>
+
+</div>
+
 </div>
 
 <!-- FILTROS -->
