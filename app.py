@@ -11,6 +11,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 def conectar():
     return psycopg2.connect(DATABASE_URL)
 
+
 # ================= LOGIN =================
 @app.route("/login", methods=["GET","POST"])
 def login():
@@ -51,7 +52,7 @@ def logout():
     return redirect("/login")
 
 
-# ================= DEFINIÇÕES =================
+# ================= CONFIG =================
 @app.route("/config")
 def config():
     if not session.get("logado"):
@@ -92,7 +93,6 @@ def index():
     conn = conectar()
     cur = conn.cursor()
 
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
     busca = request.args.get("busca","").lower()
 
     cur.execute("""
@@ -103,18 +103,27 @@ def index():
 
     dados = cur.fetchall()
 
-    clientes=[]
-    total=0
+    clientes = []
+    total = 0
+
+    hoje = datetime.now().day
 
     for c in dados:
-        id,nome,tel,valor,venc = c
+        id, nome, tel, valor, venc = c
 
         if busca and busca not in nome.lower():
             continue
 
-        total += float(valor)
+        valor = float(valor or 0)
+        total += valor
 
-        clientes.append((id,nome,tel,valor,venc,"em_dia"))
+        # 🔥 STATUS AUTOMÁTICO
+        if hoje > venc:
+            status = "atrasado"
+        else:
+            status = "em_dia"
+
+        clientes.append((id, nome, tel, valor, venc, status))
 
     cur.close()
     conn.close()
@@ -127,7 +136,7 @@ def index():
     )
 
 
-# ================= CLIENTES =================
+# ================= ADD CLIENTE =================
 @app.route("/add", methods=["POST"])
 def add():
     conn = conectar()
@@ -156,11 +165,11 @@ def usuarios():
     if not session.get("is_admin"):
         return redirect("/")
 
-    conn=conectar()
-    cur=conn.cursor()
+    conn = conectar()
+    cur = conn.cursor()
 
     cur.execute("SELECT id, usuario, ativo FROM usuarios")
-    lista=cur.fetchall()
+    lista = cur.fetchall()
 
     cur.close()
     conn.close()
@@ -169,5 +178,5 @@ def usuarios():
 
 
 # ================= EXECUÇÃO =================
-if __name__=="__main__":
+if __name__ == "__main__":
     app.run(debug=True)
