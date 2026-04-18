@@ -20,17 +20,23 @@ border:none;
 border-radius:5px;
 color:#fff;
 margin-top:5px;
+cursor:pointer;
 }
 
 .green{background:#28a745}
 .gray{background:#6c757d}
 
+.card{
+background:#fff;
+padding:10px;
+border-radius:8px;
+}
 </style>
 </head>
 
 <body>
 
-<h3>⚙️ Definições</h3>
+<h3>⚙️ Configurações</h3>
 
 <a href="/">
 <button class="btn gray">⬅ Voltar</button>
@@ -38,17 +44,23 @@ margin-top:5px;
 
 <hr>
 
-<form action="/salvar_config" method="post">
+<div class="card">
 
-<label>🔑 Nova Senha</label>
-<input name="senha" placeholder="Digite nova senha">
+<p><b>Usuário:</b> {{usuario}}</p>
+
+<form method="POST">
+
+<label>🔑 Nova senha</label>
+<input name="senha" type="password" placeholder="Digite nova senha">
 
 <label>💬 Mensagem WhatsApp</label>
-<textarea name="mensagem" rows="4">{{session["msg"]}}</textarea>
+<textarea name="mensagem" rows="5">{{mensagem}}</textarea>
 
-<button class="btn green">💾 Salvar</button>
+<button class="btn green">💾 Salvar alterações</button>
 
 </form>
+
+</div>
 
 </body>
 </html>
