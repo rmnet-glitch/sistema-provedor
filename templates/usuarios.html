@@ -2,74 +2,118 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-
-body{font-family:Arial;background:#f4f6f8;padding:10px;}
-
-.card{
-background:#fff;
-padding:10px;
-margin:8px 0;
-border-radius:8px;
+body{
+    font-family:Arial;
+    background:#f4f6f8;
+    padding:10px;
 }
 
-.ativo{border-left:5px solid green;}
-.inativo{border-left:5px solid red;}
+h3{
+    margin-bottom:10px;
+}
+
+.card{
+    background:#fff;
+    padding:10px;
+    margin:8px 0;
+    border-radius:8px;
+}
+
+.ativo{
+    border-left:5px solid green;
+}
+
+.inativo{
+    border-left:5px solid red;
+}
 
 .btn{
-padding:5px;
-font-size:12px;
-border:none;
-border-radius:5px;
-color:#fff;
-margin:2px;
+    padding:6px;
+    font-size:12px;
+    border:none;
+    border-radius:5px;
+    color:#fff;
+    margin:2px;
 }
 
 .green{background:#28a745}
 .red{background:#dc3545}
 .gray{background:#6c757d}
 
+.top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+form{
+    margin:10px 0;
+}
+
+input{
+    padding:6px;
+    font-size:12px;
+    margin:2px;
+}
 </style>
 </head>
 
 <body>
 
-<h3>👥 Usuários</h3>
+<div class="top">
+    <h3>👥 Usuários</h3>
 
-<a href="/"><button class="btn gray">⬅ Voltar</button></a>
+    <a href="/">
+        <button class="btn gray">⬅ Voltar</button>
+    </a>
+</div>
 
 <hr>
 
+<!-- CRIAR USUÁRIO -->
 <form action="/add_user" method="post">
-<input name="usuario" placeholder="Usuário" required>
-<input name="senha" placeholder="Senha" required>
-<button class="btn green">Criar</button>
+    <input name="usuario" placeholder="Usuário" required>
+    <input name="senha" placeholder="Senha" required>
+    <button class="btn green">➕ Criar</button>
 </form>
 
 <hr>
 
+<!-- LISTA -->
 {% for u in usuarios %}
 
 <div class="card {% if u[2] %}ativo{% else %}inativo{% endif %}">
 
-<b>{{u[1]}}</b><br>
-Status: {{ "Ativo" if u[2] else "Desativado" }}
+    <b>👤 {{u[1]}}</b><br>
+    Status: 
+    <b style="color:{% if u[2] %}green{% else %}red{% endif %}">
+        {{ "Ativo" if u[2] else "Desativado" }}
+    </b>
 
-<br><br>
+    <br><br>
 
-{% if u[2] %}
-<a href="/desativar_user/{{u[0]}}">
-<button class="btn red">🔴 Desativar</button>
-</a>
-{% else %}
-<a href="/ativar_user/{{u[0]}}">
-<button class="btn green">🟢 Ativar</button>
-</a>
-{% endif %}
+    <!-- PROTEÇÃO: NÃO PODE MEXER EM SI MESMO -->
+    {% if u[0] != session["user_id"] %}
 
-<a href="/del_user/{{u[0]}}">
-<button class="btn gray">🗑 Excluir</button>
-</a>
+        {% if u[2] %}
+        <a href="/desativar_user/{{u[0]}}">
+            <button class="btn red">🔴 Desativar</button>
+        </a>
+        {% else %}
+        <a href="/ativar_user/{{u[0]}}">
+            <button class="btn green">🟢 Ativar</button>
+        </a>
+        {% endif %}
+
+        <a href="/del_user/{{u[0]}}">
+            <button class="btn gray">🗑 Excluir</button>
+        </a>
+
+    {% else %}
+        <b style="color:#555;">🔒 Você (não pode alterar)</b>
+    {% endif %}
 
 </div>
 
