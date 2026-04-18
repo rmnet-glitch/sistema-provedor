@@ -53,7 +53,7 @@ def logout():
     return redirect("/login")
 
 
-# ================= BACKUP MANUAL =================
+# ================= BACKUP MANUAL (CORRIGIDO) =================
 @app.route("/backup")
 def backup():
     if not session.get("logado"):
@@ -64,39 +64,64 @@ def backup():
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("SELECT usuario FROM usuarios WHERE id=%s",(user_id,))
-    usuario = cur.fetchone()[0]
+    try:
+        cur.execute("SELECT usuario FROM usuarios WHERE id=%s",(user_id,))
+        usuario = cur.fetchone()[0]
 
-    cur.execute("""
-        SELECT id, nome, telefone, valor, vencimento_dia
-        FROM clientes
-        WHERE usuario_id=%s
-    """,(user_id,))
-    clientes = cur.fetchall()
+        cur.execute("""
+            SELECT id, nome, telefone, valor, vencimento_dia
+            FROM clientes
+            WHERE usuario_id=%s
+        """,(user_id,))
+        clientes_raw = cur.fetchall()
 
-    cur.execute("""
-        SELECT cliente_id, mes_ref, status
-        FROM cobrancas
-        WHERE usuario_id=%s
-    """,(user_id,))
-    cobrancas = cur.fetchall()
+        cur.execute("""
+            SELECT cliente_id, mes_ref, status
+            FROM cobrancas
+            WHERE usuario_id=%s
+        """,(user_id,))
+        cobrancas_raw = cur.fetchall()
 
-    cur.close()
-    conn.close()
+        # NORMALIZAÇÃO SEGURA
+        clientes = []
+        for c in clientes_raw:
+            clientes.append({
+                "id": c[0],
+                "nome": c[1] or "",
+                "telefone": str(c[2] or ""),
+                "valor": float(c[3] or 0),
+                "vencimento_dia": c[4] or 0
+            })
 
-    backup_data = {
-        "usuario": usuario,
-        "clientes": clientes,
-        "cobrancas": cobrancas
-    }
+        cobrancas = []
+        for c in cobrancas_raw:
+            cobrancas.append({
+                "cliente_id": c[0],
+                "mes_ref": c[1] or "",
+                "status": c[2] or "em_dia"
+            })
 
-    json_data = json.dumps(backup_data, ensure_ascii=False, indent=4)
+        backup = {
+            "usuario": usuario,
+            "clientes": clientes,
+            "cobrancas": cobrancas
+        }
 
-    return Response(
-        json_data,
-        mimetype="application/json",
-        headers={"Content-Disposition":"attachment;filename=backup.json"}
-    )
+        json_data = json.dumps(backup, ensure_ascii=False, indent=4)
+
+        return Response(
+            json_data,
+            mimetype="application/json",
+            headers={"Content-Disposition":"attachment;filename=backup.json"}
+        )
+
+    except Exception as e:
+        print("ERRO BACKUP:", e)
+        return "Erro ao gerar backup", 500
+
+    finally:
+        cur.close()
+        conn.close()
 
 
 # ================= RESTORE =================
@@ -117,23 +142,20 @@ def restore():
     conn = conectar()
     cur = conn.cursor()
 
-    # limpa dados do usuário
     cur.execute("DELETE FROM clientes WHERE usuario_id=%s",(user_id,))
     cur.execute("DELETE FROM cobrancas WHERE usuario_id=%s",(user_id,))
 
-    # restaura clientes
     for c in data.get("clientes", []):
         cur.execute("""
             INSERT INTO clientes (id, nome, telefone, valor, vencimento_dia, usuario_id)
             VALUES (%s,%s,%s,%s,%s,%s)
-        """,(c[0],c[1],c[2],c[3],c[4],user_id))
+        """,(c["id"],c["nome"],c["telefone"],c["valor"],c["vencimento_dia"],user_id))
 
-    # restaura cobranças
     for cb in data.get("cobrancas", []):
         cur.execute("""
             INSERT INTO cobrancas (cliente_id, mes_ref, status, usuario_id)
             VALUES (%s,%s,%s,%s)
-        """,(cb[0],cb[1],cb[2],user_id))
+        """,(cb["cliente_id"],cb["mes_ref"],cb["status"],user_id))
 
     conn.commit()
     cur.close()
