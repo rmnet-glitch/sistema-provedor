@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h3>Usuários</h3>
+
+<form method="post" action="/add_user">
+<input name="usuario" placeholder="Usuário">
+<input name="senha" placeholder="Senha">
+<button>Adicionar</button>
+</form>
+
+<hr>
+
+{% for u in usuarios %}
+{{u[1]}}
+<a href="/del_user/{{u[0]}}">Excluir</a>
+<br>
+{% endfor %}
+
+<a href="/">Voltar</a>
+
+</body>
+</html>
