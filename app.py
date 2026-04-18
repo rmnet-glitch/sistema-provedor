@@ -11,6 +11,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 def conectar():
     return psycopg2.connect(DATABASE_URL)
 
+
 # ================= LOGIN =================
 @app.route("/login", methods=["GET","POST"])
 def login():
@@ -51,32 +52,6 @@ def logout():
     return redirect("/login")
 
 
-# ================= CONFIG =================
-@app.route("/config")
-def config():
-    if not session.get("logado"):
-        return redirect("/login")
-    return render_template("config.html")
-
-
-@app.route("/salvar_config", methods=["POST"])
-def salvar_config():
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-    UPDATE usuarios 
-    SET senha=%s, mensagem_whatsapp=%s
-    WHERE id=%s
-    """,(request.form["senha"], request.form["mensagem"], session["user_id"]))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect("/config")
-
-
 # ================= INDEX =================
 @app.route("/")
 def index():
@@ -96,6 +71,10 @@ def index():
 
     clientes=[]
     total=0
+    recebido=0
+    atrasado=0
+    em_dia=0
+
     hoje = datetime.now().day
 
     for c in dados:
@@ -104,9 +83,17 @@ def index():
         valor = float(valor or 0)
         total += valor
 
-        # corrige status automático se não pago
+        # status automático
         if status != "pago":
             status = "atrasado" if hoje > venc else "em_dia"
+
+        # separação financeira
+        if status == "pago":
+            recebido += valor
+        elif status == "atrasado":
+            atrasado += valor
+        else:
+            em_dia += valor
 
         clientes.append((id,nome,tel,valor,venc,status))
 
@@ -117,7 +104,10 @@ def index():
         clientes=clientes,
         usuario=session["usuario"],
         mensagem=session["msg"],
-        total_geral=total
+        total_geral=total,
+        total_recebido=recebido,
+        total_atrasado=atrasado,
+        total_em_dia=em_dia
     )
 
 
@@ -151,11 +141,9 @@ def pagar(id):
     cur = conn.cursor()
 
     cur.execute("UPDATE clientes SET status='pago' WHERE id=%s",(id,))
-
     conn.commit()
     cur.close()
     conn.close()
-
     return redirect("/")
 
 
@@ -166,11 +154,9 @@ def desfazer(id):
     cur = conn.cursor()
 
     cur.execute("UPDATE clientes SET status='em_dia' WHERE id=%s",(id,))
-
     conn.commit()
     cur.close()
     conn.close()
-
     return redirect("/")
 
 
@@ -181,30 +167,10 @@ def delete(id):
     cur = conn.cursor()
 
     cur.execute("DELETE FROM clientes WHERE id=%s",(id,))
-
     conn.commit()
     cur.close()
     conn.close()
-
     return redirect("/")
-
-
-# ================= USUÁRIOS =================
-@app.route("/usuarios")
-def usuarios():
-    if not session.get("is_admin"):
-        return redirect("/")
-
-    conn=conectar()
-    cur=conn.cursor()
-
-    cur.execute("SELECT id, usuario, ativo FROM usuarios")
-    lista=cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return render_template("usuarios.html", usuarios=lista)
 
 
 # ================= RUN =================
