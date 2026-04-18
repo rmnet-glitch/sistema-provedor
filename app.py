@@ -19,7 +19,7 @@ def login():
         cur = conn.cursor()
 
         cur.execute("""
-        SELECT id, is_admin 
+        SELECT id, usuario, is_admin 
         FROM usuarios 
         WHERE usuario=%s AND senha=%s
         """,(request.form["usuario"],request.form["senha"]))
@@ -31,7 +31,8 @@ def login():
         if user:
             session["logado"] = True
             session["user_id"] = user[0]
-            session["is_admin"] = user[1]
+            session["usuario"] = user[1]
+            session["is_admin"] = user[2]
             return redirect("/")
 
         return render_template("login.html", erro="Login inválido")
@@ -47,16 +48,11 @@ def logout():
 
 # GERAR COBRANÇAS
 def gerar_cobrancas(cur, mes, user_id):
-    cur.execute("""
-    SELECT id FROM clientes 
-    WHERE usuario_id=%s OR usuario_id IS NULL
-    """,(user_id,))
-
+    cur.execute("SELECT id FROM clientes WHERE usuario_id=%s",(user_id,))
     for c in cur.fetchall():
         cur.execute("""
         SELECT id FROM cobrancas
-        WHERE cliente_id=%s AND mes_ref=%s 
-        AND (usuario_id=%s OR usuario_id IS NULL)
+        WHERE cliente_id=%s AND mes_ref=%s AND usuario_id=%s
         """,(c[0], mes, user_id))
 
         if not cur.fetchone():
@@ -87,10 +83,8 @@ def index():
            COALESCE(cb.status,'em_dia')
     FROM clientes c
     LEFT JOIN cobrancas cb
-    ON c.id=cb.cliente_id 
-    AND cb.mes_ref=%s 
-    AND (cb.usuario_id=%s OR cb.usuario_id IS NULL)
-    WHERE c.usuario_id=%s OR c.usuario_id IS NULL
+    ON c.id=cb.cliente_id AND cb.mes_ref=%s AND cb.usuario_id=%s
+    WHERE c.usuario_id=%s
     """,(mes, user_id, user_id))
 
     dados = cur.fetchall()
@@ -148,97 +142,9 @@ def index():
         total_recebido=recebido,
         total_atrasado=atrasado,
         total_em_dia=emdia,
-        total_clientes=total_clientes
+        total_clientes=total_clientes,
+        usuario=session["usuario"]
     )
-
-
-# CRUD
-@app.route("/add", methods=["POST"])
-def add():
-    conn=conectar()
-    cur=conn.cursor()
-
-    cur.execute("""
-    INSERT INTO clientes (nome,telefone,valor,vencimento_dia,usuario_id)
-    VALUES (%s,%s,%s,%s,%s)
-    """,(request.form["nome"],request.form["telefone"],
-         request.form["valor"],request.form["vencimento_dia"],
-         session["user_id"]))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-    return redirect("/")
-
-
-@app.route("/delete/<int:id>")
-def delete(id):
-    conn=conectar()
-    cur=conn.cursor()
-    cur.execute("""
-    DELETE FROM clientes 
-    WHERE id=%s AND usuario_id=%s
-    """,(id,session["user_id"]))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return redirect("/")
-
-
-@app.route("/edit/<int:id>", methods=["POST"])
-def edit(id):
-    conn=conectar()
-    cur=conn.cursor()
-
-    cur.execute("""
-    UPDATE clientes 
-    SET nome=%s,telefone=%s,valor=%s,vencimento_dia=%s
-    WHERE id=%s AND usuario_id=%s
-    """,(request.form["nome"],request.form["telefone"],
-         request.form["valor"],request.form["vencimento_dia"],
-         id,session["user_id"]))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-    return redirect("/")
-
-
-# PAGAMENTO
-@app.route("/pago/<int:id>")
-def pago(id):
-    conn=conectar()
-    cur=conn.cursor()
-    mes=request.args.get("mes")
-
-    cur.execute("""
-    UPDATE cobrancas 
-    SET status='pago', usuario_id=%s
-    WHERE cliente_id=%s AND mes_ref=%s
-    """,(session["user_id"], id, mes))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-    return redirect(f"/?mes={mes}")
-
-
-@app.route("/desfazer/<int:id>")
-def desfazer(id):
-    conn=conectar()
-    cur=conn.cursor()
-    mes=request.args.get("mes")
-
-    cur.execute("""
-    UPDATE cobrancas 
-    SET status='em_dia'
-    WHERE cliente_id=%s AND mes_ref=%s AND usuario_id=%s
-    """,(id,mes,session["user_id"]))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-    return redirect(f"/?mes={mes}")
 
 
 # USUÁRIOS
@@ -259,9 +165,6 @@ def usuarios():
 
 @app.route("/add_user", methods=["POST"])
 def add_user():
-    if not session.get("is_admin"):
-        return redirect("/")
-
     conn=conectar()
     cur=conn.cursor()
     cur.execute("INSERT INTO usuarios (usuario, senha) VALUES (%s,%s)",
@@ -274,9 +177,6 @@ def add_user():
 
 @app.route("/del_user/<int:id>")
 def del_user(id):
-    if not session.get("is_admin"):
-        return redirect("/")
-
     conn=conectar()
     cur=conn.cursor()
     cur.execute("DELETE FROM usuarios WHERE id=%s",(id,))
