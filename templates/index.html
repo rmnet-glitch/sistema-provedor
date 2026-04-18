@@ -84,7 +84,6 @@ text-decoration:none;
 
 <body>
 
-<!-- HEADER -->
 <div class="header">
 
 <h3>👤 {{usuario}}</h3>
@@ -92,29 +91,20 @@ text-decoration:none;
 <div style="display:flex; gap:5px;">
 
 {% if session["is_admin"] %}
-<a href="/usuarios">
-<button style="background:#343a40;color:#fff">👥 Usuários</button>
-</a>
+<a href="/usuarios"><button style="background:#343a40;color:#fff">👥 Usuários</button></a>
 {% endif %}
 
-<a href="/config">
-<button style="background:#6c757d;color:#fff">⚙️</button>
-</a>
+<a href="/config"><button style="background:#6c757d;color:#fff">⚙️</button></a>
 
-<a href="/logout">
-<button style="background:#dc3545;color:#fff">🚪 Sair</button>
-</a>
+<a href="/logout"><button style="background:#dc3545;color:#fff">🚪 Sair</button></a>
 
 </div>
-
 </div>
 
-<!-- FILTROS -->
 <form class="topbar">
 <input type="month" name="mes" value="{{mes_ref}}">
 <input type="text" name="busca" placeholder="🔎 Buscar cliente..." value="{{busca}}">
 
-<!-- FILTRO ORDENAÇÃO -->
 <select name="filtro">
 <option value="">Ordenar</option>
 <option value="nome" {% if filtro=='nome' %}selected{% endif %}>Nome</option>
@@ -125,7 +115,6 @@ text-decoration:none;
 <button>OK</button>
 </form>
 
-<!-- TOTAIS -->
 <div class="stats">
 💰 Total: {{total_geral}}<br>
 💵 Recebido: {{total_recebido}}<br>
@@ -133,7 +122,6 @@ text-decoration:none;
 🔵 Em Dia: {{total_em_dia}}<br>
 </div>
 
-<!-- BOTÃO CADASTRO -->
 <button onclick="toggle('cad')">➕ Cliente</button>
 
 <div id="cad" class="hidden">
@@ -148,7 +136,6 @@ text-decoration:none;
 
 <hr>
 
-<!-- CLIENTES -->
 {% for c in clientes %}
 
 <div class="card {{c[5]}}">
@@ -160,10 +147,10 @@ text-decoration:none;
 📞 {{c[2]}}<br>
 💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
 
-<!-- WHATSAPP DINÂMICO -->
+<!-- 🔥 CORREÇÃO WHATSAPP -->
 <a class="whatsapp"
 target="_blank"
-href="https://wa.me/55{{c[2]}}?text={{mensagem}}">
+href="https://wa.me/55{{c[2]}}?text={{ mensagem | urlencode }}">
 
 <button class="btn btn-secondary">📲 WhatsApp</button>
 </a>
