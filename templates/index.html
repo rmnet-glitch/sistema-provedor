@@ -34,6 +34,7 @@ padding:10px;
 border-radius:8px;
 margin-bottom:10px;
 font-size:12px;
+line-height:1.5;
 }
 
 .card{
@@ -48,22 +49,21 @@ font-size:13px;
 .em_dia{border-left:4px solid blue}
 .pago{border-left:4px solid green}
 
-/* 🔥 BOTÕES PADRONIZADOS MENORES */
+/* BOTÕES PADRONIZADOS */
 .actions{
 display:flex;
 gap:4px;
 margin-top:5px;
 }
 
-.btn{
-flex:1;
-padding:4px;
+.actions button{
+width:100%;
+padding:5px;
 font-size:10px;
 border:none;
 border-radius:4px;
 background:#6c757d;
 color:#fff;
-text-align:center;
 }
 
 .btn-danger{background:#dc3545}
@@ -79,6 +79,7 @@ text-align:center;
 
 <body>
 
+<!-- HEADER -->
 <div class="header">
 <h3>📡 RM NET</h3>
 
@@ -87,19 +88,20 @@ text-align:center;
 </a>
 </div>
 
-<!-- FILTRO -->
+<!-- FILTROS -->
 <form class="topbar">
 <input type="month" name="mes" value="{{mes_ref}}">
 <input type="text" name="busca" placeholder="🔎 Buscar cliente..." value="{{busca}}">
 <button>OK</button>
 </form>
 
-<!-- TOTAIS -->
+<!-- ESTATÍSTICAS (COM CLIENTES) -->
 <div class="stats">
 💰 Total: {{total_geral}}<br>
 💵 Recebido: {{total_recebido}}<br>
 🔴 Em Atraso: {{total_atrasado}}<br>
-🔵 Em Dia: {{total_em_dia}}
+🔵 Em Dia: {{total_em_dia}}<br>
+👥 Clientes: {{total_clientes}}
 </div>
 
 <!-- CADASTRO -->
@@ -117,6 +119,7 @@ text-align:center;
 
 <hr>
 
+<!-- CLIENTES -->
 {% for c in clientes %}
 
 <div class="card {{c[5]}}">
@@ -130,7 +133,7 @@ text-align:center;
 href="https://wa.me/55{{c[2]}}?text=Olá,%20seu%20boleto%20RM%20NET%20venceu.%20%0A%0A*Essa%20é%20uma%20mensagem%20automática.*">
 
 <div class="actions">
-<button class="btn btn-success">📲 WhatsApp</button>
+<button class="btn-success">📲 WhatsApp</button>
 </div>
 
 </a>
@@ -139,21 +142,21 @@ href="https://wa.me/55{{c[2]}}?text=Olá,%20seu%20boleto%20RM%20NET%20venceu.%20
 <div class="actions">
 
 <a href="/pago/{{c[0]}}?mes={{mes_ref}}">
-<button class="btn btn-info">✔ Pago</button>
+<button class="btn-info">✔ Pago</button>
 </a>
 
 <a href="/desfazer/{{c[0]}}?mes={{mes_ref}}">
-<button class="btn btn-dark">↩ Voltar</button>
+<button class="btn-dark">↩ Voltar</button>
 </a>
 
 </div>
 
 <div class="actions">
 
-<button class="btn" onclick="toggle('e{{c[0]}}')">✏ Editar</button>
+<button onclick="toggle('e{{c[0]}}')">✏ Editar</button>
 
 <a href="/delete/{{c[0]}}">
-<button class="btn btn-danger">🗑 Excluir</button>
+<button class="btn-danger">🗑 Excluir</button>
 </a>
 
 </div>
