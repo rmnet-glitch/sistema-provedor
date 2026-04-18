@@ -2,95 +2,74 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
-body{
-font-family:Arial;
-background:#f4f6f8;
-padding:10px;
-}
 
-.header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
+body{font-family:Arial;background:#f4f6f8;padding:10px;}
 
 .card{
 background:#fff;
 padding:10px;
 margin:8px 0;
 border-radius:8px;
-font-size:13px;
 }
 
-.actions{
-display:flex;
-gap:5px;
-margin-top:5px;
-}
+.ativo{border-left:5px solid green;}
+.inativo{border-left:5px solid red;}
 
 .btn{
-flex:1;
 padding:5px;
-font-size:11px;
+font-size:12px;
 border:none;
 border-radius:5px;
 color:#fff;
+margin:2px;
 }
 
-.btn-danger{background:#dc3545}
-.btn-dark{background:#343a40}
-.btn-success{background:#28a745}
+.green{background:#28a745}
+.red{background:#dc3545}
+.gray{background:#6c757d}
 
-input{
-padding:6px;
-margin:3px 0;
-width:100%;
-}
 </style>
-
 </head>
 
 <body>
 
-<div class="header">
 <h3>👥 Usuários</h3>
 
-<a href="/">
-<button class="btn btn-dark">⬅ Voltar</button>
-</a>
-</div>
+<a href="/"><button class="btn gray">⬅ Voltar</button></a>
 
 <hr>
 
-<!-- NOVO -->
-<div class="card">
-
-<b>➕ Novo Usuário</b>
-
-<form method="post" action="/add_user">
+<form action="/add_user" method="post">
 <input name="usuario" placeholder="Usuário" required>
 <input name="senha" placeholder="Senha" required>
-<button class="btn btn-success">Criar</button>
+<button class="btn green">Criar</button>
 </form>
 
-</div>
+<hr>
 
-<!-- LISTA -->
 {% for u in usuarios %}
 
-<div class="card">
+<div class="card {% if u[2] %}ativo{% else %}inativo{% endif %}">
 
-<b>👤 {{u[1]}}</b>
+<b>{{u[1]}}</b><br>
+Status: {{ "Ativo" if u[2] else "Desativado" }}
 
-<div class="actions">
+<br><br>
+
+{% if u[2] %}
+<a href="/desativar_user/{{u[0]}}">
+<button class="btn red">🔴 Desativar</button>
+</a>
+{% else %}
+<a href="/ativar_user/{{u[0]}}">
+<button class="btn green">🟢 Ativar</button>
+</a>
+{% endif %}
 
 <a href="/del_user/{{u[0]}}">
-<button class="btn btn-danger">🗑 Excluir</button>
+<button class="btn gray">🗑 Excluir</button>
 </a>
-
-</div>
 
 </div>
 
