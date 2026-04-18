@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RM NET</title>
+<title>Sistema</title>
 
 <style>
 body{
@@ -15,6 +15,7 @@ padding:10px;
 display:flex;
 justify-content:space-between;
 align-items:center;
+margin-bottom:10px;
 }
 
 .topbar{
@@ -47,9 +48,17 @@ border-radius:8px;
 font-size:12px;
 }
 
-.atrasado{border-left:4px solid red}
-.em_dia{border-left:4px solid blue}
-.pago{border-left:4px solid green}
+.atrasado{
+border-left:4px solid red;
+}
+
+.em_dia{
+border-left:4px solid blue;
+}
+
+.pago{
+border-left:4px solid green;
+}
 
 /* BOTÕES */
 .actions{
@@ -80,7 +89,9 @@ display:block;
 text-decoration:none;
 }
 
-.hidden{display:none}
+.hidden{
+display:none;
+}
 </style>
 </head>
 
@@ -89,7 +100,7 @@ text-decoration:none;
 <!-- HEADER -->
 <div class="header">
 
-<h3>📡 RM NET</h3>
+<h3>👤 {{usuario}}</h3>
 
 <div style="display:flex; gap:5px;">
 
@@ -123,15 +134,16 @@ text-decoration:none;
 👥 Clientes: {{total_clientes}}
 </div>
 
-<!-- CADASTRO -->
+<!-- BOTÃO CADASTRO -->
 <button onclick="toggle('cad')">➕ Cliente</button>
 
+<!-- FORM CADASTRO -->
 <div id="cad" class="hidden">
 <form action="/add" method="post">
-<input name="nome" placeholder="Nome">
-<input name="telefone" placeholder="Telefone">
-<input name="valor" placeholder="Valor">
-<input name="vencimento_dia" placeholder="Dia vencimento">
+<input name="nome" placeholder="Nome" required>
+<input name="telefone" placeholder="Telefone" required>
+<input name="valor" placeholder="Valor" required>
+<input name="vencimento_dia" placeholder="Dia vencimento" required>
 <button>Salvar</button>
 </form>
 </div>
@@ -143,7 +155,10 @@ text-decoration:none;
 
 <div class="card {{c[5]}}">
 
-<b>👤 {{c[1]}}</b><br>
+<b {% if c[5]=='atrasado' %}style="color:red"{% endif %}>
+👤 {{c[1]}}
+</b><br>
+
 📞 {{c[2]}}<br>
 💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
 
@@ -152,7 +167,7 @@ text-decoration:none;
 target="_blank"
 href="https://wa.me/55{{c[2]}}?text=Olá,%20seu%20boleto%20RM%20NET%20venceu.%20%0A%0A*Essa%20é%20uma%20mensagem%20automática.*">
 
-<button class="btn btn-success">📲 WhatsApp</button>
+<button class="btn btn-secondary">📲 WhatsApp</button>
 
 </a>
 
@@ -183,10 +198,10 @@ href="https://wa.me/55{{c[2]}}?text=Olá,%20seu%20boleto%20RM%20NET%20venceu.%20
 <!-- EDITAR -->
 <div id="e{{c[0]}}" class="hidden">
 <form action="/edit/{{c[0]}}" method="post">
-<input name="nome" value="{{c[1]}}">
-<input name="telefone" value="{{c[2]}}">
-<input name="valor" value="{{c[3]}}">
-<input name="vencimento_dia" value="{{c[4]}}">
+<input name="nome" value="{{c[1]}}" required>
+<input name="telefone" value="{{c[2]}}" required>
+<input name="valor" value="{{c[3]}}" required>
+<input name="vencimento_dia" value="{{c[4]}}" required>
 <button>Salvar</button>
 </form>
 </div>
