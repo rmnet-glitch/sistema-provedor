@@ -1,258 +1,173 @@
+import os
 from flask import Flask, render_template, request, redirect, session
 import psycopg2
-import os
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'rm_net_2026'
+app.secret_key = "segredo"
 
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# ---------------- CONEXÃO SEGURA ----------------
-def get_db():
-    try:
-        url = os.environ.get('DATABASE_URL')
+def conectar():
+    return psycopg2.connect(DATABASE_URL)
 
-        if not url:
-            raise Exception("DATABASE_URL não configurada")
-
-        return psycopg2.connect(url)
-
-    except Exception as e:
-        print("ERRO CONEXÃO:", e)
-        return None
-
-
-# ---------------- CRIAR TABELA ----------------
-def criar_tabelas():
-    conn = get_db()
-    if not conn:
-        return
-
-    try:
-        c = conn.cursor()
-
-        c.execute('''
-        CREATE TABLE IF NOT EXISTS clientes (
-            id SERIAL PRIMARY KEY,
-            nome TEXT,
-            telefone TEXT,
-            valor NUMERIC,
-            vencimento INTEGER,
-            status TEXT,
-            ultimo_pagamento TEXT,
-            usuario TEXT
-        )
-        ''')
-
-        conn.commit()
-
-    except Exception as e:
-        print("ERRO AO CRIAR TABELA:", e)
-
-    finally:
-        conn.close()
-
-
-# ⚠️ NÃO derruba o app se falhar
-criar_tabelas()
-
-
-# ---------------- LOGIN ----------------
-@app.route('/', methods=['GET', 'POST'])
+# ================= LOGIN =================
+@app.route("/login", methods=["GET","POST"])
 def login():
-    if request.method == 'POST':
-        usuario = request.form['usuario']
-        senha = request.form['senha']
+    if request.method == "POST":
+        conn = conectar()
+        cur = conn.cursor()
 
-        if usuario == 'RM_NET' and senha == 'Rm2412@':
-            session['user'] = usuario
-            return redirect('/index')
+        cur.execute("""
+        SELECT id, usuario, is_admin, ativo, mensagem_whatsapp
+        FROM usuarios 
+        WHERE usuario=%s AND senha=%s
+        """,(request.form["usuario"],request.form["senha"]))
 
-    return render_template('login.html')
-
-
-# ---------------- INDEX ----------------
-@app.route('/index')
-def index():
-    if 'user' not in session:
-        return redirect('/')
-
-    conn = get_db()
-    if not conn:
-        return "Erro de conexão com banco"
-
-    try:
-        c = conn.cursor()
-
-        c.execute("SELECT * FROM clientes WHERE usuario=%s", (session['user'],))
-        clientes = c.fetchall()
-
-        hoje = datetime.now().day
-
-        total = 0
-        recebido = 0
-        clientes_tratados = []
-
-        for cte in clientes:
-            valor = float(cte[3] or 0)
-            vencimento = cte[4]
-            status = cte[5]
-
-            if status != 'pago':
-                status = 'atrasado' if hoje > vencimento else 'em_dia'
-
-            if status == 'pago':
-                recebido += valor
-
-            total += valor
-
-            clientes_tratados.append((
-                cte[0],
-                cte[1],
-                cte[2],
-                valor,
-                vencimento,
-                status,
-                cte[6]
-            ))
-
-        return render_template('index.html',
-                               clientes=clientes_tratados,
-                               total=total,
-                               recebido=recebido)
-
-    except Exception as e:
-        print("ERRO INDEX:", e)
-        return "Erro ao carregar clientes"
-
-    finally:
+        user = cur.fetchone()
+        cur.close()
         conn.close()
 
+        if user:
+            if not user[3]:
+                return render_template("login.html", erro="Usuário desativado!")
 
-# ---------------- ADD ----------------
-@app.route('/add', methods=['POST'])
-def add():
-    if 'user' not in session:
-        return redirect('/')
+            session["logado"] = True
+            session["user_id"] = user[0]
+            session["usuario"] = user[1]
+            session["is_admin"] = user[2]
+            session["msg"] = user[4] or "Olá, seu boleto venceu."
 
-    conn = get_db()
-    if not conn:
-        return "Erro banco"
+            return redirect("/")
 
-    try:
-        c = conn.cursor()
+        return render_template("login.html", erro="Login inválido")
 
-        nome = request.form['nome']
-        telefone = request.form['telefone']
-        valor = float(request.form['valor'])
-        vencimento = int(request.form['vencimento'])
-
-        hoje = datetime.now().day
-        status = 'atrasado' if hoje > vencimento else 'em_dia'
-
-        c.execute('''
-        INSERT INTO clientes (nome, telefone, valor, vencimento, status, ultimo_pagamento, usuario)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ''', (nome, telefone, valor, vencimento, status, '', session['user']))
-
-        conn.commit()
-
-    except Exception as e:
-        print("ERRO ADD:", e)
-
-    finally:
-        conn.close()
-
-    return redirect('/index')
+    return render_template("login.html")
 
 
-# ---------------- PAGAR ----------------
-@app.route('/pagar/<int:id>')
-def pagar(id):
-    conn = get_db()
-    if not conn:
-        return redirect('/index')
-
-    try:
-        c = conn.cursor()
-
-        data = datetime.now().strftime('%d/%m/%Y')
-
-        c.execute("""
-        UPDATE clientes SET status='pago', ultimo_pagamento=%s WHERE id=%s
-        """, (data, id))
-
-        conn.commit()
-
-    except Exception as e:
-        print("ERRO PAGAR:", e)
-
-    finally:
-        conn.close()
-
-    return redirect('/index')
-
-
-# ---------------- DESFAZER ----------------
-@app.route('/desfazer/<int:id>')
-def desfazer(id):
-    conn = get_db()
-    if not conn:
-        return redirect('/index')
-
-    try:
-        c = conn.cursor()
-
-        hoje = datetime.now().day
-
-        c.execute("SELECT vencimento FROM clientes WHERE id=%s", (id,))
-        vencimento = c.fetchone()[0]
-
-        status = 'atrasado' if hoje > vencimento else 'em_dia'
-
-        c.execute("""
-        UPDATE clientes SET status=%s, ultimo_pagamento='' WHERE id=%s
-        """, (status, id))
-
-        conn.commit()
-
-    except Exception as e:
-        print("ERRO DESFAZER:", e)
-
-    finally:
-        conn.close()
-
-    return redirect('/index')
-
-
-# ---------------- DELETE ----------------
-@app.route('/delete/<int:id>')
-def delete(id):
-    conn = get_db()
-    if not conn:
-        return redirect('/index')
-
-    try:
-        c = conn.cursor()
-        c.execute("DELETE FROM clientes WHERE id=%s", (id,))
-        conn.commit()
-
-    except Exception as e:
-        print("ERRO DELETE:", e)
-
-    finally:
-        conn.close()
-
-    return redirect('/index')
-
-
-# ---------------- LOGOUT ----------------
-@app.route('/logout')
+@app.route("/logout")
 def logout():
     session.clear()
-    return redirect('/')
+    return redirect("/login")
 
 
-# ---------------- RUN ----------------
-if __name__ == '__main__':
-    app.run()
+# ================= DEFINIÇÕES =================
+@app.route("/config")
+def config():
+    if not session.get("logado"):
+        return redirect("/login")
+
+    return render_template("config.html")
+
+
+@app.route("/salvar_config", methods=["POST"])
+def salvar_config():
+    conn = conectar()
+    cur = conn.cursor()
+
+    nova_senha = request.form["senha"]
+    mensagem = request.form["mensagem"]
+
+    cur.execute("""
+    UPDATE usuarios 
+    SET senha=%s, mensagem_whatsapp=%s
+    WHERE id=%s
+    """,(nova_senha, mensagem, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/config")
+
+
+# ================= INDEX =================
+@app.route("/")
+def index():
+    if not session.get("logado"):
+        return redirect("/login")
+
+    user_id = session["user_id"]
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+    busca = request.args.get("busca","").lower()
+
+    cur.execute("""
+    SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia
+    FROM clientes c
+    WHERE c.usuario_id=%s
+    """,(user_id,))
+
+    dados = cur.fetchall()
+
+    clientes=[]
+    total=0
+
+    for c in dados:
+        id,nome,tel,valor,venc = c
+
+        if busca and busca not in nome.lower():
+            continue
+
+        total += float(valor)
+
+        clientes.append((id,nome,tel,valor,venc,"em_dia"))
+
+    cur.close()
+    conn.close()
+
+    return render_template("index.html",
+        clientes=clientes,
+        usuario=session["usuario"],
+        mensagem=session["msg"],
+        total_geral=total
+    )
+
+
+# ================= CLIENTES =================
+@app.route("/add", methods=["POST"])
+def add():
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+    INSERT INTO clientes (nome, telefone, valor, vencimento_dia, usuario_id)
+    VALUES (%s,%s,%s,%s,%s)
+    """, (
+        request.form["nome"],
+        request.form["telefone"],
+        request.form["valor"],
+        request.form["vencimento_dia"],
+        session["user_id"]
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    return redirect("/")
+
+
+# ================= USUÁRIOS =================
+@app.route("/usuarios")
+def usuarios():
+    if not session.get("is_admin"):
+        return redirect("/")
+
+    conn=conectar()
+    cur=conn.cursor()
+
+    cur.execute("SELECT id, usuario, ativo FROM usuarios")
+    lista=cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template("usuarios.html", usuarios=lista)
+
+
+# ================= EXECUÇÃO =================
+if __name__=="__main__":
+    app.run(debug=True)
