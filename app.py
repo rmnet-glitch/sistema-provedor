@@ -94,8 +94,7 @@ def config():
     cur.close()
     conn.close()
 
-    return render_template(
-        "config.html",
+    return render_template("config.html",
         usuario=user[0],
         mensagem=user[1] or ""
     )
@@ -131,6 +130,38 @@ def add_user():
         INSERT INTO usuarios (usuario, senha, ativo)
         VALUES (%s,%s,TRUE)
     """, (request.form["usuario"], request.form["senha"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/usuarios")
+
+
+# ================= EDITAR USUÁRIO (CORRIGIDO) =================
+@app.route("/edit_user/<int:id>", methods=["POST"])
+def edit_user(id):
+    if not session.get("is_admin"):
+        return redirect("/")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    usuario = request.form["usuario"]
+    senha = request.form.get("senha","")
+
+    if senha.strip() == "":
+        cur.execute("""
+            UPDATE usuarios
+            SET usuario=%s
+            WHERE id=%s
+        """, (usuario, id))
+    else:
+        cur.execute("""
+            UPDATE usuarios
+            SET usuario=%s, senha=%s
+            WHERE id=%s
+        """, (usuario, senha, id))
 
     conn.commit()
     cur.close()
@@ -187,7 +218,7 @@ def del_user(id):
     return redirect("/usuarios")
 
 
-# ================= INDEX (COM FILTRO) =================
+# ================= INDEX =================
 @app.route("/")
 def index():
     if not session.get("logado"):
@@ -257,12 +288,11 @@ def index():
 
         clientes.append((id,nome,tel,valor,venc,status))
 
-    # ================= FILTRO =================
     if filtro == "nome":
         clientes.sort(key=lambda x: x[1].lower())
 
     elif filtro == "status":
-        ordem = {"atrasado":0,"em_dia":1,"pago":2}
+        ordem={"atrasado":0,"em_dia":1,"pago":2}
         clientes.sort(key=lambda x: ordem.get(x[5],1))
 
     elif filtro == "valor":
