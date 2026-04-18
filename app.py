@@ -53,7 +53,211 @@ def logout():
     return redirect("/login")
 
 
-# ================= BACKUP MANUAL (CORRIGIDO) =================
+# ================= USUÁRIOS (CORRIGIDO 100%) =================
+@app.route("/usuarios")
+def usuarios():
+    if not session.get("logado"):
+        return redirect("/login")
+
+    if not session.get("is_admin"):
+        return redirect("/")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("SELECT id, usuario, ativo FROM usuarios")
+    lista = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template("usuarios.html", usuarios=lista)
+
+
+@app.route("/add_user", methods=["POST"])
+def add_user():
+    if not session.get("is_admin"):
+        return redirect("/")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO usuarios (usuario, senha, ativo)
+        VALUES (%s,%s,TRUE)
+    """,(request.form["usuario"],request.form["senha"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/usuarios")
+
+
+# 🔴 EDITAR USUÁRIO (CORRIGIDO)
+@app.route("/edit_user/<int:id>", methods=["POST"])
+def edit_user(id):
+    if not session.get("is_admin"):
+        return redirect("/")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    usuario = request.form["usuario"]
+    senha = request.form.get("senha","")
+
+    if senha.strip() == "":
+        cur.execute("""
+            UPDATE usuarios SET usuario=%s WHERE id=%s
+        """,(usuario,id))
+    else:
+        cur.execute("""
+            UPDATE usuarios SET usuario=%s, senha=%s WHERE id=%s
+        """,(usuario,senha,id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/usuarios")
+
+
+# 🔴 DESATIVAR USUÁRIO (CORRIGIDO)
+@app.route("/desativar_user/<int:id>")
+def desativar_user(id):
+    if not session.get("logado"):
+        return redirect("/login")
+
+    if id == session["user_id"]:
+        return redirect("/usuarios")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("UPDATE usuarios SET ativo=FALSE WHERE id=%s",(id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/usuarios")
+
+
+# 🟢 ATIVAR USUÁRIO
+@app.route("/ativar_user/<int:id>")
+def ativar_user(id):
+    if not session.get("logado"):
+        return redirect("/login")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("UPDATE usuarios SET ativo=TRUE WHERE id=%s",(id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/usuarios")
+
+
+# ❌ EXCLUIR USUÁRIO (CORRIGIDO)
+@app.route("/del_user/<int:id>")
+def del_user(id):
+    if not session.get("logado"):
+        return redirect("/login")
+
+    if id == session["user_id"]:
+        return redirect("/usuarios")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM usuarios WHERE id=%s",(id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/usuarios")
+
+
+# ================= CLIENTES (NÃO MEXIDO) =================
+@app.route("/add", methods=["POST"])
+def add():
+    if not session.get("logado"):
+        return redirect("/login")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO clientes (nome, telefone, valor, vencimento_dia, usuario_id)
+        VALUES (%s,%s,%s,%s,%s)
+    """,(
+        request.form["nome"],
+        request.form["telefone"],
+        request.form["valor"],
+        request.form["vencimento_dia"],
+        session["user_id"]
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/")
+
+
+@app.route("/edit/<int:id>", methods=["POST"])
+def edit(id):
+    if not session.get("logado"):
+        return redirect("/login")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE clientes
+        SET nome=%s, telefone=%s, valor=%s, vencimento_dia=%s
+        WHERE id=%s AND usuario_id=%s
+    """,(
+        request.form["nome"],
+        request.form["telefone"],
+        request.form["valor"],
+        request.form["vencimento_dia"],
+        id,
+        session["user_id"]
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/")
+
+
+@app.route("/delete/<int:id>")
+def delete(id):
+    if not session.get("logado"):
+        return redirect("/login")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        DELETE FROM clientes
+        WHERE id=%s AND usuario_id=%s
+    """,(id,session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/")
+
+
+# ================= BACKUP =================
 @app.route("/backup")
 def backup():
     if not session.get("logado"):
@@ -64,184 +268,38 @@ def backup():
     conn = conectar()
     cur = conn.cursor()
 
-    try:
-        cur.execute("SELECT usuario FROM usuarios WHERE id=%s",(user_id,))
-        usuario = cur.fetchone()[0]
-
-        cur.execute("""
-            SELECT id, nome, telefone, valor, vencimento_dia
-            FROM clientes
-            WHERE usuario_id=%s
-        """,(user_id,))
-        clientes_raw = cur.fetchall()
-
-        cur.execute("""
-            SELECT cliente_id, mes_ref, status
-            FROM cobrancas
-            WHERE usuario_id=%s
-        """,(user_id,))
-        cobrancas_raw = cur.fetchall()
-
-        # NORMALIZAÇÃO SEGURA
-        clientes = []
-        for c in clientes_raw:
-            clientes.append({
-                "id": c[0],
-                "nome": c[1] or "",
-                "telefone": str(c[2] or ""),
-                "valor": float(c[3] or 0),
-                "vencimento_dia": c[4] or 0
-            })
-
-        cobrancas = []
-        for c in cobrancas_raw:
-            cobrancas.append({
-                "cliente_id": c[0],
-                "mes_ref": c[1] or "",
-                "status": c[2] or "em_dia"
-            })
-
-        backup = {
-            "usuario": usuario,
-            "clientes": clientes,
-            "cobrancas": cobrancas
-        }
-
-        json_data = json.dumps(backup, ensure_ascii=False, indent=4)
-
-        return Response(
-            json_data,
-            mimetype="application/json",
-            headers={"Content-Disposition":"attachment;filename=backup.json"}
-        )
-
-    except Exception as e:
-        print("ERRO BACKUP:", e)
-        return "Erro ao gerar backup", 500
-
-    finally:
-        cur.close()
-        conn.close()
-
-
-# ================= RESTORE =================
-@app.route("/restore", methods=["POST"])
-def restore():
-    if not session.get("logado"):
-        return redirect("/login")
-
-    file = request.files.get("backup_file")
-
-    if not file:
-        return redirect("/config")
-
-    data = json.load(file)
-
-    user_id = session["user_id"]
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("DELETE FROM clientes WHERE usuario_id=%s",(user_id,))
-    cur.execute("DELETE FROM cobrancas WHERE usuario_id=%s",(user_id,))
-
-    for c in data.get("clientes", []):
-        cur.execute("""
-            INSERT INTO clientes (id, nome, telefone, valor, vencimento_dia, usuario_id)
-            VALUES (%s,%s,%s,%s,%s,%s)
-        """,(c["id"],c["nome"],c["telefone"],c["valor"],c["vencimento_dia"],user_id))
-
-    for cb in data.get("cobrancas", []):
-        cur.execute("""
-            INSERT INTO cobrancas (cliente_id, mes_ref, status, usuario_id)
-            VALUES (%s,%s,%s,%s)
-        """,(cb["cliente_id"],cb["mes_ref"],cb["status"],user_id))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect("/config")
-
-
-# ================= INDEX =================
-@app.route("/")
-def index():
-    if not session.get("logado"):
-        return redirect("/login")
-
-    user_id = session["user_id"]
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-    busca = request.args.get("busca","")
+    cur.execute("SELECT usuario FROM usuarios WHERE id=%s",(user_id,))
+    usuario = cur.fetchone()[0]
 
     cur.execute("""
-        SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
-               COALESCE(cb.status,'em_dia')
-        FROM clientes c
-        LEFT JOIN cobrancas cb
-        ON c.id=cb.cliente_id AND cb.mes_ref=%s AND cb.usuario_id=%s
-        WHERE c.usuario_id=%s
-    """,(mes,user_id,user_id))
+        SELECT id, nome, telefone, valor, vencimento_dia
+        FROM clientes
+        WHERE usuario_id=%s
+    """,(user_id,))
+    clientes = cur.fetchall()
 
-    dados = cur.fetchall()
-
-    clientes=[]
-    total=0
-    recebido=0
-    atrasado=0
-    emdia=0
-
-    hoje = datetime.now()
-    hoje_mes = hoje.strftime("%Y-%m")
-    hoje_dia = hoje.day
-
-    for c in dados:
-        id,nome,tel,valor,venc,status = c
-
-        if busca and busca.lower() not in nome.lower():
-            continue
-
-        valor = float(valor)
-
-        if mes < hoje_mes:
-            if status != "pago":
-                status = "atrasado"
-
-        elif mes == hoje_mes:
-            if status != "pago":
-                status = "atrasado" if hoje_dia > int(venc) else "em_dia"
-
-        else:
-            if status != "pago":
-                status = "em_dia"
-
-        total += valor
-
-        if status == "pago":
-            recebido += valor
-        elif status == "atrasado":
-            atrasado += valor
-        else:
-            emdia += valor
-
-        clientes.append((id,nome,tel,valor,venc,status))
+    cur.execute("""
+        SELECT cliente_id, mes_ref, status
+        FROM cobrancas
+        WHERE usuario_id=%s
+    """,(user_id,))
+    cobrancas = cur.fetchall()
 
     cur.close()
     conn.close()
 
-    return render_template("index.html",
-        clientes=clientes,
-        mes_ref=mes,
-        busca=busca,
-        total_geral=total,
-        total_recebido=recebido,
-        total_atrasado=atrasado,
-        total_em_dia=emdia,
-        usuario=session["usuario"]
+    backup = {
+        "usuario": usuario,
+        "clientes": clientes,
+        "cobrancas": cobrancas
+    }
+
+    json_data = json.dumps(backup, ensure_ascii=False, indent=4)
+
+    return Response(
+        json_data,
+        mimetype="application/json",
+        headers={"Content-Disposition":"attachment;filename=backup.json"}
     )
 
 
