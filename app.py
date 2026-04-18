@@ -1,6 +1,5 @@
 import os
-import json
-from flask import Flask, render_template, request, redirect, session, Response
+from flask import Flask, render_template, request, redirect, session
 import psycopg2
 from datetime import datetime
 
@@ -22,7 +21,7 @@ def login():
 
         cur.execute("""
         SELECT id, usuario, is_admin, ativo
-        FROM usuarios
+        FROM usuarios 
         WHERE usuario=%s AND senha=%s
         """,(request.form["usuario"],request.form["senha"]))
 
@@ -53,7 +52,53 @@ def logout():
     return redirect("/login")
 
 
-# ================= USUÁRIOS (CORRIGIDO 100%) =================
+# ================= CONFIG =================
+@app.route("/config", methods=["GET","POST"])
+def config():
+    if not session.get("logado"):
+        return redirect("/login")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    user_id = session["user_id"]
+
+    if request.method == "POST":
+
+        senha = request.form.get("senha")
+        mensagem = request.form.get("mensagem")
+
+        if senha:
+            cur.execute("""
+                UPDATE usuarios SET senha=%s WHERE id=%s
+            """,(senha,user_id))
+
+        if mensagem is not None:
+            cur.execute("""
+                UPDATE usuarios SET whatsapp_msg=%s WHERE id=%s
+            """,(mensagem,user_id))
+
+        conn.commit()
+
+    cur.execute("""
+        SELECT usuario, whatsapp_msg
+        FROM usuarios
+        WHERE id=%s
+    """,(user_id,))
+
+    user = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "config.html",
+        usuario=user[0],
+        mensagem=user[1] or ""
+    )
+
+
+# ================= USUÁRIOS =================
 @app.route("/usuarios")
 def usuarios():
     if not session.get("logado"):
@@ -85,7 +130,7 @@ def add_user():
     cur.execute("""
         INSERT INTO usuarios (usuario, senha, ativo)
         VALUES (%s,%s,TRUE)
-    """,(request.form["usuario"],request.form["senha"]))
+    """,(request.form["usuario"], request.form["senha"]))
 
     conn.commit()
     cur.close()
@@ -94,7 +139,6 @@ def add_user():
     return redirect("/usuarios")
 
 
-# 🔴 EDITAR USUÁRIO (CORRIGIDO)
 @app.route("/edit_user/<int:id>", methods=["POST"])
 def edit_user(id):
     if not session.get("is_admin"):
@@ -122,12 +166,8 @@ def edit_user(id):
     return redirect("/usuarios")
 
 
-# 🔴 DESATIVAR USUÁRIO (CORRIGIDO)
 @app.route("/desativar_user/<int:id>")
 def desativar_user(id):
-    if not session.get("logado"):
-        return redirect("/login")
-
     if id == session["user_id"]:
         return redirect("/usuarios")
 
@@ -143,12 +183,8 @@ def desativar_user(id):
     return redirect("/usuarios")
 
 
-# 🟢 ATIVAR USUÁRIO
 @app.route("/ativar_user/<int:id>")
 def ativar_user(id):
-    if not session.get("logado"):
-        return redirect("/login")
-
     conn = conectar()
     cur = conn.cursor()
 
@@ -161,12 +197,8 @@ def ativar_user(id):
     return redirect("/usuarios")
 
 
-# ❌ EXCLUIR USUÁRIO (CORRIGIDO)
 @app.route("/del_user/<int:id>")
 def del_user(id):
-    if not session.get("logado"):
-        return redirect("/login")
-
     if id == session["user_id"]:
         return redirect("/usuarios")
 
@@ -182,7 +214,7 @@ def del_user(id):
     return redirect("/usuarios")
 
 
-# ================= CLIENTES (NÃO MEXIDO) =================
+# ================= CLIENTES =================
 @app.route("/add", methods=["POST"])
 def add():
     if not session.get("logado"):
@@ -218,8 +250,11 @@ def edit(id):
     cur = conn.cursor()
 
     cur.execute("""
-        UPDATE clientes
-        SET nome=%s, telefone=%s, valor=%s, vencimento_dia=%s
+        UPDATE clientes 
+        SET nome=%s,
+            telefone=%s,
+            valor=%s,
+            vencimento_dia=%s
         WHERE id=%s AND usuario_id=%s
     """,(
         request.form["nome"],
@@ -246,7 +281,7 @@ def delete(id):
     cur = conn.cursor()
 
     cur.execute("""
-        DELETE FROM clientes
+        DELETE FROM clientes 
         WHERE id=%s AND usuario_id=%s
     """,(id,session["user_id"]))
 
@@ -257,9 +292,56 @@ def delete(id):
     return redirect("/")
 
 
-# ================= BACKUP =================
-@app.route("/backup")
-def backup():
+# ================= PAGAMENTO =================
+@app.route("/pago/<int:id>")
+def pago(id):
+    if not session.get("logado"):
+        return redirect("/login")
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE cobrancas 
+        SET status='pago'
+        WHERE cliente_id=%s AND mes_ref=%s AND usuario_id=%s
+    """,(id,mes,session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(f"/?mes={mes}")
+
+
+@app.route("/desfazer/<int:id>")
+def desfazer(id):
+    if not session.get("logado"):
+        return redirect("/login")
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE cobrancas 
+        SET status='em_dia'
+        WHERE cliente_id=%s AND mes_ref=%s AND usuario_id=%s
+    """,(id,mes,session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(f"/?mes={mes}")
+
+
+# ================= INDEX (FILTRO CORRIGIDO) =================
+@app.route("/")
+def index():
     if not session.get("logado"):
         return redirect("/login")
 
@@ -268,38 +350,92 @@ def backup():
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("SELECT usuario FROM usuarios WHERE id=%s",(user_id,))
-    usuario = cur.fetchone()[0]
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+    busca = request.args.get("busca","").lower()
+    filtro = request.args.get("filtro","")
 
     cur.execute("""
-        SELECT id, nome, telefone, valor, vencimento_dia
-        FROM clientes
-        WHERE usuario_id=%s
-    """,(user_id,))
-    clientes = cur.fetchall()
+        SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
+               COALESCE(cb.status,'em_dia')
+        FROM clientes c
+        LEFT JOIN cobrancas cb
+        ON c.id=cb.cliente_id AND cb.mes_ref=%s AND cb.usuario_id=%s
+        WHERE c.usuario_id=%s
+    """,(mes,user_id,user_id))
 
-    cur.execute("""
-        SELECT cliente_id, mes_ref, status
-        FROM cobrancas
-        WHERE usuario_id=%s
-    """,(user_id,))
-    cobrancas = cur.fetchall()
+    dados = cur.fetchall()
+
+    cur.execute("SELECT whatsapp_msg FROM usuarios WHERE id=%s",(user_id,))
+    msg = cur.fetchone()[0]
+
+    clientes=[]
+
+    total=0
+    recebido=0
+    atrasado=0
+    emdia=0
+
+    hoje = datetime.now()
+    hoje_mes = hoje.strftime("%Y-%m")
+    hoje_dia = hoje.day
+
+    for c in dados:
+        id,nome,tel,valor,venc,status = c
+
+        if busca and busca not in nome.lower():
+            continue
+
+        valor = float(valor)
+
+        # STATUS CORRIGIDO
+        if mes < hoje_mes:
+            if status != "pago":
+                status = "atrasado"
+
+        elif mes == hoje_mes:
+            if status != "pago":
+                status = "atrasado" if hoje_dia > int(venc) else "em_dia"
+
+        else:
+            if status != "pago":
+                status = "em_dia"
+
+        total += valor
+
+        if status == "pago":
+            recebido += valor
+        elif status == "atrasado":
+            atrasado += valor
+        else:
+            emdia += valor
+
+        clientes.append((id,nome,tel,valor,venc,status))
+
+    # ================= FILTRO FUNCIONANDO =================
+    if filtro == "nome":
+        clientes.sort(key=lambda x: x[1].lower())
+
+    elif filtro == "status":
+        ordem={"atrasado":0,"em_dia":1,"pago":2}
+        clientes.sort(key=lambda x: ordem.get(x[5],1))
+
+    elif filtro == "valor":
+        clientes.sort(key=lambda x: x[3], reverse=True)
 
     cur.close()
     conn.close()
 
-    backup = {
-        "usuario": usuario,
-        "clientes": clientes,
-        "cobrancas": cobrancas
-    }
-
-    json_data = json.dumps(backup, ensure_ascii=False, indent=4)
-
-    return Response(
-        json_data,
-        mimetype="application/json",
-        headers={"Content-Disposition":"attachment;filename=backup.json"}
+    return render_template("index.html",
+        clientes=clientes,
+        mes_ref=mes,
+        busca=busca,
+        filtro=filtro,
+        total_geral=total,
+        total_recebido=recebido,
+        total_atrasado=atrasado,
+        total_em_dia=emdia,
+        usuario=session["usuario"],
+        mensagem=msg
     )
 
 
