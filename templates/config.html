@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{font-family:Arial;background:#f4f6f8;padding:10px;}
+
+input,textarea{
+width:100%;
+padding:8px;
+margin:5px 0;
+font-size:13px;
+}
+
+.btn{
+padding:6px;
+font-size:12px;
+border:none;
+border-radius:5px;
+color:#fff;
+margin-top:5px;
+}
+
+.green{background:#28a745}
+.gray{background:#6c757d}
+
+</style>
+</head>
+
+<body>
+
+<h3>⚙️ Definições</h3>
+
+<a href="/">
+<button class="btn gray">⬅ Voltar</button>
+</a>
+
+<hr>
+
+<form action="/salvar_config" method="post">
+
+<label>🔑 Nova Senha</label>
+<input name="senha" placeholder="Digite nova senha">
+
+<label>💬 Mensagem WhatsApp</label>
+<textarea name="mensagem" rows="4">{{session["msg"]}}</textarea>
+
+<button class="btn green">💾 Salvar</button>
+
+</form>
+
+</body>
+</html>
