@@ -24,7 +24,7 @@ gap:5px;
 flex-wrap:wrap;
 }
 
-input,button{
+input,button,select{
 padding:6px;
 font-size:13px;
 }
@@ -66,11 +66,17 @@ color:#fff;
 text-align:center;
 }
 
-.btn-success{background:#28a745}
-.btn-danger{background:#dc3545}
 .btn-info{background:#17a2b8}
 .btn-dark{background:#343a40}
+.btn-danger{background:#dc3545}
 .btn-secondary{background:#6c757d}
+.btn-success{background:#28a745}
+
+.whatsapp{
+margin-top:4px;
+display:block;
+text-decoration:none;
+}
 
 .hidden{display:none;}
 </style>
@@ -85,29 +91,24 @@ text-align:center;
 <div style="display:flex; gap:5px;">
 
 {% if session["is_admin"] %}
-<a href="/usuarios">
-<button style="background:#343a40;color:#fff">👥 Usuários</button>
-</a>
+<a href="/usuarios"><button class="btn btn-dark">👥 Usuários</button></a>
 {% endif %}
 
-<a href="/gastos?mes={{mes_ref}}">
-<button style="background:#28a745;color:#fff">💸 Gastos</button>
-</a>
+<a href="/gastos"><button class="btn btn-secondary">💸 Gastos</button></a>
 
-<a href="/config">
-<button style="background:#6c757d;color:#fff">⚙️</button>
-</a>
+<a href="/config"><button class="btn btn-secondary">⚙️</button></a>
 
-<a href="/logout">
-<button style="background:#dc3545;color:#fff">🚪 Sair</button>
-</a>
+<a href="/logout"><button class="btn btn-danger">🚪</button></a>
 
 </div>
 </div>
 
+<!-- FILTRO -->
 <form class="topbar">
+
 <input type="month" name="mes" value="{{mes_ref}}">
-<input type="text" name="busca" placeholder="🔎 Buscar cliente..." value="{{busca}}">
+
+<input type="text" name="busca" placeholder="🔎 Buscar..." value="{{busca}}">
 
 <select name="filtro">
 <option value="">Ordenar</option>
@@ -117,8 +118,10 @@ text-align:center;
 </select>
 
 <button>OK</button>
+
 </form>
 
+<!-- RESUMO -->
 <div class="stats">
 💰 Total: {{total_geral}}<br>
 💵 Recebido: {{total_recebido}}<br>
@@ -126,7 +129,7 @@ text-align:center;
 🔵 Em Dia: {{total_em_dia}}<br>
 </div>
 
-<button onclick="toggle('cad')">➕ Cliente</button>
+<button onclick="toggle('cad')" class="btn btn-success">➕ Cliente</button>
 
 <div id="cad" class="hidden">
 <form action="/add" method="post">
@@ -140,6 +143,7 @@ text-align:center;
 
 <hr>
 
+<!-- LISTA -->
 {% for c in clientes %}
 
 <div class="card {{c[5]}}">
@@ -151,14 +155,18 @@ text-align:center;
 📞 {{c[2]}}<br>
 💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
 
+<a class="whatsapp"
+target="_blank"
+href="https://wa.me/55{{c[2]}}">
+<button class="btn btn-secondary">📲 WhatsApp</button>
+</a>
+
 <div class="actions">
 
-<!-- BOTÃO PAGO -->
 <a href="/pago/{{c[0]}}?mes={{mes_ref}}">
 <button class="btn btn-info">✔ Pago</button>
 </a>
 
-<!-- BOTÃO VOLTAR -->
 <a href="/desfazer/{{c[0]}}?mes={{mes_ref}}">
 <button class="btn btn-dark">↩ Voltar</button>
 </a>
@@ -170,7 +178,7 @@ text-align:center;
 <button class="btn btn-secondary" onclick="toggle('e{{c[0]}}')">✏ Editar</button>
 
 <a href="/delete/{{c[0]}}">
-<button class="btn btn-danger">🗑 Excluir</button>
+<button class="btn btn-danger">🗑</button>
 </a>
 
 </div>
