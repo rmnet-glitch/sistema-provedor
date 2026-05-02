@@ -9,6 +9,7 @@ app.secret_key = "segredo"
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 
+# ================= CONEXÃO =================
 def conectar():
     return psycopg2.connect(DATABASE_URL)
 
@@ -67,7 +68,6 @@ def index():
     busca = request.args.get("busca", "").lower()
     filtro = request.args.get("filtro", "")
 
-    # CLIENTES
     cur.execute("""
         SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
                COALESCE(cb.status,'em_dia')
@@ -101,7 +101,6 @@ def index():
         if busca and busca not in (nome or "").lower():
             continue
 
-        # STATUS DINÂMICO
         if status != "pago":
 
             if mes < hoje_mes:
@@ -134,16 +133,13 @@ def index():
         clientes.append((id, nome, tel, valor, venc, status))
 
     # GASTOS
-    try:
-        cur.execute("""
-            SELECT COALESCE(SUM(valor),0)
-            FROM gastos
-            WHERE usuario_id=%s AND mes_ref=%s
-        """, (user_id, mes))
+    cur.execute("""
+        SELECT COALESCE(SUM(valor),0)
+        FROM gastos
+        WHERE usuario_id=%s AND mes_ref=%s
+    """, (user_id, mes))
 
-        total_gastos = float(cur.fetchone()[0])
-    except:
-        total_gastos = 0
+    total_gastos = float(cur.fetchone()[0] or 0)
 
     lucro = recebido - total_gastos
 
@@ -173,6 +169,57 @@ def index():
         lucro=lucro,
         alertas=alertas,
         usuario=session["usuario"]
+    )
+
+
+# ================= CONFIG (CORRIGIDO) =================
+@app.route("/config", methods=["GET", "POST"])
+def config():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    user_id = session["user_id"]
+
+    if request.method == "POST":
+        senha = request.form.get("senha")
+        mensagem = request.form.get("mensagem")
+
+        if senha:
+            cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
+
+        # 🔥 evita erro se coluna não existir
+        try:
+            cur.execute("UPDATE usuarios SET whatsapp_msg=%s WHERE id=%s", (mensagem, user_id))
+        except:
+            pass
+
+        conn.commit()
+
+    # 🔥 evita erro se coluna não existir
+    try:
+        cur.execute("""
+            SELECT usuario, whatsapp_msg
+            FROM usuarios
+            WHERE id=%s
+        """, (user_id,))
+        user = cur.fetchone()
+        usuario = user[0]
+        mensagem = user[1] or ""
+    except:
+        cur.execute("SELECT usuario FROM usuarios WHERE id=%s", (user_id,))
+        user = cur.fetchone()
+        usuario = user[0]
+        mensagem = ""
+
+    cur.close()
+    conn.close()
+
+    return render_template("config.html",
+        usuario=usuario,
+        mensagem=mensagem
     )
 
 
@@ -261,7 +308,7 @@ def gastos():
         WHERE usuario_id=%s AND mes_ref=%s
     """, (user_id, mes))
 
-    total = float(cur.fetchone()[0])
+    total = float(cur.fetchone()[0] or 0)
 
     cur.close()
     conn.close()
