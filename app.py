@@ -9,7 +9,7 @@ app.secret_key = "segredo"
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 
-# ================= CONEXÃO SEGURA =================
+# ================= CONEXÃO =================
 def conectar():
     try:
         return psycopg2.connect(DATABASE_URL)
@@ -64,7 +64,7 @@ def logout():
     return redirect(url_for("login"))
 
 
-# ================= INDEX (CORRIGIDO) =================
+# ================= INDEX =================
 @app.route("/")
 def index():
     if not session.get("logado"):
@@ -83,7 +83,7 @@ def index():
     busca = request.args.get("busca", "").lower()
     filtro = request.args.get("filtro", "")
 
-    # ================= CLIENTES =================
+    # CLIENTES
     try:
         cur.execute("""
             SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
@@ -98,7 +98,7 @@ def index():
     except:
         dados = []
 
-    # ================= WHATSAPP =================
+    # WHATSAPP MSG
     try:
         cur.execute("SELECT whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
         res = cur.fetchone()
@@ -116,7 +116,6 @@ def index():
     hoje_mes = hoje.strftime("%Y-%m")
     hoje_dia = hoje.day
 
-    # ================= PROCESSAMENTO =================
     for c in dados:
         try:
             id, nome, tel, valor, venc, status = c
@@ -153,7 +152,7 @@ def index():
         except:
             continue
 
-    # ================= FILTRO =================
+    # FILTRO
     try:
         if filtro == "nome":
             clientes.sort(key=lambda x: (x[1] or "").lower())
@@ -189,6 +188,7 @@ def pago(id):
         return redirect(url_for("login"))
 
     mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+    user_id = session["user_id"]
 
     conn = conectar()
     cur = conn.cursor()
@@ -199,10 +199,40 @@ def pago(id):
             VALUES (%s,%s,%s,'pago')
             ON CONFLICT (cliente_id, mes_ref, usuario_id)
             DO UPDATE SET status='pago'
-        """, (id, mes, session["user_id"]))
+        """, (id, mes, user_id))
+
         conn.commit()
     except Exception as e:
         print("ERRO PAGO:", e)
+
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index", mes=mes))
+
+
+@app.route("/desfazer/<int:id>")
+def desfazer(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+    user_id = session["user_id"]
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
+            VALUES (%s,%s,%s,'em_dia')
+            ON CONFLICT (cliente_id, mes_ref, usuario_id)
+            DO UPDATE SET status='em_dia'
+        """, (id, mes, user_id))
+
+        conn.commit()
+    except Exception as e:
+        print("ERRO DESFAZER:", e)
 
     cur.close()
     conn.close()
