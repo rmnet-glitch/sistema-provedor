@@ -54,6 +54,52 @@ def logout():
     return redirect(url_for("login"))
 
 
+# ================= CONFIG =================
+@app.route("/config", methods=["GET", "POST"])
+def config():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    user_id = session["user_id"]
+
+    if request.method == "POST":
+        senha = request.form.get("senha")
+        mensagem = request.form.get("mensagem")
+
+        if senha:
+            cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
+
+        # evita erro se coluna não existir
+        try:
+            cur.execute("UPDATE usuarios SET whatsapp_msg=%s WHERE id=%s", (mensagem, user_id))
+        except:
+            pass
+
+        conn.commit()
+
+    # leitura segura
+    try:
+        cur.execute("SELECT usuario, whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
+        user = cur.fetchone()
+        usuario = user[0]
+        mensagem = user[1] or ""
+    except:
+        cur.execute("SELECT usuario FROM usuarios WHERE id=%s", (user_id,))
+        user = cur.fetchone()
+        usuario = user[0]
+        mensagem = ""
+
+    cur.close()
+    conn.close()
+
+    return render_template("config.html",
+                           usuario=usuario,
+                           mensagem=mensagem)
+
+
 # ================= INDEX =================
 @app.route("/")
 def index():
@@ -79,6 +125,11 @@ def index():
 
     dados = cur.fetchall()
 
+    # mensagem WhatsApp
+    cur.execute("SELECT whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
+    res = cur.fetchone()
+    mensagem = res[0] if res and res[0] else ""
+
     clientes = []
 
     total = 0
@@ -102,10 +153,8 @@ def index():
             continue
 
         if status != "pago":
-
             if mes < hoje_mes:
                 status = "atrasado"
-
             elif mes == hoje_mes:
                 if hoje_dia > venc:
                     status = "atrasado"
@@ -114,7 +163,6 @@ def index():
                     status = "em_dia"
                 else:
                     status = "em_dia"
-
             else:
                 status = "em_dia"
 
@@ -143,7 +191,7 @@ def index():
 
     lucro = recebido - total_gastos
 
-    # ORDENAÇÃO
+    # ORDEM PADRÃO POR STATUS
     ordem = {"atrasado": 0, "em_dia": 1, "pago": 2}
 
     if filtro == "nome":
@@ -157,70 +205,19 @@ def index():
     conn.close()
 
     return render_template("index.html",
-        clientes=clientes,
-        mes_ref=mes,
-        busca=busca,
-        filtro=filtro,
-        total_geral=total,
-        total_recebido=recebido,
-        total_atrasado=atrasado,
-        total_em_dia=emdia,
-        total_gastos=total_gastos,
-        lucro=lucro,
-        alertas=alertas,
-        usuario=session["usuario"]
-    )
-
-
-# ================= CONFIG (CORRIGIDO) =================
-@app.route("/config", methods=["GET", "POST"])
-def config():
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    user_id = session["user_id"]
-
-    if request.method == "POST":
-        senha = request.form.get("senha")
-        mensagem = request.form.get("mensagem")
-
-        if senha:
-            cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
-
-        # 🔥 evita erro se coluna não existir
-        try:
-            cur.execute("UPDATE usuarios SET whatsapp_msg=%s WHERE id=%s", (mensagem, user_id))
-        except:
-            pass
-
-        conn.commit()
-
-    # 🔥 evita erro se coluna não existir
-    try:
-        cur.execute("""
-            SELECT usuario, whatsapp_msg
-            FROM usuarios
-            WHERE id=%s
-        """, (user_id,))
-        user = cur.fetchone()
-        usuario = user[0]
-        mensagem = user[1] or ""
-    except:
-        cur.execute("SELECT usuario FROM usuarios WHERE id=%s", (user_id,))
-        user = cur.fetchone()
-        usuario = user[0]
-        mensagem = ""
-
-    cur.close()
-    conn.close()
-
-    return render_template("config.html",
-        usuario=usuario,
-        mensagem=mensagem
-    )
+                           clientes=clientes,
+                           mes_ref=mes,
+                           busca=busca,
+                           filtro=filtro,
+                           total_geral=total,
+                           total_recebido=recebido,
+                           total_atrasado=atrasado,
+                           total_em_dia=emdia,
+                           total_gastos=total_gastos,
+                           lucro=lucro,
+                           alertas=alertas,
+                           usuario=session["usuario"],
+                           mensagem=mensagem)
 
 
 # ================= PAGAMENTO =================
@@ -314,10 +311,9 @@ def gastos():
     conn.close()
 
     return render_template("gastos.html",
-        gastos=lista,
-        total=total,
-        mes_ref=mes
-    )
+                           gastos=lista,
+                           total=total,
+                           mes_ref=mes)
 
 
 @app.route("/del_gasto/<int:id>")
