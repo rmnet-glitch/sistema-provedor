@@ -72,12 +72,6 @@ text-align:center;
 .btn-dark{background:#343a40}
 .btn-secondary{background:#6c757d}
 
-.whatsapp{
-margin-top:4px;
-display:block;
-text-decoration:none;
-}
-
 .hidden{display:none;}
 </style>
 </head>
@@ -88,18 +82,17 @@ text-decoration:none;
 
 <h3>👤 {{usuario}}</h3>
 
-<div style="display:flex; gap:5px; flex-wrap:wrap;">
-
-<!-- 🔥 NOVO BOTÃO GASTOS -->
-<a href="/gastos?mes={{mes_ref}}">
-<button style="background:#28a745;color:#fff">💸 Gastos</button>
-</a>
+<div style="display:flex; gap:5px;">
 
 {% if session["is_admin"] %}
 <a href="/usuarios">
 <button style="background:#343a40;color:#fff">👥 Usuários</button>
 </a>
 {% endif %}
+
+<a href="/gastos?mes={{mes_ref}}">
+<button style="background:#28a745;color:#fff">💸 Gastos</button>
+</a>
 
 <a href="/config">
 <button style="background:#6c757d;color:#fff">⚙️</button>
@@ -158,19 +151,14 @@ text-decoration:none;
 📞 {{c[2]}}<br>
 💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
 
-<a class="whatsapp"
-target="_blank"
-href="https://wa.me/55{{c[2]}}?text={{ mensagem | urlencode }}">
-
-<button class="btn btn-secondary">📲 WhatsApp</button>
-</a>
-
 <div class="actions">
 
+<!-- BOTÃO PAGO -->
 <a href="/pago/{{c[0]}}?mes={{mes_ref}}">
 <button class="btn btn-info">✔ Pago</button>
 </a>
 
+<!-- BOTÃO VOLTAR -->
 <a href="/desfazer/{{c[0]}}?mes={{mes_ref}}">
 <button class="btn btn-dark">↩ Voltar</button>
 </a>
