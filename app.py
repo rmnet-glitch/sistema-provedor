@@ -14,17 +14,17 @@ def conectar():
 
 
 # ================= LOGIN =================
-@app.route("/login", methods=["GET","POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         conn = conectar()
         cur = conn.cursor()
 
         cur.execute("""
-        SELECT id, usuario, is_admin, ativo
-        FROM usuarios 
-        WHERE usuario=%s AND senha=%s
-        """,(request.form["usuario"],request.form["senha"]))
+            SELECT id, usuario, is_admin, ativo
+            FROM usuarios
+            WHERE usuario=%s AND senha=%s
+        """, (request.form["usuario"], request.form["senha"]))
 
         user = cur.fetchone()
 
@@ -59,48 +59,65 @@ def index():
     if not session.get("logado"):
         return redirect(url_for("login"))
 
-    user_id = session["user_id"]
+    user_id = session.get("user_id")
+    usuario = session.get("usuario", "")
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
 
     conn = conectar()
     cur = conn.cursor()
 
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+    # CLIENTES + STATUS
+    try:
+        cur.execute("""
+            SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
+                   COALESCE(cb.status,'em_dia')
+            FROM clientes c
+            LEFT JOIN cobrancas cb
+            ON c.id=cb.cliente_id AND cb.mes_ref=%s AND cb.usuario_id=%s
+            WHERE c.usuario_id=%s
+        """, (mes, user_id, user_id))
 
-    # CLIENTES
-    cur.execute("""
-        SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
-               COALESCE(cb.status,'em_dia')
-        FROM clientes c
-        LEFT JOIN cobrancas cb
-        ON c.id=cb.cliente_id AND cb.mes_ref=%s AND cb.usuario_id=%s
-        WHERE c.usuario_id=%s
-    """,(mes,user_id,user_id))
-
-    dados = cur.fetchall()
+        dados = cur.fetchall()
+    except:
+        dados = []
 
     # GASTOS
-    cur.execute("""
-        SELECT COALESCE(SUM(valor),0)
-        FROM gastos
-        WHERE usuario_id=%s AND mes_ref=%s
-    """,(user_id,mes))
+    try:
+        cur.execute("""
+            SELECT COALESCE(SUM(valor),0)
+            FROM gastos
+            WHERE usuario_id=%s AND mes_ref=%s
+        """, (user_id, mes))
 
-    total_gastos = float(cur.fetchone()[0])
+        total_gastos = float(cur.fetchone()[0])
+    except:
+        total_gastos = 0
 
-    total=0
-    recebido=0
+    # WHATSAPP MSG
+    try:
+        cur.execute("SELECT whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
+        res = cur.fetchone()
+        mensagem = res[0] if res else ""
+    except:
+        mensagem = ""
 
-    clientes=[]
+    total = 0
+    recebido = 0
+    clientes = []
 
     for c in dados:
-        id,nome,tel,valor,venc,status = c
-        valor=float(valor)
+        try:
+            id, nome, tel, valor, venc, status = c
+            valor = float(valor or 0)
 
-        total += valor
-        if status == "pago":
-            recebido += valor
+            total += valor
+            if status == "pago":
+                recebido += valor
 
-        clientes.append((id,nome,tel,valor,venc,status))
+            clientes.append((id, nome, tel, valor, venc, status))
+        except:
+            continue
 
     lucro = recebido - total_gastos
 
@@ -114,7 +131,8 @@ def index():
         total_recebido=recebido,
         total_gastos=total_gastos,
         lucro=lucro,
-        usuario=session["usuario"]
+        usuario=usuario,
+        mensagem=mensagem
     )
 
 
@@ -127,7 +145,7 @@ def add():
     cur.execute("""
         INSERT INTO clientes (nome, telefone, valor, vencimento_dia, usuario_id)
         VALUES (%s,%s,%s,%s,%s)
-    """,(
+    """, (
         request.form["nome"],
         request.form["telefone"],
         request.form["valor"],
@@ -147,7 +165,10 @@ def delete(id):
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("DELETE FROM clientes WHERE id=%s AND usuario_id=%s",(id,session["user_id"]))
+    cur.execute("""
+        DELETE FROM clientes
+        WHERE id=%s AND usuario_id=%s
+    """, (id, session["user_id"]))
 
     conn.commit()
     cur.close()
@@ -159,6 +180,9 @@ def delete(id):
 # ================= PAGAMENTO =================
 @app.route("/pago/<int:id>")
 def pago(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
     mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
 
     conn = conectar()
@@ -169,7 +193,7 @@ def pago(id):
         VALUES (%s,%s,%s,'pago')
         ON CONFLICT (cliente_id, mes_ref, usuario_id)
         DO UPDATE SET status='pago'
-    """,(id,mes,session["user_id"]))
+    """, (id, mes, session["user_id"]))
 
     conn.commit()
     cur.close()
@@ -195,7 +219,7 @@ def gastos():
         FROM gastos
         WHERE usuario_id=%s AND mes_ref=%s
         ORDER BY id DESC
-    """,(user_id, mes))
+    """, (user_id, mes))
 
     lista = cur.fetchall()
 
@@ -223,7 +247,7 @@ def add_gasto():
     cur.execute("""
         INSERT INTO gastos (descricao, material, valor, mes_ref, usuario_id)
         VALUES (%s,%s,%s,%s,%s)
-    """,(
+    """, (
         request.form.get("descricao"),
         request.form.get("material"),
         valor,
@@ -245,7 +269,10 @@ def del_gasto(id):
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("DELETE FROM gastos WHERE id=%s AND usuario_id=%s",(id,session["user_id"]))
+    cur.execute("""
+        DELETE FROM gastos
+        WHERE id=%s AND usuario_id=%s
+    """, (id, session["user_id"]))
 
     conn.commit()
     cur.close()
@@ -254,5 +281,6 @@ def del_gasto(id):
     return redirect(url_for("gastos", mes=mes))
 
 
+# ================= START =================
 if __name__ == "__main__":
     app.run(debug=True)
