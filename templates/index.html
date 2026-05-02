@@ -88,11 +88,15 @@ text-decoration:none;
 
 <h3>👤 {{usuario}}</h3>
 
-<div style="display:flex; gap:5px;">
+<div style="display:flex; gap:5px; flex-wrap:wrap;">
 
 {% if session["is_admin"] %}
 <a href="/usuarios"><button style="background:#343a40;color:#fff">👥 Usuários</button></a>
 {% endif %}
+
+<a href="/gastos?mes={{mes_ref}}">
+<button style="background:#28a745;color:#fff">💸 Gastos</button>
+</a>
 
 <a href="/config"><button style="background:#6c757d;color:#fff">⚙️</button></a>
 
@@ -147,11 +151,9 @@ text-decoration:none;
 📞 {{c[2]}}<br>
 💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
 
-<!-- 🔥 CORREÇÃO WHATSAPP -->
 <a class="whatsapp"
 target="_blank"
 href="https://wa.me/55{{c[2]}}?text={{ mensagem | urlencode }}">
-
 <button class="btn btn-secondary">📲 WhatsApp</button>
 </a>
 
