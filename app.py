@@ -65,6 +65,8 @@ def index():
 
     user_id = session["user_id"]
     mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+    busca = request.args.get("busca", "").lower()
+    filtro = request.args.get("filtro", "")
 
     cur.execute("""
         SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
@@ -78,18 +80,66 @@ def index():
     dados = cur.fetchall()
 
     clientes = []
+
     total = 0
     recebido = 0
+    atrasado = 0
+    emdia = 0
+
+    hoje = datetime.now()
+    hoje_mes = hoje.strftime("%Y-%m")
+    hoje_dia = hoje.day
 
     for c in dados:
         id, nome, tel, valor, venc, status = c
-        valor = float(valor or 0)
 
+        valor = float(valor or 0)
+        venc = int(venc or 1)
+
+        # BUSCA
+        if busca and busca not in (nome or "").lower():
+            continue
+
+        # ================= STATUS DINÂMICO =================
+        if status != "pago":
+
+            if mes < hoje_mes:
+                status = "atrasado"
+
+            elif mes == hoje_mes:
+                if hoje_dia > venc:
+                    status = "atrasado"
+                else:
+                    status = "em_dia"
+
+            else:
+                status = "em_dia"
+
+        # ================= SOMATÓRIOS =================
         total += valor
+
         if status == "pago":
             recebido += valor
+        elif status == "atrasado":
+            atrasado += valor
+        else:
+            emdia += valor
 
         clientes.append((id, nome, tel, valor, venc, status))
+
+    # ================= ORDENAÇÃO =================
+    # padrão: por status
+    ordem = {"atrasado": 0, "em_dia": 1, "pago": 2}
+
+    if filtro == "nome":
+        clientes.sort(key=lambda x: (x[1] or "").lower())
+
+    elif filtro == "valor":
+        clientes.sort(key=lambda x: x[3], reverse=True)
+
+    else:
+        # padrão ou filtro=status
+        clientes.sort(key=lambda x: ordem.get(x[5], 1))
 
     cur.close()
     conn.close()
@@ -97,66 +147,14 @@ def index():
     return render_template("index.html",
         clientes=clientes,
         mes_ref=mes,
+        busca=busca,
+        filtro=filtro,
         total_geral=total,
         total_recebido=recebido,
+        total_atrasado=atrasado,
+        total_em_dia=emdia,
         usuario=session["usuario"]
     )
-
-
-# ================= CONFIG =================
-@app.route("/config", methods=["GET", "POST"])
-def config():
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    user_id = session["user_id"]
-
-    if request.method == "POST":
-        senha = request.form.get("senha")
-        mensagem = request.form.get("mensagem")
-
-        if senha:
-            cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
-
-        if mensagem is not None:
-            cur.execute("UPDATE usuarios SET whatsapp_msg=%s WHERE id=%s", (mensagem, user_id))
-
-        conn.commit()
-
-    cur.execute("SELECT usuario, whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
-    user = cur.fetchone()
-
-    cur.close()
-    conn.close()
-
-    return render_template("config.html",
-        usuario=user[0],
-        mensagem=user[1] or ""
-    )
-
-
-# ================= USUÁRIOS =================
-@app.route("/usuarios")
-def usuarios():
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
-    if not session.get("is_admin"):
-        return redirect(url_for("index"))
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("SELECT id, usuario, ativo FROM usuarios")
-    lista = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return render_template("usuarios.html", usuarios=lista)
 
 
 # ================= PAGAMENTO =================
@@ -215,18 +213,18 @@ def gastos():
     mes = request.args.get("mes") or request.form.get("mes") or datetime.now().strftime("%Y-%m")
 
     if request.method == "POST":
-        cur.execute("""
-            INSERT INTO gastos (descricao, material, valor, mes_ref, usuario_id)
-            VALUES (%s,%s,%s,%s,%s)
-        """, (
-            request.form.get("descricao"),
-            request.form.get("material"),
-            request.form.get("valor"),
-            mes,
-            user_id
-        ))
+        descricao = request.form.get("descricao")
+        material = request.form.get("material")
+        valor = request.form.get("valor")
 
-        conn.commit()
+        if valor:
+            cur.execute("""
+                INSERT INTO gastos (descricao, material, valor, mes_ref, usuario_id)
+                VALUES (%s,%s,%s,%s,%s)
+            """, (descricao, material, valor, mes, user_id))
+
+            conn.commit()
+
         return redirect(url_for("gastos", mes=mes))
 
     cur.execute("""
@@ -256,7 +254,6 @@ def gastos():
     )
 
 
-# ================= DELETE GASTO =================
 @app.route("/del_gasto/<int:id>")
 def del_gasto(id):
     mes = request.args.get("mes")
@@ -270,10 +267,67 @@ def del_gasto(id):
     """, (id, session["user_id"]))
 
     conn.commit()
+
     cur.close()
     conn.close()
 
     return redirect(url_for("gastos", mes=mes))
+
+
+# ================= CONFIG =================
+@app.route("/config", methods=["GET", "POST"])
+def config():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    user_id = session["user_id"]
+
+    if request.method == "POST":
+        senha = request.form.get("senha")
+        mensagem = request.form.get("mensagem")
+
+        if senha:
+            cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
+
+        if mensagem is not None:
+            cur.execute("UPDATE usuarios SET whatsapp_msg=%s WHERE id=%s", (mensagem, user_id))
+
+        conn.commit()
+
+    cur.execute("SELECT usuario, whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
+    user = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    return render_template("config.html",
+        usuario=user[0],
+        mensagem=user[1] or ""
+    )
+
+
+# ================= USUÁRIOS =================
+@app.route("/usuarios")
+def usuarios():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin"):
+        return redirect(url_for("index"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("SELECT id, usuario, ativo FROM usuarios")
+    lista = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template("usuarios.html", usuarios=lista)
 
 
 # ================= START =================
