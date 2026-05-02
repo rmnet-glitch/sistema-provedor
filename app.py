@@ -54,7 +54,7 @@ def logout():
     return redirect(url_for("login"))
 
 
-# ================= USUÁRIOS (NOVO) =================
+# ================= USUÁRIOS =================
 @app.route("/usuarios")
 def usuarios():
     if not session.get("logado"):
@@ -105,16 +105,11 @@ def config():
 
         conn.commit()
 
-    try:
-        cur.execute("SELECT usuario, whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
-        user = cur.fetchone()
-        usuario = user[0]
-        mensagem = user[1] or ""
-    except:
-        cur.execute("SELECT usuario FROM usuarios WHERE id=%s", (user_id,))
-        user = cur.fetchone()
-        usuario = user[0]
-        mensagem = ""
+    cur.execute("SELECT usuario, whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
+    user = cur.fetchone()
+
+    usuario = user[0]
+    mensagem = user[1] if user and user[1] else ""
 
     cur.close()
     conn.close()
@@ -238,47 +233,7 @@ def index():
                            mensagem=mensagem)
 
 
-# ================= RESTO (mantido igual) =================
-@app.route("/pago/<int:id>")
-def pago(id):
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
-        VALUES (%s,%s,%s,'pago')
-        ON CONFLICT (cliente_id, mes_ref, usuario_id)
-        DO UPDATE SET status='pago'
-    """, (id, mes, session["user_id"]))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index", mes=mes))
-
-
-@app.route("/desfazer/<int:id>")
-def desfazer(id):
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
-        VALUES (%s,%s,%s,'em_dia')
-        ON CONFLICT (cliente_id, mes_ref, usuario_id)
-        DO UPDATE SET status='em_dia'
-    """, (id, mes, session["user_id"]))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index", mes=mes))
-
-
+# ================= GASTOS =================
 @app.route("/gastos", methods=["GET", "POST"])
 def gastos():
     if not session.get("logado"):
@@ -301,6 +256,7 @@ def gastos():
             mes,
             user_id
         ))
+
         conn.commit()
         return redirect(url_for("gastos", mes=mes))
 
@@ -330,5 +286,30 @@ def gastos():
                            mes_ref=mes)
 
 
+# ================= DELETE GASTO (CORRIGIDO) =================
+@app.route("/del_gasto/<int:id>")
+def del_gasto(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        DELETE FROM gastos
+        WHERE id=%s AND usuario_id=%s
+    """, (id, session["user_id"]))
+
+    conn.commit()
+
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("gastos", mes=mes))
+
+
+# ================= START =================
 if __name__ == "__main__":
     app.run(debug=True)
