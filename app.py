@@ -1,3 +1,4 @@
+
 import os
 from flask import Flask, render_template, request, redirect, session, url_for
 import psycopg2
@@ -186,7 +187,7 @@ def index():
                            mensagem=mensagem)
 
 
-# ================= EDIT CLIENTE (CORRIGIDO) =================
+# ================= EDIT CLIENTE (FIX DEFINITIVO) =================
 @app.route("/edit/<int:id>", methods=["POST"])
 def edit(id):
     if not session.get("logado"):
@@ -220,7 +221,7 @@ def edit(id):
     return redirect(url_for("index", mes=mes))
 
 
-# ================= DELETE GASTO (já corrigido antes) =================
+# ================= DELETE GASTO =================
 @app.route("/del_gasto/<int:id>")
 def del_gasto(id):
     if not session.get("logado"):
@@ -241,6 +242,59 @@ def del_gasto(id):
     conn.close()
 
     return redirect(url_for("gastos", mes=mes))
+
+
+# ================= GASTOS =================
+@app.route("/gastos", methods=["GET", "POST"])
+def gastos():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    user_id = session["user_id"]
+    mes = request.args.get("mes") or request.form.get("mes") or datetime.now().strftime("%Y-%m")
+
+    if request.method == "POST":
+        cur.execute("""
+            INSERT INTO gastos (descricao, material, valor, mes_ref, usuario_id)
+            VALUES (%s,%s,%s,%s,%s)
+        """, (
+            request.form.get("descricao"),
+            request.form.get("material"),
+            request.form.get("valor"),
+            mes,
+            user_id
+        ))
+
+        conn.commit()
+        return redirect(url_for("gastos", mes=mes))
+
+    cur.execute("""
+        SELECT id, descricao, material, valor
+        FROM gastos
+        WHERE usuario_id=%s AND mes_ref=%s
+        ORDER BY id DESC
+    """, (user_id, mes))
+
+    lista = cur.fetchall()
+
+    cur.execute("""
+        SELECT COALESCE(SUM(valor),0)
+        FROM gastos
+        WHERE usuario_id=%s AND mes_ref=%s
+    """, (user_id, mes))
+
+    total = float(cur.fetchone()[0] or 0)
+
+    cur.close()
+    conn.close()
+
+    return render_template("gastos.html",
+                           gastos=lista,
+                           total=total,
+                           mes_ref=mes)
 
 
 # ================= START =================
