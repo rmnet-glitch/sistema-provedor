@@ -67,21 +67,24 @@ def index():
     # ================= PROCESSAMENTO =================
     for c in dados:
         try:
-            id,nome,tel,valor,venc,status = c
+            id, nome, tel, valor, venc, status = c
+
             valor = float(valor or 0)
             venc = int(venc or 0)
 
             if busca and busca not in (nome or "").lower():
                 continue
 
-            # STATUS DINÂMICO
             if mes < hoje_mes:
                 if status != "pago":
                     status = "atrasado"
 
             elif mes == hoje_mes:
                 if status != "pago":
-                    status = "atrasado" if hoje_dia > venc else "em_dia"
+                    if hoje_dia > venc:
+                        status = "atrasado"
+                    else:
+                        status = "em_dia"
 
             else:
                 if status != "pago":
@@ -96,7 +99,7 @@ def index():
             else:
                 emdia += valor
 
-            clientes.append((id,nome,tel,valor,venc,status))
+            clientes.append((id, nome, tel, valor, venc, status))
 
         except:
             continue
