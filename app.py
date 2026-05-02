@@ -289,7 +289,7 @@ def delete(id):
     return redirect(url_for("index"))
 
 
-# ================= PAGAMENTO (CORRIGIDO) =================
+# ================= PAGAMENTO =================
 @app.route("/pago/<int:id>")
 def pago(id):
     if not session.get("logado"):
@@ -338,102 +338,56 @@ def desfazer(id):
     return redirect(url_for("index", mes=mes))
 
 
-# ================= INDEX =================
-@app.route("/")
-def index():
+# ================= GASTOS =================
+@app.route("/gastos", methods=["GET", "POST"])
+def gastos():
     if not session.get("logado"):
         return redirect(url_for("login"))
-
-    user_id = session["user_id"]
 
     conn = conectar()
     cur = conn.cursor()
 
+    user_id = session["user_id"]
     mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-    busca = request.args.get("busca", "").lower()
-    filtro = request.args.get("filtro", "")
+
+    if request.method == "POST":
+        descricao = request.form.get("descricao")
+        material = request.form.get("material")
+        valor = request.form.get("valor")
+
+        if valor:
+            cur.execute("""
+                INSERT INTO gastos (descricao, material, valor, mes_ref, usuario_id)
+                VALUES (%s,%s,%s,%s,%s)
+            """, (descricao, material, valor, mes, user_id))
+            conn.commit()
 
     cur.execute("""
-        SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
-               COALESCE(cb.status,'em_dia')
-        FROM clientes c
-        LEFT JOIN cobrancas cb
-        ON c.id=cb.cliente_id AND cb.mes_ref=%s AND cb.usuario_id=%s
-        WHERE c.usuario_id=%s
-    """, (mes, user_id, user_id))
+        SELECT id, descricao, material, valor
+        FROM gastos
+        WHERE usuario_id=%s AND mes_ref=%s
+        ORDER BY id DESC
+    """, (user_id, mes))
 
-    dados = cur.fetchall()
+    lista = cur.fetchall()
 
-    cur.execute("SELECT whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
-    msg = cur.fetchone()[0]
+    cur.execute("""
+        SELECT COALESCE(SUM(valor),0)
+        FROM gastos
+        WHERE usuario_id=%s AND mes_ref=%s
+    """, (user_id, mes))
 
-    clientes = []
-
-    total = 0
-    recebido = 0
-    atrasado = 0
-    emdia = 0
-
-    hoje = datetime.now()
-    hoje_mes = hoje.strftime("%Y-%m")
-    hoje_dia = hoje.day
-
-    for c in dados:
-        id, nome, tel, valor, venc, status = c
-
-        if busca and busca not in nome.lower():
-            continue
-
-        valor = float(valor)
-
-        if mes < hoje_mes:
-            if status != "pago":
-                status = "atrasado"
-
-        elif mes == hoje_mes:
-            if status != "pago":
-                status = "atrasado" if hoje_dia > int(venc) else "em_dia"
-
-        else:
-            if status != "pago":
-                status = "em_dia"
-
-        total += valor
-
-        if status == "pago":
-            recebido += valor
-        elif status == "atrasado":
-            atrasado += valor
-        else:
-            emdia += valor
-
-        clientes.append((id, nome, tel, valor, venc, status))
-
-    if filtro == "nome":
-        clientes.sort(key=lambda x: x[1].lower())
-
-    elif filtro == "status":
-        ordem = {"atrasado": 0, "em_dia": 1, "pago": 2}
-        clientes.sort(key=lambda x: ordem.get(x[5], 1))
-
-    elif filtro == "valor":
-        clientes.sort(key=lambda x: x[3], reverse=True)
+    total = float(cur.fetchone()[0])
 
     cur.close()
     conn.close()
 
-    return render_template("index.html",
-                           clientes=clientes,
-                           mes_ref=mes,
-                           busca=busca,
-                           filtro=filtro,
-                           total_geral=total,
-                           total_recebido=recebido,
-                           total_atrasado=atrasado,
-                           total_em_dia=emdia,
-                           usuario=session["usuario"],
-                           mensagem=msg)
+    return render_template("gastos.html",
+                           gastos=lista,
+                           total=total,
+                           mes_ref=mes)
 
 
+# ================= START =================
 if __name__ == "__main__":
     app.run(debug=True)
