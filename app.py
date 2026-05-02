@@ -8,12 +8,14 @@ app.secret_key = "segredo"
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+
+# ================= CONEXÃO =================
 def conectar():
     return psycopg2.connect(DATABASE_URL)
 
 
 # ================= LOGIN =================
-@app.route("/login", methods=["GET","POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         conn = conectar()
@@ -23,7 +25,7 @@ def login():
         SELECT id, usuario, is_admin, ativo
         FROM usuarios 
         WHERE usuario=%s AND senha=%s
-        """,(request.form["usuario"],request.form["senha"]))
+        """, (request.form["usuario"], request.form["senha"]))
 
         user = cur.fetchone()
 
@@ -53,7 +55,7 @@ def logout():
 
 
 # ================= CONFIG =================
-@app.route("/config", methods=["GET","POST"])
+@app.route("/config", methods=["GET", "POST"])
 def config():
     if not session.get("logado"):
         return redirect(url_for("login"))
@@ -64,15 +66,14 @@ def config():
     user_id = session["user_id"]
 
     if request.method == "POST":
-
         senha = request.form.get("senha")
         mensagem = request.form.get("mensagem")
 
         if senha:
-            cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s",(senha,user_id))
+            cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
 
         if mensagem is not None:
-            cur.execute("UPDATE usuarios SET whatsapp_msg=%s WHERE id=%s",(mensagem,user_id))
+            cur.execute("UPDATE usuarios SET whatsapp_msg=%s WHERE id=%s", (mensagem, user_id))
 
         conn.commit()
 
@@ -80,7 +81,7 @@ def config():
         SELECT usuario, whatsapp_msg
         FROM usuarios
         WHERE id=%s
-    """,(user_id,))
+    """, (user_id,))
 
     user = cur.fetchone()
 
@@ -88,9 +89,8 @@ def config():
     conn.close()
 
     return render_template("config.html",
-        usuario=user[0],
-        mensagem=user[1] or ""
-    )
+                           usuario=user[0],
+                           mensagem=user[1] or "")
 
 
 # ================= USUÁRIOS =================
@@ -125,7 +125,7 @@ def add_user():
     cur.execute("""
         INSERT INTO usuarios (usuario, senha, ativo)
         VALUES (%s,%s,TRUE)
-    """,(request.form["usuario"], request.form["senha"]))
+    """, (request.form["usuario"], request.form["senha"]))
 
     conn.commit()
     cur.close()
@@ -143,12 +143,12 @@ def edit_user(id):
     cur = conn.cursor()
 
     usuario = request.form["usuario"]
-    senha = request.form.get("senha","")
+    senha = request.form.get("senha", "")
 
     if senha.strip() == "":
-        cur.execute("UPDATE usuarios SET usuario=%s WHERE id=%s",(usuario,id))
+        cur.execute("UPDATE usuarios SET usuario=%s WHERE id=%s", (usuario, id))
     else:
-        cur.execute("UPDATE usuarios SET usuario=%s, senha=%s WHERE id=%s",(usuario,senha,id))
+        cur.execute("UPDATE usuarios SET usuario=%s, senha=%s WHERE id=%s", (usuario, senha, id))
 
     conn.commit()
     cur.close()
@@ -168,9 +168,9 @@ def desativar_user(id):
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("UPDATE usuarios SET ativo=FALSE WHERE id=%s",(id,))
-
+    cur.execute("UPDATE usuarios SET ativo=FALSE WHERE id=%s", (id,))
     conn.commit()
+
     cur.close()
     conn.close()
 
@@ -185,9 +185,9 @@ def ativar_user(id):
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("UPDATE usuarios SET ativo=TRUE WHERE id=%s",(id,))
-
+    cur.execute("UPDATE usuarios SET ativo=TRUE WHERE id=%s", (id,))
     conn.commit()
+
     cur.close()
     conn.close()
 
@@ -205,9 +205,9 @@ def del_user(id):
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("DELETE FROM usuarios WHERE id=%s",(id,))
-
+    cur.execute("DELETE FROM usuarios WHERE id=%s", (id,))
     conn.commit()
+
     cur.close()
     conn.close()
 
@@ -226,7 +226,7 @@ def add():
     cur.execute("""
         INSERT INTO clientes (nome, telefone, valor, vencimento_dia, usuario_id)
         VALUES (%s,%s,%s,%s,%s)
-    """,(
+    """, (
         request.form["nome"],
         request.form["telefone"],
         request.form["valor"],
@@ -251,12 +251,9 @@ def edit(id):
 
     cur.execute("""
         UPDATE clientes 
-        SET nome=%s,
-            telefone=%s,
-            valor=%s,
-            vencimento_dia=%s
+        SET nome=%s, telefone=%s, valor=%s, vencimento_dia=%s
         WHERE id=%s AND usuario_id=%s
-    """,(
+    """, (
         request.form["nome"],
         request.form["telefone"],
         request.form["valor"],
@@ -283,7 +280,7 @@ def delete(id):
     cur.execute("""
         DELETE FROM clientes 
         WHERE id=%s AND usuario_id=%s
-    """,(id,session["user_id"]))
+    """, (id, session["user_id"]))
 
     conn.commit()
     cur.close()
@@ -292,7 +289,7 @@ def delete(id):
     return redirect(url_for("index"))
 
 
-# ================= PAGAMENTO =================
+# ================= PAGAMENTO (CORRIGIDO) =================
 @app.route("/pago/<int:id>")
 def pago(id):
     if not session.get("logado"):
@@ -304,10 +301,11 @@ def pago(id):
     cur = conn.cursor()
 
     cur.execute("""
-        UPDATE cobrancas 
-        SET status='pago'
-        WHERE cliente_id=%s AND mes_ref=%s AND usuario_id=%s
-    """,(id,mes,session["user_id"]))
+        INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
+        VALUES (%s,%s,%s,'pago')
+        ON CONFLICT (cliente_id, mes_ref, usuario_id)
+        DO UPDATE SET status='pago'
+    """, (id, mes, session["user_id"]))
 
     conn.commit()
     cur.close()
@@ -327,10 +325,11 @@ def desfazer(id):
     cur = conn.cursor()
 
     cur.execute("""
-        UPDATE cobrancas 
-        SET status='em_dia'
-        WHERE cliente_id=%s AND mes_ref=%s AND usuario_id=%s
-    """,(id,mes,session["user_id"]))
+        INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
+        VALUES (%s,%s,%s,'em_dia')
+        ON CONFLICT (cliente_id, mes_ref, usuario_id)
+        DO UPDATE SET status='em_dia'
+    """, (id, mes, session["user_id"]))
 
     conn.commit()
     cur.close()
@@ -339,7 +338,7 @@ def desfazer(id):
     return redirect(url_for("index", mes=mes))
 
 
-# ================= INDEX (RESTAURADO CORRETO) =================
+# ================= INDEX =================
 @app.route("/")
 def index():
     if not session.get("logado"):
@@ -351,8 +350,8 @@ def index():
     cur = conn.cursor()
 
     mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-    busca = request.args.get("busca","").lower()
-    filtro = request.args.get("filtro","")
+    busca = request.args.get("busca", "").lower()
+    filtro = request.args.get("filtro", "")
 
     cur.execute("""
         SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
@@ -361,26 +360,26 @@ def index():
         LEFT JOIN cobrancas cb
         ON c.id=cb.cliente_id AND cb.mes_ref=%s AND cb.usuario_id=%s
         WHERE c.usuario_id=%s
-    """,(mes,user_id,user_id))
+    """, (mes, user_id, user_id))
 
     dados = cur.fetchall()
 
-    cur.execute("SELECT whatsapp_msg FROM usuarios WHERE id=%s",(user_id,))
+    cur.execute("SELECT whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
     msg = cur.fetchone()[0]
 
-    clientes=[]
+    clientes = []
 
-    total=0
-    recebido=0
-    atrasado=0
-    emdia=0
+    total = 0
+    recebido = 0
+    atrasado = 0
+    emdia = 0
 
     hoje = datetime.now()
     hoje_mes = hoje.strftime("%Y-%m")
     hoje_dia = hoje.day
 
     for c in dados:
-        id,nome,tel,valor,venc,status = c
+        id, nome, tel, valor, venc, status = c
 
         if busca and busca not in nome.lower():
             continue
@@ -408,14 +407,14 @@ def index():
         else:
             emdia += valor
 
-        clientes.append((id,nome,tel,valor,venc,status))
+        clientes.append((id, nome, tel, valor, venc, status))
 
     if filtro == "nome":
         clientes.sort(key=lambda x: x[1].lower())
 
     elif filtro == "status":
-        ordem={"atrasado":0,"em_dia":1,"pago":2}
-        clientes.sort(key=lambda x: ordem.get(x[5],1))
+        ordem = {"atrasado": 0, "em_dia": 1, "pago": 2}
+        clientes.sort(key=lambda x: ordem.get(x[5], 1))
 
     elif filtro == "valor":
         clientes.sort(key=lambda x: x[3], reverse=True)
@@ -424,17 +423,16 @@ def index():
     conn.close()
 
     return render_template("index.html",
-        clientes=clientes,
-        mes_ref=mes,
-        busca=busca,
-        filtro=filtro,
-        total_geral=total,
-        total_recebido=recebido,
-        total_atrasado=atrasado,
-        total_em_dia=emdia,
-        usuario=session["usuario"],
-        mensagem=msg
-    )
+                           clientes=clientes,
+                           mes_ref=mes,
+                           busca=busca,
+                           filtro=filtro,
+                           total_geral=total,
+                           total_recebido=recebido,
+                           total_atrasado=atrasado,
+                           total_em_dia=emdia,
+                           usuario=session["usuario"],
+                           mensagem=msg)
 
 
 if __name__ == "__main__":
