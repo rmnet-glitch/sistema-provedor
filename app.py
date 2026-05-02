@@ -66,6 +66,7 @@ def index():
 
     mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
 
+    # CLIENTES
     cur.execute("""
         SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
                COALESCE(cb.status,'em_dia')
@@ -76,6 +77,15 @@ def index():
     """,(mes,user_id,user_id))
 
     dados = cur.fetchall()
+
+    # GASTOS
+    cur.execute("""
+        SELECT COALESCE(SUM(valor),0)
+        FROM gastos
+        WHERE usuario_id=%s AND mes_ref=%s
+    """,(user_id,mes))
+
+    total_gastos = float(cur.fetchone()[0])
 
     total=0
     recebido=0
@@ -92,6 +102,8 @@ def index():
 
         clientes.append((id,nome,tel,valor,venc,status))
 
+    lucro = recebido - total_gastos
+
     cur.close()
     conn.close()
 
@@ -100,6 +112,8 @@ def index():
         mes_ref=mes,
         total_geral=total,
         total_recebido=recebido,
+        total_gastos=total_gastos,
+        lucro=lucro,
         usuario=session["usuario"]
     )
 
@@ -185,7 +199,7 @@ def gastos():
 
     lista = cur.fetchall()
 
-    total = sum([float(g[3]) for g in lista])
+    total = sum([float(g[3]) for g in lista]) if lista else 0
 
     cur.close()
     conn.close()
@@ -202,13 +216,17 @@ def add_gasto():
     conn = conectar()
     cur = conn.cursor()
 
+    valor = request.form.get("valor")
+    if not valor:
+        return redirect(url_for("gastos"))
+
     cur.execute("""
         INSERT INTO gastos (descricao, material, valor, mes_ref, usuario_id)
         VALUES (%s,%s,%s,%s,%s)
     """,(
         request.form.get("descricao"),
         request.form.get("material"),
-        request.form.get("valor"),
+        valor,
         request.form.get("mes"),
         session["user_id"]
     ))
