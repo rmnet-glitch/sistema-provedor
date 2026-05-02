@@ -5,200 +5,115 @@
 <title>Sistema</title>
 
 <style>
-body{
-font-family:Arial;
-background:#f4f6f8;
-padding:10px;
-}
+body{font-family:Arial;background:#f4f6f8;padding:10px;}
 
-.header{
-display:flex;
-justify-content:space-between;
-align-items:center;
+.header{display:flex;justify-content:space-between;margin-bottom:10px;}
+
+.dashboard{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:8px;
 margin-bottom:10px;
 }
 
-.topbar{
-display:flex;
-gap:5px;
-flex-wrap:wrap;
-}
-
-input,button{
-padding:6px;
-font-size:13px;
-}
-
-.stats{
+.card-stat{
 background:#fff;
 padding:10px;
-border-radius:8px;
-margin-bottom:10px;
-font-size:12px;
-line-height:1.5;
+border-radius:10px;
 }
+
+.lucro{
+grid-column:span 2;
+text-align:center;
+font-weight:bold;
+}
+
+.lucro.positivo{color:green;}
+.lucro.negativo{color:red;}
 
 .card{
 background:#fff;
-padding:7px;
+padding:8px;
 margin:5px 0;
 border-radius:8px;
-font-size:12px;
-}
-
-.atrasado{border-left:4px solid red;}
-.em_dia{border-left:4px solid blue;}
-.pago{border-left:4px solid green;}
-
-.actions{
-display:flex;
-gap:4px;
-margin-top:4px;
 }
 
 .btn{
-flex:1;
-padding:4px;
-font-size:10px;
+padding:5px;
 border:none;
-border-radius:4px;
+border-radius:5px;
 color:#fff;
-text-align:center;
 }
 
-.btn-success{background:#28a745}
-.btn-danger{background:#dc3545}
-.btn-info{background:#17a2b8}
-.btn-dark{background:#343a40}
-.btn-secondary{background:#6c757d}
+.info{background:#17a2b8}
+.dark{background:#343a40}
+.danger{background:#dc3545}
+.green{background:#28a745}
 
-.whatsapp{
-margin-top:4px;
-display:block;
-text-decoration:none;
-}
-
-.hidden{display:none;}
 </style>
 </head>
 
 <body>
 
 <div class="header">
+<h3>{{usuario}}</h3>
 
-<h3>👤 {{usuario}}</h3>
-
-<div style="display:flex; gap:5px; flex-wrap:wrap;">
-
-{% if session["is_admin"] %}
-<a href="/usuarios"><button style="background:#343a40;color:#fff">👥 Usuários</button></a>
-{% endif %}
-
+<div>
 <a href="/gastos?mes={{mes_ref}}">
-<button style="background:#28a745;color:#fff">💸 Gastos</button>
+<button class="btn green">💸 Gastos</button>
 </a>
 
-<a href="/config"><button style="background:#6c757d;color:#fff">⚙️</button></a>
-
-<a href="/logout"><button style="background:#dc3545;color:#fff">🚪 Sair</button></a>
-
+<a href="/logout">
+<button class="btn danger">Sair</button>
+</a>
 </div>
 </div>
 
-<form class="topbar">
+<form>
 <input type="month" name="mes" value="{{mes_ref}}">
-<input type="text" name="busca" placeholder="🔎 Buscar cliente..." value="{{busca}}">
-
-<select name="filtro">
-<option value="">Ordenar</option>
-<option value="nome" {% if filtro=='nome' %}selected{% endif %}>Nome</option>
-<option value="status" {% if filtro=='status' %}selected{% endif %}>Status</option>
-<option value="valor" {% if filtro=='valor' %}selected{% endif %}>Valor</option>
-</select>
-
 <button>OK</button>
 </form>
 
-<div class="stats">
-💰 Total: {{total_geral}}<br>
-💵 Recebido: {{total_recebido}}<br>
-🔴 Em Atraso: {{total_atrasado}}<br>
-🔵 Em Dia: {{total_em_dia}}<br>
+<div class="dashboard">
+
+<div class="card-stat">
+Total<br>R$ {{total_geral}}
 </div>
 
-<button onclick="toggle('cad')">➕ Cliente</button>
+<div class="card-stat">
+Recebido<br>R$ {{total_recebido}}
+</div>
 
-<div id="cad" class="hidden">
-<form action="/add" method="post">
-<input name="nome" placeholder="Nome" required>
-<input name="telefone" placeholder="Telefone" required>
-<input name="valor" placeholder="Valor" required>
-<input name="vencimento_dia" placeholder="Dia vencimento" required>
-<button>Salvar</button>
-</form>
+<div class="card-stat">
+Gastos<br>R$ {{total_gastos}}
+</div>
+
+<div class="card-stat lucro {% if lucro >=0 %}positivo{% else %}negativo{% endif %}">
+Lucro: R$ {{lucro}}
+</div>
+
 </div>
 
 <hr>
 
 {% for c in clientes %}
+<div class="card">
 
-<div class="card {{c[5]}}">
+<b>{{c[1]}}</b><br>
+R$ {{c[3]}} - {{c[5]}}
 
-<b {% if c[5]=='atrasado' %}style="color:red"{% endif %}>
-👤 {{c[1]}}
-</b><br>
-
-📞 {{c[2]}}<br>
-💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
-
-<a class="whatsapp"
-target="_blank"
-href="https://wa.me/55{{c[2]}}?text={{ mensagem | urlencode }}">
-<button class="btn btn-secondary">📲 WhatsApp</button>
-</a>
-
-<div class="actions">
+<br><br>
 
 <a href="/pago/{{c[0]}}?mes={{mes_ref}}">
-<button class="btn btn-info">✔ Pago</button>
+<button class="btn info">Pago</button>
 </a>
-
-<a href="/desfazer/{{c[0]}}?mes={{mes_ref}}">
-<button class="btn btn-dark">↩ Voltar</button>
-</a>
-
-</div>
-
-<div class="actions">
-
-<button class="btn btn-secondary" onclick="toggle('e{{c[0]}}')">✏ Editar</button>
 
 <a href="/delete/{{c[0]}}">
-<button class="btn btn-danger">🗑 Excluir</button>
+<button class="btn danger">Excluir</button>
 </a>
 
 </div>
-
-<div id="e{{c[0]}}" class="hidden">
-<form action="/edit/{{c[0]}}" method="post">
-<input name="nome" value="{{c[1]}}" required>
-<input name="telefone" value="{{c[2]}}" required>
-<input name="valor" value="{{c[3]}}" required>
-<input name="vencimento_dia" value="{{c[4]}}" required>
-<button>Salvar</button>
-</form>
-</div>
-
-</div>
-
 {% endfor %}
-
-<script>
-function toggle(id){
-let e=document.getElementById(id);
-e.style.display = e.style.display==="block"?"none":"block";
-}
-</script>
 
 </body>
 </html>
