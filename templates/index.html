@@ -1,119 +1,137 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema</title>
+@app.route("/")
+def index():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
 
-<style>
-body{font-family:Arial;background:#f4f6f8;padding:10px;}
+    user_id = session.get("user_id")
+    usuario = session.get("usuario", "")
 
-.header{display:flex;justify-content:space-between;margin-bottom:10px;}
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+    busca = request.args.get("busca", "").lower()
+    filtro = request.args.get("filtro", "")
 
-.dashboard{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:8px;
-margin-bottom:10px;
-}
+    conn = conectar()
+    cur = conn.cursor()
 
-.card-stat{
-background:#fff;
-padding:10px;
-border-radius:10px;
-}
+    # ================= CLIENTES =================
+    try:
+        cur.execute("""
+            SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
+                   COALESCE(cb.status,'em_dia')
+            FROM clientes c
+            LEFT JOIN cobrancas cb
+            ON c.id=cb.cliente_id AND cb.mes_ref=%s AND cb.usuario_id=%s
+            WHERE c.usuario_id=%s
+        """,(mes,user_id,user_id))
 
-.lucro{
-grid-column:span 2;
-text-align:center;
-font-weight:bold;
-}
+        dados = cur.fetchall()
+    except:
+        dados = []
 
-.lucro.positivo{color:green;}
-.lucro.negativo{color:red;}
+    # ================= GASTOS =================
+    try:
+        cur.execute("""
+            SELECT COALESCE(SUM(valor),0)
+            FROM gastos
+            WHERE usuario_id=%s AND mes_ref=%s
+        """,(user_id,mes))
 
-.card{
-background:#fff;
-padding:8px;
-margin:5px 0;
-border-radius:8px;
-}
+        total_gastos = float(cur.fetchone()[0])
+    except:
+        total_gastos = 0
 
-.btn{
-padding:5px;
-border:none;
-border-radius:5px;
-color:#fff;
-}
+    # ================= WHATSAPP MSG =================
+    try:
+        cur.execute("""
+            SELECT whatsapp_msg 
+            FROM usuarios 
+            WHERE id=%s
+        """,(user_id,))
 
-.info{background:#17a2b8}
-.dark{background:#343a40}
-.danger{background:#dc3545}
-.green{background:#28a745}
+        res = cur.fetchone()
+        mensagem = res[0] if res and res[0] else ""
+    except:
+        mensagem = ""
 
-</style>
-</head>
+    clientes = []
 
-<body>
+    total = 0
+    recebido = 0
+    atrasado = 0
+    emdia = 0
 
-<div class="header">
-<h3>{{usuario}}</h3>
+    hoje = datetime.now()
+    hoje_mes = hoje.strftime("%Y-%m")
+    hoje_dia = hoje.day
 
-<div>
-<a href="/gastos?mes={{mes_ref}}">
-<button class="btn green">💸 Gastos</button>
-</a>
+    # ================= PROCESSAMENTO =================
+    for c in dados:
+        try:
+            id,nome,tel,valor,venc,status = c
+            valor = float(valor or 0)
+            venc = int(venc or 0)
 
-<a href="/logout">
-<button class="btn danger">Sair</button>
-</a>
-</div>
-</div>
+            if busca and busca not in (nome or "").lower():
+                continue
 
-<form>
-<input type="month" name="mes" value="{{mes_ref}}">
-<button>OK</button>
-</form>
+            # STATUS DINÂMICO
+            if mes < hoje_mes:
+                if status != "pago":
+                    status = "atrasado"
 
-<div class="dashboard">
+            elif mes == hoje_mes:
+                if status != "pago":
+                    status = "atrasado" if hoje_dia > venc else "em_dia"
 
-<div class="card-stat">
-Total<br>R$ {{total_geral}}
-</div>
+            else:
+                if status != "pago":
+                    status = "em_dia"
 
-<div class="card-stat">
-Recebido<br>R$ {{total_recebido}}
-</div>
+            total += valor
 
-<div class="card-stat">
-Gastos<br>R$ {{total_gastos}}
-</div>
+            if status == "pago":
+                recebido += valor
+            elif status == "atrasado":
+                atrasado += valor
+            else:
+                emdia += valor
 
-<div class="card-stat lucro {% if lucro >=0 %}positivo{% else %}negativo{% endif %}">
-Lucro: R$ {{lucro}}
-</div>
+            clientes.append((id,nome,tel,valor,venc,status))
 
-</div>
+        except:
+            continue
 
-<hr>
+    # ================= LUCRO =================
+    lucro = recebido - total_gastos
 
-{% for c in clientes %}
-<div class="card">
+    # ================= FILTRO =================
+    try:
+        if filtro == "nome":
+            clientes.sort(key=lambda x: (x[1] or "").lower())
 
-<b>{{c[1]}}</b><br>
-R$ {{c[3]}} - {{c[5]}}
+        elif filtro == "status":
+            ordem = {"atrasado":0,"em_dia":1,"pago":2}
+            clientes.sort(key=lambda x: ordem.get(x[5],1))
 
-<br><br>
+        elif filtro == "valor":
+            clientes.sort(key=lambda x: x[3], reverse=True)
+    except:
+        pass
 
-<a href="/pago/{{c[0]}}?mes={{mes_ref}}">
-<button class="btn info">Pago</button>
-</a>
+    cur.close()
+    conn.close()
 
-<a href="/delete/{{c[0]}}">
-<button class="btn danger">Excluir</button>
-</a>
-
-</div>
-{% endfor %}
-
-</body>
-</html>
+    return render_template("index.html",
+        clientes=clientes,
+        mes_ref=mes,
+        busca=busca,
+        filtro=filtro,
+        total_geral=total,
+        total_recebido=recebido,
+        total_atrasado=atrasado,
+        total_em_dia=emdia,
+        total_gastos=total_gastos,
+        lucro=lucro,
+        usuario=usuario,
+        mensagem=mensagem
+    )
