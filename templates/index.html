@@ -10,14 +10,8 @@ body{font-family:Arial;background:#f4f6f8;padding:10px;}
 .topbar{display:flex;gap:5px;flex-wrap:wrap;}
 input,button,select{padding:6px;font-size:13px;}
 
-.stats{
-background:#fff;padding:10px;border-radius:8px;margin-bottom:10px;
-font-size:12px;line-height:1.5;
-}
-
-.card{
-background:#fff;padding:7px;margin:5px 0;border-radius:8px;font-size:12px;
-}
+.stats{background:#fff;padding:10px;border-radius:8px;margin-bottom:10px;font-size:12px;}
+.card{background:#fff;padding:7px;margin:5px 0;border-radius:8px;font-size:12px;}
 
 .atrasado{border-left:4px solid red;}
 .em_dia{border-left:4px solid blue;}
@@ -25,143 +19,60 @@ background:#fff;padding:7px;margin:5px 0;border-radius:8px;font-size:12px;
 
 .actions{display:flex;gap:4px;margin-top:4px;}
 
-.btn{
-flex:1;padding:4px;font-size:10px;border:none;border-radius:4px;
-color:#fff;text-align:center;
-}
-
+.btn{flex:1;padding:4px;font-size:10px;border:none;border-radius:4px;color:#fff;}
 .btn-success{background:#28a745}
 .btn-danger{background:#dc3545}
 .btn-info{background:#17a2b8}
 .btn-dark{background:#343a40}
 .btn-secondary{background:#6c757d}
 
-.whatsapp{margin-top:4px;display:block;text-decoration:none;}
 .hidden{display:none;}
-
-.alertas{
-background:#fff3cd;padding:10px;border-radius:8px;margin-bottom:10px;font-size:12px;
-}
 </style>
 </head>
 
 <body>
 
 <div class="header">
-
 <h3>👤 {{usuario}}</h3>
-
-<div style="display:flex; gap:5px; flex-wrap:wrap;">
-
-<!-- ✅ BOTÃO USUÁRIOS RESTAURADO -->
-<a href="/usuarios"><button style="background:#007bff;color:#fff">👥 Usuários</button></a>
-
-<a href="/gastos"><button style="background:#ffc107">💸 Gastos</button></a>
-<a href="/config"><button style="background:#6c757d;color:#fff">⚙️</button></a>
-<a href="/logout"><button style="background:#dc3545;color:#fff">🚪 Sair</button></a>
-
-</div>
 </div>
 
 <form class="topbar">
 <input type="month" name="mes" value="{{mes_ref}}">
-<input type="text" name="busca" placeholder="🔎 Buscar cliente..." value="{{busca}}">
-
-<select name="filtro">
-<option value="">Ordenar</option>
-<option value="nome" {% if filtro=='nome' %}selected{% endif %}>Nome</option>
-<option value="status" {% if filtro=='status' %}selected{% endif %}>Status</option>
-<option value="valor" {% if filtro=='valor' %}selected{% endif %}>Valor</option>
-</select>
-
+<input type="text" name="busca" value="{{busca}}" placeholder="Buscar">
 <button>OK</button>
 </form>
 
 <div class="stats">
 💰 Total: {{total_geral}}<br>
 💵 Recebido: {{total_recebido}}<br>
-🔴 Em Atraso: {{total_atrasado}}<br>
-🔵 Em Dia: {{total_em_dia}}<br>
-
-<hr>
-
 💸 Gastos: {{total_gastos}}<br>
-
-<b style="color:green">
-💰 Lucro: {{lucro}}
-</b>
+<b>Lucro: {{lucro}}</b>
 </div>
-
-{% if alertas %}
-<div class="alertas">
-<b>🔔 Alertas:</b><br>
-{% for a in alertas %}
-{{a}}<br>
-{% endfor %}
-</div>
-{% endif %}
-
-<button onclick="toggle('cad')">➕ Cliente</button>
-
-<div id="cad" class="hidden">
-<form action="/add" method="post">
-<input name="nome" placeholder="Nome" required>
-<input name="telefone" placeholder="Telefone" required>
-<input name="valor" placeholder="Valor" required>
-<input name="vencimento_dia" placeholder="Dia vencimento" required>
-<button>Salvar</button>
-</form>
-</div>
-
-<hr>
 
 {% for c in clientes %}
 
 <div class="card {{c[5]}}">
 
-<b {% if c[5]=='atrasado' %}style="color:red"{% endif %}>
-👤 {{c[1]}}
-</b><br>
-
+<b>{{c[1]}}</b><br>
 📞 {{c[2]}}<br>
-💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
+💰 {{c[3]}} | 📅 {{c[4]}} | {{c[5]}}
 
-<!-- ✅ WHATSAPP DINÂMICO -->
-<a class="whatsapp"
-target="_blank"
-href="https://wa.me/55{{c[2]}}?text={{ mensagem | urlencode }}">
-
-<button class="btn btn-secondary">📲 WhatsApp</button>
+<a target="_blank"
+href="https://wa.me/55{{c[2]}}?text={{mensagem|urlencode}}">
+<button class="btn btn-secondary">WhatsApp</button>
 </a>
 
 <div class="actions">
-
-<a href="/pago/{{c[0]}}?mes={{mes_ref}}">
-<button class="btn btn-success">✔ Pago</button>
-</a>
-
-<a href="/desfazer/{{c[0]}}?mes={{mes_ref}}">
-<button class="btn btn-dark">↩ Voltar</button>
-</a>
-
+<button class="btn btn-info" onclick="toggle('e{{c[0]}}')">Editar</button>
 </div>
 
-<div class="actions">
-
-<button class="btn btn-info" onclick="toggle('e{{c[0]}}')">✏ Editar</button>
-
-<a href="/delete/{{c[0]}}">
-<button class="btn btn-danger">🗑 Excluir</button>
-</a>
-
-</div>
-
+<!-- EDIT CORRIGIDO -->
 <div id="e{{c[0]}}" class="hidden">
-<form action="/edit/{{c[0]}}" method="post">
-<input name="nome" value="{{c[1]}}" required>
-<input name="telefone" value="{{c[2]}}" required>
-<input name="valor" value="{{c[3]}}" required>
-<input name="vencimento_dia" value="{{c[4]}}" required>
+<form action="/edit/{{c[0]}}?mes={{mes_ref}}" method="post">
+<input name="nome" value="{{c[1]}}">
+<input name="telefone" value="{{c[2]}}">
+<input name="valor" value="{{c[3]}}">
+<input name="vencimento_dia" value="{{c[4]}}">
 <button>Salvar</button>
 </form>
 </div>
