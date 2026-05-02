@@ -58,9 +58,9 @@ def logout():
     return redirect(url_for("login"))
 
 
-# ================= INDEX =================
-@app.route("/")
-def index():
+# ================= CONFIG =================
+@app.route("/config", methods=["GET", "POST"])
+def config():
     if not session.get("logado"):
         return redirect(url_for("login"))
 
@@ -68,44 +68,130 @@ def index():
     cur = conn.cursor()
 
     user_id = session["user_id"]
-    usuario = session["usuario"]
 
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+    if request.method == "POST":
+        senha = request.form.get("senha")
+        mensagem = request.form.get("mensagem")
+
+        if senha:
+            cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
+
+        if mensagem is not None:
+            cur.execute("UPDATE usuarios SET whatsapp_msg=%s WHERE id=%s", (mensagem, user_id))
+
+        conn.commit()
 
     cur.execute("""
-        SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
-               COALESCE(cb.status,'em_dia')
-        FROM clientes c
-        LEFT JOIN cobrancas cb
-        ON c.id=cb.cliente_id AND cb.mes_ref=%s AND cb.usuario_id=%s
-        WHERE c.usuario_id=%s
-    """, (mes, user_id, user_id))
+        SELECT usuario, whatsapp_msg
+        FROM usuarios
+        WHERE id=%s
+    """, (user_id,))
 
-    dados = cur.fetchall()
-
-    clientes = []
-    total = 0
-    recebido = 0
-
-    for c in dados:
-        id, nome, tel, valor, venc, status = c
-        valor = float(valor or 0)
-
-        total += valor
-        if status == "pago":
-            recebido += valor
-
-        clientes.append((id, nome, tel, valor, venc, status))
+    user = cur.fetchone()
 
     cur.close()
     conn.close()
 
-    return render_template("index.html",
-                           clientes=clientes,
-                           mes_ref=mes,
-                           total_geral=total,
-                           total_recebido=recebido,
-                           usuario=usuario)
+    return render_template("config.html",
+        usuario=user[0],
+        mensagem=user[1] or ""
+    )
+
+
+# ================= USUÁRIOS =================
+@app.route("/usuarios")
+def usuarios():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin"):
+        return redirect(url_for("index"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("SELECT id, usuario, ativo FROM usuarios")
+    lista = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template("usuarios.html", usuarios=lista)
+
+
+# ================= CLIENTES =================
+@app.route("/add", methods=["POST"])
+def add():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO clientes (nome, telefone, valor, vencimento_dia, usuario_id)
+        VALUES (%s,%s,%s,%s,%s)
+    """, (
+        request.form["nome"],
+        request.form["telefone"],
+        request.form["valor"],
+        request.form["vencimento_dia"],
+        session["user_id"]
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
+
+
+@app.route("/edit/<int:id>", methods=["POST"])
+def edit(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE clientes 
+        SET nome=%s, telefone=%s, valor=%s, vencimento_dia=%s
+        WHERE id=%s AND usuario_id=%s
+    """, (
+        request.form["nome"],
+        request.form["telefone"],
+        request.form["valor"],
+        request.form["vencimento_dia"],
+        id,
+        session["user_id"]
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
+
+
+@app.route("/delete/<int:id>")
+def delete(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        DELETE FROM clientes 
+        WHERE id=%s AND usuario_id=%s
+    """, (id, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
 
 
 # ================= PAGAMENTO =================
@@ -165,7 +251,6 @@ def gastos():
     user_id = session["user_id"]
     mes = request.args.get("mes") or request.form.get("mes") or datetime.now().strftime("%Y-%m")
 
-    # SALVAR
     if request.method == "POST":
         descricao = request.form.get("descricao")
         material = request.form.get("material")
@@ -181,7 +266,6 @@ def gastos():
 
         return redirect(url_for("gastos", mes=mes))
 
-    # LISTAR
     cur.execute("""
         SELECT id, descricao, material, valor
         FROM gastos
@@ -191,7 +275,6 @@ def gastos():
 
     lista = cur.fetchall()
 
-    # TOTAL
     cur.execute("""
         SELECT COALESCE(SUM(valor),0)
         FROM gastos
@@ -204,17 +287,15 @@ def gastos():
     conn.close()
 
     return render_template("gastos.html",
-                           gastos=lista,
-                           total=total,
-                           mes_ref=mes)
+        gastos=lista,
+        total=total,
+        mes_ref=mes
+    )
 
 
 # ================= DELETE GASTO =================
 @app.route("/del_gasto/<int:id>")
 def del_gasto(id):
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
     mes = request.args.get("mes")
 
     conn = conectar()
