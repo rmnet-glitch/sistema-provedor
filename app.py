@@ -9,7 +9,6 @@ app.secret_key = "segredo"
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 
-# ================= CONEXÃO =================
 def conectar():
     return psycopg2.connect(DATABASE_URL)
 
@@ -68,6 +67,7 @@ def index():
     busca = request.args.get("busca", "").lower()
     filtro = request.args.get("filtro", "")
 
+    # CLIENTES
     cur.execute("""
         SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
                COALESCE(cb.status,'em_dia')
@@ -86,6 +86,8 @@ def index():
     atrasado = 0
     emdia = 0
 
+    alertas = []
+
     hoje = datetime.now()
     hoje_mes = hoje.strftime("%Y-%m")
     hoje_dia = hoje.day
@@ -96,11 +98,10 @@ def index():
         valor = float(valor or 0)
         venc = int(venc or 1)
 
-        # BUSCA
         if busca and busca not in (nome or "").lower():
             continue
 
-        # ================= STATUS DINÂMICO =================
+        # STATUS DINÂMICO
         if status != "pago":
 
             if mes < hoje_mes:
@@ -109,13 +110,18 @@ def index():
             elif mes == hoje_mes:
                 if hoje_dia > venc:
                     status = "atrasado"
+                elif hoje_dia == venc:
+                    alertas.append(f"⚠️ {nome} vence hoje")
+                    status = "em_dia"
                 else:
                     status = "em_dia"
 
             else:
                 status = "em_dia"
 
-        # ================= SOMATÓRIOS =================
+        if status == "atrasado":
+            alertas.append(f"🔴 {nome} atrasado")
+
         total += valor
 
         if status == "pago":
@@ -127,18 +133,28 @@ def index():
 
         clientes.append((id, nome, tel, valor, venc, status))
 
-    # ================= ORDENAÇÃO =================
-    # padrão: por status
+    # GASTOS
+    try:
+        cur.execute("""
+            SELECT COALESCE(SUM(valor),0)
+            FROM gastos
+            WHERE usuario_id=%s AND mes_ref=%s
+        """, (user_id, mes))
+
+        total_gastos = float(cur.fetchone()[0])
+    except:
+        total_gastos = 0
+
+    lucro = recebido - total_gastos
+
+    # ORDENAÇÃO
     ordem = {"atrasado": 0, "em_dia": 1, "pago": 2}
 
     if filtro == "nome":
         clientes.sort(key=lambda x: (x[1] or "").lower())
-
     elif filtro == "valor":
         clientes.sort(key=lambda x: x[3], reverse=True)
-
     else:
-        # padrão ou filtro=status
         clientes.sort(key=lambda x: ordem.get(x[5], 1))
 
     cur.close()
@@ -153,6 +169,9 @@ def index():
         total_recebido=recebido,
         total_atrasado=atrasado,
         total_em_dia=emdia,
+        total_gastos=total_gastos,
+        lucro=lucro,
+        alertas=alertas,
         usuario=session["usuario"]
     )
 
@@ -261,73 +280,14 @@ def del_gasto(id):
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("""
-        DELETE FROM gastos
-        WHERE id=%s AND usuario_id=%s
-    """, (id, session["user_id"]))
+    cur.execute("DELETE FROM gastos WHERE id=%s AND usuario_id=%s",
+                (id, session["user_id"]))
 
     conn.commit()
-
     cur.close()
     conn.close()
 
     return redirect(url_for("gastos", mes=mes))
-
-
-# ================= CONFIG =================
-@app.route("/config", methods=["GET", "POST"])
-def config():
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    user_id = session["user_id"]
-
-    if request.method == "POST":
-        senha = request.form.get("senha")
-        mensagem = request.form.get("mensagem")
-
-        if senha:
-            cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
-
-        if mensagem is not None:
-            cur.execute("UPDATE usuarios SET whatsapp_msg=%s WHERE id=%s", (mensagem, user_id))
-
-        conn.commit()
-
-    cur.execute("SELECT usuario, whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
-    user = cur.fetchone()
-
-    cur.close()
-    conn.close()
-
-    return render_template("config.html",
-        usuario=user[0],
-        mensagem=user[1] or ""
-    )
-
-
-# ================= USUÁRIOS =================
-@app.route("/usuarios")
-def usuarios():
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
-    if not session.get("is_admin"):
-        return redirect(url_for("index"))
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("SELECT id, usuario, ativo FROM usuarios")
-    lista = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return render_template("usuarios.html", usuarios=lista)
 
 
 # ================= START =================
