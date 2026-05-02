@@ -1,4 +1,3 @@
-
 import os
 from flask import Flask, render_template, request, redirect, session, url_for
 import psycopg2
@@ -74,6 +73,45 @@ def usuarios():
     conn.close()
 
     return render_template("usuarios.html", usuarios=lista)
+
+
+# ================= CONFIG =================
+@app.route("/config", methods=["GET", "POST"])
+def config():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    user_id = session["user_id"]
+
+    if request.method == "POST":
+        senha = request.form.get("senha")
+        mensagem = request.form.get("mensagem")
+
+        if senha:
+            cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
+
+        try:
+            cur.execute("UPDATE usuarios SET whatsapp_msg=%s WHERE id=%s", (mensagem, user_id))
+        except:
+            pass
+
+        conn.commit()
+
+    cur.execute("SELECT usuario, whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
+    user = cur.fetchone()
+
+    usuario = user[0]
+    mensagem = user[1] if user and user[1] else ""
+
+    cur.close()
+    conn.close()
+
+    return render_template("config.html",
+                           usuario=usuario,
+                           mensagem=mensagem)
 
 
 # ================= INDEX =================
@@ -187,7 +225,7 @@ def index():
                            mensagem=mensagem)
 
 
-# ================= EDIT CLIENTE (FIX DEFINITIVO) =================
+# ================= EDIT CLIENTE =================
 @app.route("/edit/<int:id>", methods=["POST"])
 def edit(id):
     if not session.get("logado"):
@@ -219,29 +257,6 @@ def edit(id):
     conn.close()
 
     return redirect(url_for("index", mes=mes))
-
-
-# ================= DELETE GASTO =================
-@app.route("/del_gasto/<int:id>")
-def del_gasto(id):
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        DELETE FROM gastos
-        WHERE id=%s AND usuario_id=%s
-    """, (id, session["user_id"]))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("gastos", mes=mes))
 
 
 # ================= GASTOS =================
@@ -295,6 +310,96 @@ def gastos():
                            gastos=lista,
                            total=total,
                            mes_ref=mes)
+
+
+# ================= DELETE GASTO =================
+@app.route("/del_gasto/<int:id>")
+def del_gasto(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        DELETE FROM gastos
+        WHERE id=%s AND usuario_id=%s
+    """, (id, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("gastos", mes=mes))
+
+
+# ================= DELETE CLIENTE =================
+@app.route("/delete/<int:id>")
+def delete(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        DELETE FROM clientes
+        WHERE id=%s AND usuario_id=%s
+    """, (id, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index", mes=mes))
+
+
+# ================= PAGAMENTO =================
+@app.route("/pago/<int:id>")
+def pago(id):
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
+        VALUES (%s,%s,%s,'pago')
+        ON CONFLICT (cliente_id, mes_ref, usuario_id)
+        DO UPDATE SET status='pago'
+    """, (id, mes, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index", mes=mes))
+
+
+# ================= DESFAZER =================
+@app.route("/desfazer/<int:id>")
+def desfazer(id):
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
+        VALUES (%s,%s,%s,'em_dia')
+        ON CONFLICT (cliente_id, mes_ref, usuario_id)
+        DO UPDATE SET status='em_dia'
+    """, (id, mes, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index", mes=mes))
 
 
 # ================= START =================
