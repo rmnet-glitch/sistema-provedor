@@ -2,11 +2,27 @@ import os
 from flask import Flask, render_template, request, redirect, session, url_for
 import psycopg2
 from datetime import datetime
+import requests
+import time
 
 app = Flask(__name__)
 app.secret_key = "segredo"
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+
+# ================= WHATSAPP =================
+ZAPI_URL = "https://api.z-api.io/instances/SUA_INSTANCIA/token/SEU_TOKEN/send-text"
+
+def enviar_whatsapp(numero, mensagem):
+    try:
+        payload = {
+            "phone": f"55{numero}",
+            "message": mensagem
+        }
+        requests.post(ZAPI_URL, json=payload)
+        time.sleep(2)
+    except:
+        pass
 
 
 # ================= CONEXÃO =================
@@ -66,11 +82,7 @@ def usuarios():
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("""
-        SELECT id, usuario, is_admin, ativo
-        FROM usuarios
-        ORDER BY id DESC
-    """)
+    cur.execute("SELECT id, usuario, is_admin, ativo FROM usuarios ORDER BY id DESC")
     lista = cur.fetchall()
 
     cur.close()
@@ -79,8 +91,7 @@ def usuarios():
     return render_template("usuarios.html", usuarios=lista)
 
 
-# ================= USUÁRIOS - CRUD =================
-
+# ================= USUÁRIOS CRUD =================
 @app.route("/criar_usuario", methods=["POST"])
 def criar_usuario():
     if not session.get("is_admin"):
@@ -113,16 +124,28 @@ def editar_usuario(id):
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("""
-        UPDATE usuarios
-        SET usuario=%s,
-            is_admin=%s
-        WHERE id=%s
-    """, (
-        request.form.get("usuario"),
-        request.form.get("is_admin") == "true",
-        id
-    ))
+    usuario = request.form.get("usuario")
+    senha = request.form.get("senha")
+    is_admin = request.form.get("is_admin") == "true"
+
+    # proteção: não remover admin de si mesmo
+    if id == session["user_id"] and not is_admin:
+        cur.close()
+        conn.close()
+        return "Você não pode remover seu próprio admin", 400
+
+    if senha:
+        cur.execute("""
+            UPDATE usuarios
+            SET usuario=%s, senha=%s, is_admin=%s
+            WHERE id=%s
+        """, (usuario, senha, is_admin, id))
+    else:
+        cur.execute("""
+            UPDATE usuarios
+            SET usuario=%s, is_admin=%s
+            WHERE id=%s
+        """, (usuario, is_admin, id))
 
     conn.commit()
     cur.close()
@@ -130,29 +153,6 @@ def editar_usuario(id):
 
     return redirect("/usuarios")
 
-
-@app.route("/reset_senha/<int:id>")
-def reset_senha(id):
-    if not session.get("is_admin"):
-        return "Acesso negado", 403
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        UPDATE usuarios
-        SET senha=%s
-        WHERE id=%s
-    """, ("123456", id))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect("/usuarios")
-
-
-# ================= USUÁRIOS - AÇÕES =================
 
 @app.route("/ativar_usuario/<int:id>")
 def ativar_usuario(id):
@@ -163,8 +163,8 @@ def ativar_usuario(id):
     cur = conn.cursor()
 
     cur.execute("UPDATE usuarios SET ativo=true WHERE id=%s", (id,))
-
     conn.commit()
+
     cur.close()
     conn.close()
 
@@ -188,8 +188,8 @@ def desativar_usuario(id):
         return "Não pode desativar o admin principal", 400
 
     cur.execute("UPDATE usuarios SET ativo=false WHERE id=%s", (id,))
-
     conn.commit()
+
     cur.close()
     conn.close()
 
@@ -216,8 +216,8 @@ def delete_usuario(id):
         return "Não pode excluir o admin principal", 400
 
     cur.execute("DELETE FROM usuarios WHERE id=%s", (id,))
-
     conn.commit()
+
     cur.close()
     conn.close()
 
@@ -258,7 +258,9 @@ def config():
     cur.close()
     conn.close()
 
-    return render_template("config.html", usuario=usuario, mensagem=mensagem)
+    return render_template("config.html",
+                           usuario=usuario,
+                           mensagem=mensagem)
 
 
 # ================= START =================
