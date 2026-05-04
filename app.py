@@ -119,6 +119,7 @@ def desativar_usuario(id):
 
     return redirect(url_for("usuarios"))
 
+
 # ================= CONFIG =================
 @app.route("/config", methods=["GET", "POST"])
 def config():
@@ -131,74 +132,54 @@ def config():
     user_id = session["user_id"]
 
     if request.method == "POST":
-    senha = request.form.get("senha")
-    mensagem = request.form.get("mensagem")
+        senha = request.form.get("senha")
+        mensagem = request.form.get("mensagem")
 
-    usar_whatsapp = True if request.form.get("usar_whatsapp") else False
-    instance = request.form.get("zapi_instance")
-    token = request.form.get("zapi_token")
-
-    if senha:
-        cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
-
-    cur.execute("""
-        UPDATE usuarios 
-        SET whatsapp_msg=%s,
-            usar_whatsapp=%s,
-            zapi_instance=%s,
-            zapi_token=%s
-        WHERE id=%s
-    """, (mensagem, usar_whatsapp, instance, token, user_id))
-
-    conn.commit()
-
-cur.execute("""
-    SELECT usuario, whatsapp_msg, usar_whatsapp, zapi_instance, zapi_token
-    FROM usuarios
-    WHERE id=%s
-""", (user_id,))
-
-user = cur.fetchone()
-
-usuario = user[0]
-mensagem = user[1] or ""
-usar_whatsapp = user[2]
-zapi_instance = user[3] or ""
-zapi_token = user[4] or ""
-
-cur.close()
-conn.close()
-
-return render_template("config.html",
-                       usuario=usuario,
-                       mensagem=mensagem,
-                       usar_whatsapp=usar_whatsapp,
-                       zapi_instance=zapi_instance,
-                       zapi_token=zapi_token)
-
-    conn.commit()
+        usar_whatsapp = True if request.form.get("usar_whatsapp") else False
+        instance = request.form.get("zapi_instance")
+        token = request.form.get("zapi_token")
 
         if senha:
-            cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
+            cur.execute(
+                "UPDATE usuarios SET senha=%s WHERE id=%s",
+                (senha, user_id)
+            )
 
-        try:
-            cur.execute("UPDATE usuarios SET whatsapp_msg=%s WHERE id=%s", (mensagem, user_id))
-        except:
-            pass
+        cur.execute("""
+            UPDATE usuarios 
+            SET whatsapp_msg=%s,
+                usar_whatsapp=%s,
+                zapi_instance=%s,
+                zapi_token=%s
+            WHERE id=%s
+        """, (mensagem, usar_whatsapp, instance, token, user_id))
 
         conn.commit()
 
-    cur.execute("SELECT usuario, whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
+    # 🔽 BUSCAR DADOS ATUALIZADOS
+    cur.execute("""
+        SELECT usuario, whatsapp_msg, usar_whatsapp, zapi_instance, zapi_token
+        FROM usuarios
+        WHERE id=%s
+    """, (user_id,))
+
     user = cur.fetchone()
 
     usuario = user[0]
-    mensagem = user[1] if user and user[1] else ""
+    mensagem = user[1] or ""
+    usar_whatsapp = user[2]
+    zapi_instance = user[3] or ""
+    zapi_token = user[4] or ""
 
     cur.close()
     conn.close()
 
-    return render_template("config.html", usuario=usuario, mensagem=mensagem)
-
+    return render_template("config.html",
+                           usuario=usuario,
+                           mensagem=mensagem,
+                           usar_whatsapp=usar_whatsapp,
+                           zapi_instance=zapi_instance,
+                           zapi_token=zapi_token)
 
 # ================= INDEX =================
 @app.route("/")
