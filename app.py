@@ -63,6 +63,97 @@ def logout():
 def check_login():
     return session.get("logado") and session.get("user_id")
 
+# ================= USUARIOS ======
+
+
+@app.route("/usuarios")
+def usuarios():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin"):
+        return redirect(url_for("index"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT id, usuario, is_admin, ativo
+        FROM usuarios
+        ORDER BY id DESC
+    """)
+
+    lista = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template("usuarios.html", usuarios=lista)
+
+# ================= GASTOS ======
+
+@app.route("/gastos", methods=["GET", "POST"])
+def gastos():
+    if not check_login():
+        return redirect(url_for("login"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    if request.method == "POST":
+        cur.execute("""
+            INSERT INTO gastos (descricao, material, valor, mes_ref, usuario_id)
+            VALUES (%s,%s,%s,%s,%s)
+        """, (
+            request.form.get("descricao"),
+            request.form.get("material"),
+            request.form.get("valor"),
+            mes,
+            session["user_id"]
+        ))
+        conn.commit()
+        return redirect(url_for("gastos", mes=mes))
+
+    cur.execute("""
+        SELECT id, descricao, material, valor
+        FROM gastos
+        WHERE usuario_id=%s AND mes_ref=%s
+    """, (session["user_id"], mes))
+
+    lista = cur.fetchall()
+
+    return render_template("gastos.html", gastos=lista, mes_ref=mes)
+
+# ================= EDIT CLIENTE ======= 
+
+@app.route("/edit/<int:id>", methods=["POST"])
+def edit(id):
+    if not check_login():
+        return redirect(url_for("login"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE clientes
+        SET nome=%s, telefone=%s, valor=%s, vencimento_dia=%s
+        WHERE id=%s AND usuario_id=%s
+    """, (
+        request.form.get("nome"),
+        request.form.get("telefone"),
+        request.form.get("valor"),
+        request.form.get("vencimento_dia"),
+        id,
+        session["user_id"]
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
 
 # ================= CONFIG (BLINDADO) =================
 @app.route("/config", methods=["GET", "POST"])
