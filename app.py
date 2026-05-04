@@ -66,13 +66,101 @@ def usuarios():
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("SELECT id, usuario, is_admin, ativo FROM usuarios ORDER BY id DESC")
+    cur.execute("""
+        SELECT id, usuario, is_admin, ativo
+        FROM usuarios
+        ORDER BY id DESC
+    """)
     lista = cur.fetchall()
 
     cur.close()
     conn.close()
 
     return render_template("usuarios.html", usuarios=lista)
+
+
+# ================= USUÁRIOS - AÇÕES =================
+
+@app.route("/ativar_usuario/<int:id>")
+def ativar_usuario(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin"):
+        return "Acesso negado", 403
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("UPDATE usuarios SET ativo=true WHERE id=%s", (id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("usuarios"))
+
+
+@app.route("/desativar_usuario/<int:id>")
+def desativar_usuario(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin"):
+        return "Acesso negado", 403
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    # 🔒 VERIFICA SE É ADMIN
+    cur.execute("SELECT is_admin FROM usuarios WHERE id=%s", (id,))
+    user = cur.fetchone()
+
+    if user and user[0]:  # é admin
+        cur.close()
+        conn.close()
+        return "Não pode desativar o admin principal", 400
+
+    cur.execute("UPDATE usuarios SET ativo=false WHERE id=%s", (id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("usuarios"))
+
+
+@app.route("/delete_usuario/<int:id>")
+def delete_usuario(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin"):
+        return "Acesso negado", 403
+
+    # 🔒 NÃO DELETAR A SI MESMO
+    if id == session["user_id"]:
+        return "Não pode excluir seu próprio usuário", 400
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    # 🔒 NÃO DELETAR ADMIN
+    cur.execute("SELECT is_admin FROM usuarios WHERE id=%s", (id,))
+    user = cur.fetchone()
+
+    if user and user[0]:
+        cur.close()
+        conn.close()
+        return "Não pode excluir o admin principal", 400
+
+    cur.execute("DELETE FROM usuarios WHERE id=%s", (id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("usuarios"))
 
 
 # ================= CONFIG =================
@@ -223,183 +311,6 @@ def index():
                            alertas=alertas,
                            usuario=session["usuario"],
                            mensagem=mensagem)
-
-
-# ================= EDIT CLIENTE =================
-@app.route("/edit/<int:id>", methods=["POST"])
-def edit(id):
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        UPDATE clientes
-        SET nome=%s,
-            telefone=%s,
-            valor=%s,
-            vencimento_dia=%s
-        WHERE id=%s AND usuario_id=%s
-    """, (
-        request.form.get("nome"),
-        request.form.get("telefone"),
-        request.form.get("valor"),
-        request.form.get("vencimento_dia"),
-        id,
-        session["user_id"]
-    ))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index", mes=mes))
-
-
-# ================= GASTOS =================
-@app.route("/gastos", methods=["GET", "POST"])
-def gastos():
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    user_id = session["user_id"]
-    mes = request.args.get("mes") or request.form.get("mes") or datetime.now().strftime("%Y-%m")
-
-    if request.method == "POST":
-        cur.execute("""
-            INSERT INTO gastos (descricao, material, valor, mes_ref, usuario_id)
-            VALUES (%s,%s,%s,%s,%s)
-        """, (
-            request.form.get("descricao"),
-            request.form.get("material"),
-            request.form.get("valor"),
-            mes,
-            user_id
-        ))
-
-        conn.commit()
-        return redirect(url_for("gastos", mes=mes))
-
-    cur.execute("""
-        SELECT id, descricao, material, valor
-        FROM gastos
-        WHERE usuario_id=%s AND mes_ref=%s
-        ORDER BY id DESC
-    """, (user_id, mes))
-
-    lista = cur.fetchall()
-
-    cur.execute("""
-        SELECT COALESCE(SUM(valor),0)
-        FROM gastos
-        WHERE usuario_id=%s AND mes_ref=%s
-    """, (user_id, mes))
-
-    total = float(cur.fetchone()[0] or 0)
-
-    cur.close()
-    conn.close()
-
-    return render_template("gastos.html",
-                           gastos=lista,
-                           total=total,
-                           mes_ref=mes)
-
-
-# ================= DELETE GASTO =================
-@app.route("/del_gasto/<int:id>")
-def del_gasto(id):
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        DELETE FROM gastos
-        WHERE id=%s AND usuario_id=%s
-    """, (id, session["user_id"]))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("gastos", mes=mes))
-
-
-# ================= DELETE CLIENTE =================
-@app.route("/delete/<int:id>")
-def delete(id):
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        DELETE FROM clientes
-        WHERE id=%s AND usuario_id=%s
-    """, (id, session["user_id"]))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index", mes=mes))
-
-
-# ================= PAGAMENTO =================
-@app.route("/pago/<int:id>")
-def pago(id):
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
-        VALUES (%s,%s,%s,'pago')
-        ON CONFLICT (cliente_id, mes_ref, usuario_id)
-        DO UPDATE SET status='pago'
-    """, (id, mes, session["user_id"]))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index", mes=mes))
-
-
-# ================= DESFAZER =================
-@app.route("/desfazer/<int:id>")
-def desfazer(id):
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
-        VALUES (%s,%s,%s,'em_dia')
-        ON CONFLICT (cliente_id, mes_ref, usuario_id)
-        DO UPDATE SET status='em_dia'
-    """, (id, mes, session["user_id"]))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index", mes=mes))
 
 
 # ================= START =================
