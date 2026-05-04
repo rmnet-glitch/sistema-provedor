@@ -8,8 +8,9 @@ app.secret_key = "segredo"
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+
 def conectar():
-return psycopg2.connect(DATABASE_URL)
+    return psycopg2.connect(DATABASE_URL)
 
 ================= LOGIN =================
 
