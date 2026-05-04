@@ -400,14 +400,15 @@ def index():
         busca = request.args.get("busca", "").lower()
         filtro = request.args.get("filtro", "")
 
+        # ================= CLIENTES =================
         cur.execute("""
             SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
-                   COALESCE(cb.status,'em_dia')
+                   cb.status
             FROM clientes c
             LEFT JOIN cobrancas cb
-            ON c.id = cb.cliente_id
-            AND cb.mes_ref = %s
-            AND cb.usuario_id = %s
+              ON c.id = cb.cliente_id
+             AND cb.mes_ref = %s
+             AND cb.usuario_id = %s
             WHERE c.usuario_id = %s
         """, (mes, user_id, user_id))
 
@@ -416,6 +417,9 @@ def index():
         clientes = []
         total = recebido = atrasado = emdia = 0
         alertas = []
+
+        hoje = datetime.now().day
+        mes_atual = datetime.now().strftime("%Y-%m")
 
         ordem = {
             "atrasado": 0,
@@ -427,24 +431,33 @@ def index():
             cid, nome, tel, valor, venc, status = c
 
             valor = float(valor or 0)
+            venc = int(venc or 1)
 
-            # 🔥 REGRA REAL DE ATRASO (CORRIGIDA)
-            hoje = datetime.now().day
-
-            if status != "pago":
-                if hoje > int(venc or 1):
+            # ================= REGRA DE STATUS =================
+            if not status:
+                # se não tem cobrança registrada
+                if mes < mes_atual:
                     status = "atrasado"
+                elif mes == mes_atual:
+                    status = "atrasado" if hoje > venc else "em_dia"
                 else:
                     status = "em_dia"
 
-            # 🔎 filtro de busca
+            # ================= BUSCA =================
             if busca and busca not in (nome or "").lower():
                 continue
 
-            # 🔴 filtro por status
+            # ================= FILTRO =================
             if filtro == "atrasado" and status != "atrasado":
                 continue
 
+            # ================= ALERTAS =================
+            if status == "atrasado":
+                alertas.append(f"🔴 {nome} está atrasado")
+            elif status == "em_dia" and mes == mes_atual and hoje == venc:
+                alertas.append(f"⚠️ {nome} vence hoje")
+
+            # ================= SOMAS =================
             total += valor
 
             if status == "pago":
@@ -456,32 +469,28 @@ def index():
 
             clientes.append((cid, nome, tel, valor, venc, status))
 
-        # 💸 gastos
+        # ================= GASTOS =================
         cur.execute("""
             SELECT COALESCE(SUM(valor),0)
             FROM gastos
-            WHERE usuario_id = %s AND mes_ref = %s
+            WHERE usuario_id=%s AND mes_ref=%s
         """, (user_id, mes))
 
         total_gastos = float(cur.fetchone()[0] or 0)
         lucro = recebido - total_gastos
 
-        # 📲 mensagem whatsapp
+        # ================= MENSAGEM =================
         cur.execute("""
             SELECT whatsapp_msg
             FROM usuarios
-            WHERE id = %s
+            WHERE id=%s
         """, (user_id,))
 
         res = cur.fetchone()
         mensagem = res[0] if res else ""
 
-        # 📌 ordenação (ATRASADO PRIMEIRO)
-        clientes.sort(key=lambda x: (
-            0 if (x[5] or "").strip() == "atrasado" else
-            1 if (x[5] or "").strip() == "em_dia" else
-            2
-        ))
+        # ================= ORDEM (ATRASADO PRIMEIRO) =================
+        clientes.sort(key=lambda x: ordem.get(x[5], 1))
 
         return render_template(
             "index.html",
@@ -504,35 +513,6 @@ def index():
     finally:
         cur.close()
         conn.close()
-# =============== CLIENTES =================
-
-@app.route("/add", methods=["POST"])
-def add():
-    if not check_login():
-        return redirect(url_for("login"))
-
-    conn = get_conn()
-    cur = conn.cursor()
-
-    try:
-        cur.execute("""
-            INSERT INTO clientes (nome, telefone, valor, vencimento_dia, usuario_id)
-            VALUES (%s,%s,%s,%s,%s)
-        """, (
-            request.form.get("nome"),
-            request.form.get("telefone"),
-            request.form.get("valor"),
-            request.form.get("vencimento_dia"),
-            session["user_id"]
-        ))
-
-        conn.commit()
-
-    finally:
-        cur.close()
-        conn.close()
-
-    return redirect(url_for("index"))
 
 
 # ================= PAGO =================
