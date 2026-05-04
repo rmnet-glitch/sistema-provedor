@@ -1,28 +1,162 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login</title>
-    <style>
-        body { font-family: Arial; text-align:center; margin-top:80px; }
-        img { width:120px; margin-bottom:20px; }
-        input,button { padding:10px; margin:5px; }
-    </style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RM Gestão</title>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial;
+    background:#0f172a;
+    color:#fff;
+}
+
+.container{
+    display:flex;
+    min-height:100vh;
+}
+
+/* 🔵 LADO MARCA */
+.left{
+    flex:1;
+    background:linear-gradient(135deg,#0f172a,#1e3a8a);
+    padding:40px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+}
+
+.logo{
+    font-size:28px;
+    font-weight:bold;
+    margin-bottom:10px;
+}
+
+.logo span{
+    color:#3b82f6;
+}
+
+.subtitle{
+    font-size:14px;
+    opacity:0.9;
+    margin-bottom:20px;
+}
+
+.feature{
+    margin-top:10px;
+    font-size:13px;
+}
+
+/* ⚪ LADO LOGIN */
+.right{
+    flex:1;
+    background:#fff;
+    color:#000;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.box{
+    width:90%;
+    max-width:320px;
+}
+
+.box img{
+    width:90px;
+    display:block;
+    margin:0 auto 10px;
+}
+
+.title{
+    text-align:center;
+    font-size:20px;
+    margin-bottom:15px;
+}
+
+input{
+    width:100%;
+    padding:10px;
+    margin:5px 0;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
+
+button{
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+    border:none;
+    border-radius:6px;
+    background:#2563eb;
+    color:#fff;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#1d4ed8;
+}
+
+.erro{
+    color:red;
+    margin-top:10px;
+    text-align:center;
+}
+
+/* mobile */
+@media(max-width:700px){
+    .container{flex-direction:column;}
+    .left{display:none;}
+}
+</style>
 </head>
+
 <body>
+
+<div class="container">
+
+<!-- 🔵 LADO PROPAGANDA -->
+<div class="left">
+
+<div class="logo">RM <span>Gestão</span></div>
+
+<div class="subtitle">
+Sistema completo para controle financeiro e cobrança de clientes.
+</div>
+
+<div class="feature">✔ Gestão de clientes</div>
+<div class="feature">✔ Controle de pagamentos</div>
+<div class="feature">✔ Cobrança automática via WhatsApp</div>
+<div class="feature">✔ Relatórios e lucro em tempo real</div>
+
+</div>
+
+<!-- ⚪ LADO LOGIN -->
+<div class="right">
+
+<div class="box">
 
 <img src="/static/logo.png">
 
-<h2>Login</h2>
+<div class="title">Acessar sistema</div>
 
 <form method="post">
-    <input name="usuario" placeholder="Usuário"><br>
-    <input type="password" name="senha" placeholder="Senha"><br>
-    <button>Entrar</button>
+<input name="usuario" placeholder="Usuário" required>
+<input type="password" name="senha" placeholder="Senha" required>
+<button>Entrar</button>
 </form>
 
 {% if erro %}
-<p style="color:red">{{ erro }}</p>
+<div class="erro">{{ erro }}</div>
 {% endif %}
+
+</div>
+
+</div>
+
+</div>
 
 </body>
 </html>
