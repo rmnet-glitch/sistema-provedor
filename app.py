@@ -129,65 +129,78 @@ def config():
     conn = conectar()
     cur = conn.cursor()
 
-    user_id = session["user_id"]
+    user_id = session.get("user_id")
 
-    if request.method == "POST":
-        senha = request.form.get("senha")
-        mensagem = request.form.get("mensagem")
+    try:
+        if request.method == "POST":
+            senha = request.form.get("senha")
+            mensagem = request.form.get("mensagem")
 
-        usar_whatsapp = True if request.form.get("usar_whatsapp") else False
-        instance = request.form.get("zapi_instance")
-        token = request.form.get("zapi_token")
+            usar_whatsapp = bool(request.form.get("usar_whatsapp"))
+            instance = request.form.get("zapi_instance")
+            token = request.form.get("zapi_token")
 
-        # 🔒 VERIFICA PLANO
-        cur.execute("SELECT plano_whatsapp FROM usuarios WHERE id=%s", (user_id,))
-        plano = cur.fetchone()[0]
+            # 🔒 PLANO (SEGURANÇA CONTRA NULL)
+            cur.execute("SELECT plano_whatsapp FROM usuarios WHERE id=%s", (user_id,))
+            res_plano = cur.fetchone()
+            plano = res_plano[0] if res_plano else False
 
-        if not plano:
-            usar_whatsapp = False
-            instance = None
-            token = None
+            if not plano:
+                usar_whatsapp = False
+                instance = None
+                token = None
 
-        if senha:
-            cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
+            if senha:
+                cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
 
+            cur.execute("""
+                UPDATE usuarios 
+                SET whatsapp_msg=%s,
+                    usar_whatsapp=%s,
+                    zapi_instance=%s,
+                    zapi_token=%s
+                WHERE id=%s
+            """, (mensagem, usar_whatsapp, instance, token, user_id))
+
+            conn.commit()
+
+        # 🔍 BUSCA DADOS SEGURA
         cur.execute("""
-            UPDATE usuarios 
-            SET whatsapp_msg=%s,
-                usar_whatsapp=%s,
-                zapi_instance=%s,
-                zapi_token=%s
+            SELECT usuario, whatsapp_msg, usar_whatsapp,
+                   zapi_instance, zapi_token, plano_whatsapp
+            FROM usuarios
             WHERE id=%s
-        """, (mensagem, usar_whatsapp, instance, token, user_id))
+        """, (user_id,))
 
-        conn.commit()
+        user = cur.fetchone()
 
-    # 🔍 BUSCAR DADOS
-    cur.execute("""
-        SELECT usuario, whatsapp_msg, usar_whatsapp, zapi_instance, zapi_token, plano_whatsapp
-        FROM usuarios
-        WHERE id=%s
-    """, (user_id,))
+        if not user:
+            return redirect(url_for("logout"))
 
-    user = cur.fetchone()
+        usuario = user[0]
+        mensagem = user[1] or ""
+        usar_whatsapp = user[2]
+        zapi_instance = user[3] or ""
+        zapi_token = user[4] or ""
+        plano_whatsapp = user[5]
 
-    usuario = user[0]
-    mensagem = user[1] or ""
-    usar_whatsapp = user[2]
-    zapi_instance = user[3] or ""
-    zapi_token = user[4] or ""
-    plano_whatsapp = user[5]
+        return render_template(
+            "config.html",
+            usuario=usuario,
+            mensagem=mensagem,
+            usar_whatsapp=usar_whatsapp,
+            zapi_instance=zapi_instance,
+            zapi_token=zapi_token,
+            plano_whatsapp=plano_whatsapp
+        )
 
-    cur.close()
-    conn.close()
+    except Exception as e:
+        print("ERRO CONFIG:", e)
+        return "Erro interno na configuração", 500
 
-    return render_template("config.html",
-                           usuario=usuario,
-                           mensagem=mensagem,
-                           usar_whatsapp=usar_whatsapp,
-                           zapi_instance=zapi_instance,
-                           zapi_token=zapi_token,
-                           plano_whatsapp=plano_whatsapp)
+    finally:
+        cur.close()
+        conn.close()
 
 # ================= INDEX =================
 @app.route("/")
