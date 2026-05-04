@@ -428,6 +428,15 @@ def index():
 
             valor = float(valor or 0)
 
+            # 🔥 REGRA REAL DE ATRASO (CORRIGIDA)
+            hoje = datetime.now().day
+
+            if status != "pago":
+                if hoje > int(venc or 1):
+                    status = "atrasado"
+                else:
+                    status = "em_dia"
+
             # 🔎 filtro de busca
             if busca and busca not in (nome or "").lower():
                 continue
@@ -436,7 +445,6 @@ def index():
             if filtro == "atrasado" and status != "atrasado":
                 continue
 
-            # 📊 cálculos
             total += valor
 
             if status == "pago":
@@ -470,10 +478,10 @@ def index():
 
         # 📌 ordenação (ATRASADO PRIMEIRO)
         clientes.sort(key=lambda x: (
-    0 if (x[5] or "").strip() == "atrasado" else
-    1 if (x[5] or "").strip() == "em_dia" else
-    2
-))
+            0 if (x[5] or "").strip() == "atrasado" else
+            1 if (x[5] or "").strip() == "em_dia" else
+            2
+        ))
 
         return render_template(
             "index.html",
@@ -496,7 +504,6 @@ def index():
     finally:
         cur.close()
         conn.close()
-
 # =============== CLIENTES =================
 
 @app.route("/add", methods=["POST"])
