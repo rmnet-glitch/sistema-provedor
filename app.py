@@ -78,7 +78,7 @@ def usuarios():
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT id, usuario, is_admin, ativo
+        SELECT id, usuario, is_admin, ativo, plano_whatsapp
         FROM usuarios
         ORDER BY id DESC
     """)
