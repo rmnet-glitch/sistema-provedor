@@ -195,8 +195,8 @@ def config():
         )
 
     except Exception as e:
-        print("ERRO CONFIG:", e)
-        return "Erro interno na configuração", 500
+    print("ERRO CONFIG:", str(e))
+    return f"Erro real: {str(e)}", 500
 
     finally:
         cur.close()
