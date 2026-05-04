@@ -385,6 +385,7 @@ def config():
 
 
 # ================= INDEX =================
+
 @app.route("/")
 def index():
     if not check_login():
@@ -396,7 +397,7 @@ def index():
     try:
         user_id = session["user_id"]
         mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-        busca = request.args.get("busca", "")
+        busca = request.args.get("busca", "").lower()
         filtro = request.args.get("filtro", "")
 
         cur.execute("""
@@ -404,8 +405,10 @@ def index():
                    COALESCE(cb.status,'em_dia')
             FROM clientes c
             LEFT JOIN cobrancas cb
-            ON c.id=cb.cliente_id AND cb.mes_ref=%s AND cb.usuario_id=%s
-            WHERE c.usuario_id=%s
+            ON c.id = cb.cliente_id
+            AND cb.mes_ref = %s
+            AND cb.usuario_id = %s
+            WHERE c.usuario_id = %s
         """, (mes, user_id, user_id))
 
         dados = cur.fetchall()
@@ -413,19 +416,27 @@ def index():
         clientes = []
         total = recebido = atrasado = emdia = 0
         alertas = []
-ordem = {
-    "atrasado": 0,
-    "em_dia": 1,
-    "pago": 2
-}
+
+        ordem = {
+            "atrasado": 0,
+            "em_dia": 1,
+            "pago": 2
+        }
+
         for c in dados:
             cid, nome, tel, valor, venc, status = c
 
-# 🔴 FILTRO SOMENTE ATRASADOS
-if filtro == "atrasado" and status != "atrasado":
-    continue
             valor = float(valor or 0)
 
+            # 🔎 filtro de busca
+            if busca and busca not in (nome or "").lower():
+                continue
+
+            # 🔴 filtro por status
+            if filtro == "atrasado" and status != "atrasado":
+                continue
+
+            # 📊 cálculos
             total += valor
 
             if status == "pago":
@@ -437,19 +448,29 @@ if filtro == "atrasado" and status != "atrasado":
 
             clientes.append((cid, nome, tel, valor, venc, status))
 
+        # 💸 gastos
         cur.execute("""
             SELECT COALESCE(SUM(valor),0)
             FROM gastos
-            WHERE usuario_id=%s AND mes_ref=%s
+            WHERE usuario_id = %s AND mes_ref = %s
         """, (user_id, mes))
 
         total_gastos = float(cur.fetchone()[0] or 0)
         lucro = recebido - total_gastos
 
-        cur.execute("SELECT whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
+        # 📲 mensagem whatsapp
+        cur.execute("""
+            SELECT whatsapp_msg
+            FROM usuarios
+            WHERE id = %s
+        """, (user_id,))
+
         res = cur.fetchone()
         mensagem = res[0] if res else ""
-clientes.sort(key=lambda x: ordem.get(x[5], 1))
+
+        # 📌 ordenação (ATRASADO PRIMEIRO)
+        clientes.sort(key=lambda x: ordem.get(x[5], 1))
+
         return render_template(
             "index.html",
             clientes=clientes,
@@ -472,7 +493,8 @@ clientes.sort(key=lambda x: ordem.get(x[5], 1))
         cur.close()
         conn.close()
 
-# ================= CLIENTES =================
+# =============== CLIENTES =================
+
 @app.route("/add", methods=["POST"])
 def add():
     if not check_login():
