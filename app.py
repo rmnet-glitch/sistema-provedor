@@ -150,6 +150,8 @@ def index():
     try:
         user_id = session["user_id"]
         mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+        busca = request.args.get("busca", "")
+        filtro = request.args.get("filtro", "")
 
         cur.execute("""
             SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
@@ -163,33 +165,59 @@ def index():
         dados = cur.fetchall()
 
         clientes = []
+        total = recebido = atrasado = emdia = 0
+        alertas = []
 
         for c in dados:
             cid, nome, tel, valor, venc, status = c
-            clientes.append((cid, nome, tel, float(valor or 0), venc, status))
 
-        
-return render_template(
-    "index.html",
-    clientes=clientes,
-    mes_ref=mes,
-    busca=busca,
-    filtro=filtro,
-    total_geral=total,
-    total_recebido=recebido,
-    total_atrasado=atrasado,
-    total_em_dia=emdia,
-    total_gastos=total_gastos,
-    lucro=lucro,
-    alertas=alertas,
-    usuario=session.get("usuario"),
-    mensagem=mensagem,
-    session=session
-)
+            valor = float(valor or 0)
+
+            total += valor
+
+            if status == "pago":
+                recebido += valor
+            elif status == "atrasado":
+                atrasado += valor
+            else:
+                emdia += valor
+
+            clientes.append((cid, nome, tel, valor, venc, status))
+
+        cur.execute("""
+            SELECT COALESCE(SUM(valor),0)
+            FROM gastos
+            WHERE usuario_id=%s AND mes_ref=%s
+        """, (user_id, mes))
+
+        total_gastos = float(cur.fetchone()[0] or 0)
+        lucro = recebido - total_gastos
+
+        cur.execute("SELECT whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
+        res = cur.fetchone()
+        mensagem = res[0] if res else ""
+
+        return render_template(
+            "index.html",
+            clientes=clientes,
+            mes_ref=mes,
+            busca=busca,
+            filtro=filtro,
+            total_geral=total,
+            total_recebido=recebido,
+            total_atrasado=atrasado,
+            total_em_dia=emdia,
+            total_gastos=total_gastos,
+            lucro=lucro,
+            alertas=alertas,
+            usuario=session.get("usuario"),
+            mensagem=mensagem,
+            session=session
+        )
+
     finally:
         cur.close()
         conn.close()
-
 
 # ================= CLIENTES =================
 @app.route("/add", methods=["POST"])
