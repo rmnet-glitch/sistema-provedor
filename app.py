@@ -211,9 +211,39 @@ def index():
                            mensagem=mensagem)
 
 
+# ================= ADD CLIENTE (NOVO) =================
+@app.route("/add", methods=["POST"])
+def add():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO clientes (nome, telefone, valor, vencimento_dia, usuario_id)
+        VALUES (%s,%s,%s,%s,%s)
+    """, (
+        request.form.get("nome"),
+        request.form.get("telefone"),
+        request.form.get("valor"),
+        request.form.get("vencimento_dia"),
+        session["user_id"]
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
+
+
 # ================= ROTAS CLIENTES =================
 @app.route("/edit/<int:id>", methods=["POST"])
 def edit(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
     mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
 
     conn = conectar()
@@ -241,6 +271,9 @@ def edit(id):
 
 @app.route("/delete/<int:id>")
 def delete(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
     mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
 
     conn = conectar()
@@ -258,6 +291,9 @@ def delete(id):
 
 @app.route("/pago/<int:id>")
 def pago(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
     mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
 
     conn = conectar()
@@ -279,6 +315,9 @@ def pago(id):
 
 @app.route("/desfazer/<int:id>")
 def desfazer(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
     mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
 
     conn = conectar()
@@ -349,6 +388,9 @@ def gastos():
 
 @app.route("/del_gasto/<int:id>")
 def del_gasto(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
     mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
 
     conn = conectar()
