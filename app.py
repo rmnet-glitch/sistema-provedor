@@ -50,7 +50,7 @@ def logout():
 session.clear()
 return redirect(url_for("login"))
 
-================= USUÁRIOS =================
+# ================= USUÁRIOS =================
 @app.route("/usuarios")
 def usuarios():
     if not session.get("logado"):
