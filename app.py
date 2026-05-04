@@ -119,8 +119,8 @@ def desativar_usuario(id):
 
     return redirect(url_for("usuarios"))
 
+# ===================== CONFIG ==================
 
-# ================= CONFIG =================
 @app.route("/config", methods=["GET", "POST"])
 def config():
     if not session.get("logado"):
@@ -139,19 +139,17 @@ def config():
         instance = request.form.get("zapi_instance")
         token = request.form.get("zapi_token")
 
-# 🚫 BLOQUEIO POR PLANO
-cur.execute("SELECT plano_whatsapp FROM usuarios WHERE id=%s", (user_id,))
-plano = cur.fetchone()[0]
+        # 🔒 VERIFICA PLANO
+        cur.execute("SELECT plano_whatsapp FROM usuarios WHERE id=%s", (user_id,))
+        plano = cur.fetchone()[0]
 
-if not plano:
-    usar_whatsapp = False
-    instance = None
-    token = None
+        if not plano:
+            usar_whatsapp = False
+            instance = None
+            token = None
+
         if senha:
-            cur.execute(
-                "UPDATE usuarios SET senha=%s WHERE id=%s",
-                (senha, user_id)
-            )
+            cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
 
         cur.execute("""
             UPDATE usuarios 
@@ -164,7 +162,7 @@ if not plano:
 
         conn.commit()
 
-    # 🔽 BUSCAR DADOS ATUALIZADOS
+    # 🔍 BUSCAR DADOS
     cur.execute("""
         SELECT usuario, whatsapp_msg, usar_whatsapp, zapi_instance, zapi_token, plano_whatsapp
         FROM usuarios
@@ -173,24 +171,23 @@ if not plano:
 
     user = cur.fetchone()
 
-usuario = user[0]
-mensagem = user[1] or ""
-usar_whatsapp = user[2]
-zapi_instance = user[3] or ""
-zapi_token = user[4] or ""
-plano_whatsapp = user[5]
+    usuario = user[0]
+    mensagem = user[1] or ""
+    usar_whatsapp = user[2]
+    zapi_instance = user[3] or ""
+    zapi_token = user[4] or ""
+    plano_whatsapp = user[5]
 
     cur.close()
     conn.close()
 
     return render_template("config.html",
-    usuario=usuario,
-    mensagem=mensagem,
-    usar_whatsapp=usar_whatsapp,
-    zapi_instance=zapi_instance,
-    zapi_token=zapi_token,
-    plano_whatsapp=plano_whatsapp
-)
+                           usuario=usuario,
+                           mensagem=mensagem,
+                           usar_whatsapp=usar_whatsapp,
+                           zapi_instance=zapi_instance,
+                           zapi_token=zapi_token,
+                           plano_whatsapp=plano_whatsapp)
 
 # ================= INDEX =================
 @app.route("/")
