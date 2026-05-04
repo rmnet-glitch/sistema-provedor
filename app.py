@@ -79,6 +79,41 @@ def usuarios():
     return render_template("usuarios.html", usuarios=lista)
 
 
+# ================= ATIVAR USUÁRIO =================
+@app.route("/ativar_usuario/<int:id>")
+def ativar_usuario(id):
+    if not session.get("logado") or not session.get("is_admin"):
+        return redirect(url_for("index"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("UPDATE usuarios SET ativo=TRUE WHERE id=%s", (id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("usuarios"))
+
+
+# ================= DESATIVAR USUÁRIO =================
+@app.route("/desativar_usuario/<int:id>")
+def desativar_usuario(id):
+    if not session.get("logado") or not session.get("is_admin"):
+        return redirect(url_for("index"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("UPDATE usuarios SET ativo=FALSE WHERE id=%s", (id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("usuarios"))
+
 # ================= CONFIG =================
 @app.route("/config", methods=["GET", "POST"])
 def config():
