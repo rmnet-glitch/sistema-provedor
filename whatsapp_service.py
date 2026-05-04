@@ -1,0 +1,18 @@
+import requests
+
+def enviar_whatsapp(numero, mensagem, instance, token):
+    if not instance or not token:
+        return False
+
+    url = f"https://api.z-api.io/instances/{instance}/token/{token}/send-text"
+
+    payload = {
+        "phone": f"55{numero}",
+        "message": mensagem
+    }
+
+    try:
+        requests.post(url, json=payload, timeout=10)
+        return True
+    except:
+        return False
