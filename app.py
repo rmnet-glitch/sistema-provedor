@@ -129,6 +129,31 @@ def editar_usuario(id):
     conn.close()
 
     return redirect(url_for("usuarios"))
+# ================ DESATIVAR USUARIO =======
+
+@app.route("/desativar_usuario/<int:id>")
+def desativar_usuario(id):
+    if not session.get("is_admin"):
+        return redirect(url_for("index"))
+
+    # 🚫 impede desativar a si mesmo
+    if id == session.get("user_id"):
+        return redirect(url_for("usuarios"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE usuarios
+        SET ativo = FALSE
+        WHERE id = %s
+    """, (id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("usuarios"))
 
 # ================ EXCLUIR USUARIO =========
 
