@@ -2,43 +2,15 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configurações</title>
 
 <style>
-body{
-font-family:Arial;
-background:#f4f6f8;
-padding:10px;
+body{font-family:Arial;background:#f4f6f8;padding:10px;}
+.box{
+background:#fff;padding:10px;border-radius:8px;
 }
-
-input,textarea{
-width:100%;
-padding:8px;
-margin:5px 0;
-font-size:13px;
-}
-
-textarea{
-white-space: pre-wrap;
-font-family: inherit;
-}
-
-.btn{
-padding:6px;
-font-size:12px;
-border:none;
-border-radius:5px;
-color:#fff;
-margin-top:5px;
-cursor:pointer;
-}
-
-.green{background:#28a745}
-.gray{background:#6c757d}
-
-.card{
-background:#fff;
-padding:10px;
-border-radius:8px;
+input,button{
+padding:8px;margin:5px 0;width:100%;
 }
 </style>
 </head>
@@ -47,31 +19,35 @@ border-radius:8px;
 
 <h3>⚙️ Configurações</h3>
 
-<a href="/">
-<button class="btn gray">⬅ Voltar</button>
+<a href="{{ url_for('index') }}">
+<button>⬅ Voltar</button>
 </a>
 
-<hr>
+<div class="box">
 
-<div class="card">
+<form method="post">
 
-<p><b>Usuário:</b> {{usuario}}</p>
-
-<form action="/config" method="post">
-
-<label>🔑 Nova Senha</label>
-<input name="senha" type="password" placeholder="Digite nova senha">
-
-<button class="btn gray" name="senha_btn" value="1">🔐 Salvar Senha</button>
+<label>Nova senha:</label>
+<input type="text" name="senha" placeholder="Digite nova senha">
 
 <hr>
 
-<label>💬 Mensagem WhatsApp</label>
+<label>Mensagem WhatsApp:</label>
+<input type="text" name="mensagem" value="{{mensagem}}" placeholder="Mensagem padrão">
 
-<!-- ✔ CORREÇÃO PRINCIPAL -->
-<textarea name="mensagem" rows="8" style="white-space: pre-wrap;">{{mensagem}}</textarea>
+<hr>
 
-<button class="btn green" name="msg_btn" value="1">💾 Salvar Mensagem</button>
+<h4>📲 Integração WhatsApp</h4>
+
+<label>
+<input type="checkbox" name="usar_whatsapp" {% if usar_whatsapp %}checked{% endif %}>
+Ativar envio automático
+</label>
+
+<input name="zapi_instance" value="{{zapi_instance}}" placeholder="Instance ID">
+<input name="zapi_token" value="{{zapi_token}}" placeholder="Token API">
+
+<button>Salvar</button>
 
 </form>
 
