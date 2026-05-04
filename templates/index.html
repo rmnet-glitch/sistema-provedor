@@ -53,10 +53,23 @@ background:#fff3cd;padding:10px;border-radius:8px;margin-bottom:10px;font-size:1
 
 <div style="display:flex; gap:5px; flex-wrap:wrap;">
 
-<a href="/usuarios"><button style="background:#007bff;color:#fff">👥 Usuários</button></a>
-<a href="/gastos"><button style="background:#ffc107">💸 Gastos</button></a>
-<a href="/config"><button style="background:#6c757d;color:#fff">⚙️</button></a>
-<a href="/logout"><button style="background:#dc3545;color:#fff">🚪 Sair</button></a>
+<a href="/gastos">
+<button style="background:#ffc107">💸 Gastos</button>
+</a>
+
+<a href="/config">
+<button style="background:#6c757d;color:#fff">⚙️</button>
+</a>
+
+{% if session.is_admin %}
+<a href="/usuarios">
+<button style="background:#007bff;color:#fff">👥 Usuários</button>
+</a>
+{% endif %}
+
+<a href="/logout">
+<button style="background:#dc3545;color:#fff">🚪 Sair</button>
+</a>
 
 </div>
 </div>
@@ -124,9 +137,11 @@ background:#fff3cd;padding:10px;border-radius:8px;margin-bottom:10px;font-size:1
 📞 {{c[2]}}<br>
 💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
 
+<!-- WHATSAPP -->
 <a class="whatsapp"
 target="_blank"
 href="https://wa.me/55{{c[2]}}?text={{ mensagem | urlencode }}">
+
 <button class="btn btn-secondary">📲 WhatsApp</button>
 </a>
 
@@ -146,13 +161,12 @@ href="https://wa.me/55{{c[2]}}?text={{ mensagem | urlencode }}">
 
 <button class="btn btn-info" onclick="toggle('e{{c[0]}}')">✏ Editar</button>
 
-<a href="/delete/{{c[0]}}">
+<a href="/delete/{{c[0]}}?mes={{mes_ref}}">
 <button class="btn btn-danger">🗑 Excluir</button>
 </a>
 
 </div>
 
-<!-- 🔧 SÓ CORRIGIDO AQUI (NOT FOUND FIX) -->
 <div id="e{{c[0]}}" class="hidden">
 <form action="/edit/{{c[0]}}?mes={{mes_ref}}" method="post">
 <input name="nome" value="{{c[1]}}" required>
