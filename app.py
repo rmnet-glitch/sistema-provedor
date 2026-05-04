@@ -139,6 +139,14 @@ def config():
         instance = request.form.get("zapi_instance")
         token = request.form.get("zapi_token")
 
+# 🚫 BLOQUEIO POR PLANO
+cur.execute("SELECT plano_whatsapp FROM usuarios WHERE id=%s", (user_id,))
+plano = cur.fetchone()[0]
+
+if not plano:
+    usar_whatsapp = False
+    instance = None
+    token = None
         if senha:
             cur.execute(
                 "UPDATE usuarios SET senha=%s WHERE id=%s",
@@ -158,28 +166,31 @@ def config():
 
     # 🔽 BUSCAR DADOS ATUALIZADOS
     cur.execute("""
-        SELECT usuario, whatsapp_msg, usar_whatsapp, zapi_instance, zapi_token
+        SELECT usuario, whatsapp_msg, usar_whatsapp, zapi_instance, zapi_token, plano_whatsapp
         FROM usuarios
         WHERE id=%s
     """, (user_id,))
 
     user = cur.fetchone()
 
-    usuario = user[0]
-    mensagem = user[1] or ""
-    usar_whatsapp = user[2]
-    zapi_instance = user[3] or ""
-    zapi_token = user[4] or ""
+usuario = user[0]
+mensagem = user[1] or ""
+usar_whatsapp = user[2]
+zapi_instance = user[3] or ""
+zapi_token = user[4] or ""
+plano_whatsapp = user[5]
 
     cur.close()
     conn.close()
 
     return render_template("config.html",
-                           usuario=usuario,
-                           mensagem=mensagem,
-                           usar_whatsapp=usar_whatsapp,
-                           zapi_instance=zapi_instance,
-                           zapi_token=zapi_token)
+    usuario=usuario,
+    mensagem=mensagem,
+    usar_whatsapp=usar_whatsapp,
+    zapi_instance=zapi_instance,
+    zapi_token=zapi_token,
+    plano_whatsapp=plano_whatsapp
+)
 
 # ================= INDEX =================
 @app.route("/")
@@ -424,19 +435,19 @@ def cobrar(id):
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT c.nome, c.telefone,
-               u.whatsapp_msg, u.zapi_instance, u.zapi_token, u.usar_whatsapp
-        FROM clientes c
-        JOIN usuarios u ON c.usuario_id = u.id
-        WHERE c.id=%s AND c.usuario_id=%s
-    """, (id, session["user_id"]))
+    SELECT c.nome, c.telefone,
+           u.whatsapp_msg, u.zapi_instance, u.zapi_token, u.usar_whatsapp, u.plano_whatsapp
+    FROM clientes c
+    JOIN usuarios u ON c.usuario_id = u.id
+    WHERE c.id=%s AND c.usuario_id=%s
+""", (id, session["user_id"]))
 
     res = cur.fetchone()
 
     if res:
-        nome, tel, msg, instance, token, usar = res
+        nome, tel, msg, instance, token, usar, plano = res
 
-        if usar:
+        if usar and plano:
             mensagem = (msg or "").replace("{nome}", nome)
             enviar_whatsapp(tel, mensagem, instance, token)
 
