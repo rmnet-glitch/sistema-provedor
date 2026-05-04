@@ -54,7 +54,7 @@ background:#fff3cd;padding:10px;border-radius:8px;margin-bottom:10px;font-size:1
 <div style="display:flex; gap:5px; flex-wrap:wrap;">
 
 <!-- 🔥 SOMENTE ADMIN -->
-{% if session.is_admin %}
+{% if session.get('is_admin') %}
 <a href="/usuarios"><button style="background:#007bff;color:#fff">👥 Usuários</button></a>
 {% endif %}
 
