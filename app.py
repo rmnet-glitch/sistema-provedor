@@ -469,7 +469,11 @@ def index():
         mensagem = res[0] if res else ""
 
         # 📌 ordenação (ATRASADO PRIMEIRO)
-        clientes.sort(key=lambda x: ordem.get(x[5], 1))
+        clientes.sort(key=lambda x: (
+    0 if (x[5] or "").strip() == "atrasado" else
+    1 if (x[5] or "").strip() == "em_dia" else
+    2
+))
 
         return render_template(
             "index.html",
