@@ -129,6 +129,32 @@ def editar_usuario(id):
     conn.close()
 
     return redirect(url_for("usuarios"))
+
+# ================ DESFAZER PAGAMENTO ===========
+
+@app.route("/desfazer/<int:id>")
+def desfazer(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    cur.execute("""
+        INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
+        VALUES (%s,%s,%s,'em_dia')
+        ON CONFLICT (cliente_id, mes_ref, usuario_id)
+        DO UPDATE SET status = 'em_dia'
+    """, (id, mes, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index", mes=mes))
+
 # ================ DESATIVAR USUARIO =======
 
 @app.route("/desativar_usuario/<int:id>")
