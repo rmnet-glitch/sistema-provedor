@@ -62,128 +62,7 @@ def usuarios():
     if not session.get("is_admin"):
         return redirect(url_for("index"))
 
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT id, usuario, is_admin, ativo
-        FROM usuarios
-        ORDER BY id DESC
-    """)
-    lista = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return render_template("usuarios.html", usuarios=lista)
-
-
-@app.route("/criar_usuario", methods=["POST"])
-def criar_usuario():
-    if not session.get("logado") or not session.get("is_admin"):
-        return redirect(url_for("index"))
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    is_admin = True if request.form.get("is_admin") == "true" else False
-
-    cur.execute("""
-        INSERT INTO usuarios (usuario, senha, is_admin, ativo)
-        VALUES (%s, %s, %s, TRUE)
-    """, (
-        request.form.get("usuario"),
-        request.form.get("senha"),
-        is_admin
-    ))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("usuarios"))
-
-
-@app.route("/editar_usuario/<int:id>", methods=["POST"])
-def editar_usuario(id):
-    if not session.get("logado") or not session.get("is_admin"):
-        return redirect(url_for("index"))
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    is_admin = True if request.form.get("is_admin") == "true" else False
-    senha = request.form.get("senha")
-
-    if senha:
-        cur.execute("""
-            UPDATE usuarios
-            SET usuario=%s, senha=%s, is_admin=%s
-            WHERE id=%s
-        """, (request.form.get("usuario"), senha, is_admin, id))
-    else:
-        cur.execute("""
-            UPDATE usuarios
-            SET usuario=%s, is_admin=%s
-            WHERE id=%s
-        """, (request.form.get("usuario"), is_admin, id))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("usuarios"))
-
-
-@app.route("/ativar_usuario/<int:id>")
-def ativar_usuario(id):
-    if not session.get("logado") or not session.get("is_admin"):
-        return redirect(url_for("index"))
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("UPDATE usuarios SET ativo=TRUE WHERE id=%s", (id,))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("usuarios"))
-
-
-@app.route("/desativar_usuario/<int:id>")
-def desativar_usuario(id):
-    if not session.get("logado") or not session.get("is_admin"):
-        return redirect(url_for("index"))
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("UPDATE usuarios SET ativo=FALSE WHERE id=%s", (id,))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("usuarios"))
-
-
-@app.route("/delete_usuario/<int:id>")
-def delete_usuario(id):
-    if not session.get("logado") or not session.get("is_admin"):
-        return redirect(url_for("index"))
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("DELETE FROM usuarios WHERE id=%s", (id,))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("usuarios"))
+    return render_template("usuarios.html")
 
 
 # ================= CONFIG =================
@@ -198,56 +77,30 @@ def config():
     user_id = session["user_id"]
 
     if request.method == "POST":
-
         senha = request.form.get("senha")
         mensagem = request.form.get("mensagem")
-        usar_whatsapp = True if request.form.get("usar_whatsapp") else False
-        zapi_instance = request.form.get("zapi_instance")
-        zapi_token = request.form.get("zapi_token")
 
         if senha:
             cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
 
-        if mensagem is not None:
-            cur.execute("UPDATE usuarios SET whatsapp_msg=%s WHERE id=%s", (mensagem, user_id))
-
-        # 🔥 NOVOS CAMPOS
         try:
-            cur.execute("""
-                UPDATE usuarios
-                SET usar_whatsapp=%s,
-                    zapi_instance=%s,
-                    zapi_token=%s
-                WHERE id=%s
-            """, (usar_whatsapp, zapi_instance, zapi_token, user_id))
+            cur.execute("UPDATE usuarios SET whatsapp_msg=%s WHERE id=%s", (mensagem, user_id))
         except:
             pass
 
         conn.commit()
 
-    cur.execute("""
-        SELECT usuario, whatsapp_msg, usar_whatsapp, zapi_instance, zapi_token
-        FROM usuarios
-        WHERE id=%s
-    """, (user_id,))
-
+    cur.execute("SELECT usuario, whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
     user = cur.fetchone()
 
     usuario = user[0]
-    mensagem = user[1] or ""
-    usar_whatsapp = user[2] if len(user) > 2 else False
-    zapi_instance = user[3] if len(user) > 3 else ""
-    zapi_token = user[4] if len(user) > 4 else ""
+    mensagem = user[1] if user and user[1] else ""
 
     cur.close()
     conn.close()
 
-    return render_template("config.html",
-                           usuario=usuario,
-                           mensagem=mensagem,
-                           usar_whatsapp=usar_whatsapp,
-                           zapi_instance=zapi_instance,
-                           zapi_token=zapi_token)
+    return render_template("config.html", usuario=usuario, mensagem=mensagem)
+
 
 # ================= INDEX =================
 @app.route("/")
@@ -356,3 +209,203 @@ def index():
                            alertas=alertas,
                            usuario=session["usuario"],
                            mensagem=mensagem)
+
+
+# ================= ADD CLIENTE (NOVO) =================
+@app.route("/add", methods=["POST"])
+def add():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO clientes (nome, telefone, valor, vencimento_dia, usuario_id)
+        VALUES (%s,%s,%s,%s,%s)
+    """, (
+        request.form.get("nome"),
+        request.form.get("telefone"),
+        request.form.get("valor"),
+        request.form.get("vencimento_dia"),
+        session["user_id"]
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
+
+
+# ================= ROTAS CLIENTES =================
+@app.route("/edit/<int:id>", methods=["POST"])
+def edit(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE clientes
+        SET nome=%s, telefone=%s, valor=%s, vencimento_dia=%s
+        WHERE id=%s AND usuario_id=%s
+    """, (
+        request.form.get("nome"),
+        request.form.get("telefone"),
+        request.form.get("valor"),
+        request.form.get("vencimento_dia"),
+        id,
+        session["user_id"]
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index", mes=mes))
+
+
+@app.route("/delete/<int:id>")
+def delete(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM clientes WHERE id=%s AND usuario_id=%s",
+                (id, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index", mes=mes))
+
+
+@app.route("/pago/<int:id>")
+def pago(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
+        VALUES (%s,%s,%s,'pago')
+        ON CONFLICT (cliente_id, mes_ref, usuario_id)
+        DO UPDATE SET status='pago'
+    """, (id, mes, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index", mes=mes))
+
+
+@app.route("/desfazer/<int:id>")
+def desfazer(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
+        VALUES (%s,%s,%s,'em_dia')
+        ON CONFLICT (cliente_id, mes_ref, usuario_id)
+        DO UPDATE SET status='em_dia'
+    """, (id, mes, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index", mes=mes))
+
+
+# ================= GASTOS =================
+@app.route("/gastos", methods=["GET", "POST"])
+def gastos():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    if request.method == "POST":
+        cur.execute("""
+            INSERT INTO gastos (descricao, material, valor, mes_ref, usuario_id)
+            VALUES (%s,%s,%s,%s,%s)
+        """, (
+            request.form.get("descricao"),
+            request.form.get("material"),
+            request.form.get("valor"),
+            mes,
+            session["user_id"]
+        ))
+        conn.commit()
+
+        return redirect(url_for("gastos", mes=mes))
+
+    cur.execute("""
+        SELECT id, descricao, material, valor
+        FROM gastos
+        WHERE usuario_id=%s AND mes_ref=%s
+        ORDER BY id DESC
+    """, (session["user_id"], mes))
+
+    lista = cur.fetchall()
+
+    cur.execute("""
+        SELECT COALESCE(SUM(valor),0)
+        FROM gastos
+        WHERE usuario_id=%s AND mes_ref=%s
+    """, (session["user_id"], mes))
+
+    total = float(cur.fetchone()[0] or 0)
+
+    cur.close()
+    conn.close()
+
+    return render_template("gastos.html", gastos=lista, total=total, mes_ref=mes)
+
+
+@app.route("/del_gasto/<int:id>")
+def del_gasto(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM gastos WHERE id=%s AND usuario_id=%s",
+                (id, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("gastos", mes=mes))
+
+
+# ================= START =================
+if __name__ == "__main__":
+    app.run(debug=True)
