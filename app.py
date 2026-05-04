@@ -4,7 +4,6 @@ import psycopg2
 from datetime import datetime
 import time
 
-# IMPORT SEGURO
 try:
     import requests
 except:
@@ -19,24 +18,6 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 # ================= CONEXÃO =================
 def conectar():
     return psycopg2.connect(DATABASE_URL)
-
-
-# ================= WHATSAPP =================
-def enviar_whatsapp(numero, mensagem, instance=None, token=None):
-    if not requests or not instance or not token:
-        return
-
-    url = f"https://api.z-api.io/instances/{instance}/token/{token}/send-text"
-
-    try:
-        payload = {
-            "phone": f"55{numero}",
-            "message": mensagem
-        }
-        requests.post(url, json=payload)
-        time.sleep(2)
-    except:
-        pass
 
 
 # ================= LOGIN =================
@@ -90,8 +71,6 @@ def index():
 
     user_id = session["user_id"]
     mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-    busca = request.args.get("busca", "").lower()
-    filtro = request.args.get("filtro", "")
 
     cur.execute("""
         SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
@@ -102,72 +81,7 @@ def index():
         WHERE c.usuario_id=%s
     """, (mes, user_id, user_id))
 
-    dados = cur.fetchall()
-
-    cur.execute("SELECT whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
-    res = cur.fetchone()
-    mensagem = res[0] if res and res[0] else ""
-
-    clientes = []
-    total = recebido = atrasado = emdia = 0
-    alertas = []
-
-    hoje = datetime.now()
-    hoje_mes = hoje.strftime("%Y-%m")
-    hoje_dia = hoje.day
-
-    for c in dados:
-        id, nome, tel, valor, venc, status = c
-
-        valor = float(valor or 0)
-        venc = int(venc or 1)
-
-        if busca and busca not in (nome or "").lower():
-            continue
-
-        if status != "pago":
-            if mes < hoje_mes:
-                status = "atrasado"
-            elif mes == hoje_mes:
-                if hoje_dia > venc:
-                    status = "atrasado"
-                elif hoje_dia == venc:
-                    alertas.append(f"⚠️ {nome} vence hoje")
-                    status = "em_dia"
-                else:
-                    status = "em_dia"
-
-        if status == "atrasado":
-            alertas.append(f"🔴 {nome} atrasado")
-
-        total += valor
-
-        if status == "pago":
-            recebido += valor
-        elif status == "atrasado":
-            atrasado += valor
-        else:
-            emdia += valor
-
-        clientes.append((id, nome, tel, valor, venc, status))
-
-    cur.execute("""
-        SELECT COALESCE(SUM(valor),0)
-        FROM gastos
-        WHERE usuario_id=%s AND mes_ref=%s
-    """, (user_id, mes))
-
-    total_gastos = float(cur.fetchone()[0] or 0)
-    lucro = recebido - total_gastos
-
-    ordem = {"atrasado": 0, "em_dia": 1, "pago": 2}
-
-    if filtro == "nome":
-        clientes.sort(key=lambda x: (x[1] or "").lower())
-    elif filtro == "valor":
-        clientes.sort(key=lambda x: x[3], reverse=True)
-    else:
-        clientes.sort(key=lambda x: ordem.get(x[5], 1))
+    clientes = cur.fetchall()
 
     cur.close()
     conn.close()
@@ -175,94 +89,144 @@ def index():
     return render_template("index.html",
                            clientes=clientes,
                            mes_ref=mes,
-                           busca=busca,
-                           filtro=filtro,
-                           total_geral=total,
-                           total_recebido=recebido,
-                           total_atrasado=atrasado,
-                           total_em_dia=emdia,
-                           total_gastos=total_gastos,
-                           lucro=lucro,
-                           alertas=alertas,
                            usuario=session["usuario"],
-                           mensagem=mensagem)
+                           mensagem="")
+
+
+# ================= ADD CLIENTE =================
+@app.route("/add", methods=["POST"])
+def add():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO clientes (nome, telefone, valor, vencimento_dia, usuario_id)
+        VALUES (%s,%s,%s,%s,%s)
+    """, (
+        request.form.get("nome"),
+        request.form.get("telefone"),
+        request.form.get("valor"),
+        request.form.get("vencimento_dia"),
+        session["user_id"]
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
+
+
+# ================= EDIT CLIENTE =================
+@app.route("/edit/<int:id>", methods=["POST"])
+def edit(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE clientes
+        SET nome=%s, telefone=%s, valor=%s, vencimento_dia=%s
+        WHERE id=%s AND usuario_id=%s
+    """, (
+        request.form.get("nome"),
+        request.form.get("telefone"),
+        request.form.get("valor"),
+        request.form.get("vencimento_dia"),
+        id,
+        session["user_id"]
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
+
+
+# ================= DELETE CLIENTE =================
+@app.route("/delete/<int:id>")
+def delete(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM clientes WHERE id=%s AND usuario_id=%s",
+                (id, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
+
+
+# ================= PAGAMENTO =================
+@app.route("/pago/<int:id>")
+def pago(id):
+    conn = conectar()
+    cur = conn.cursor()
+
+    mes = datetime.now().strftime("%Y-%m")
+
+    cur.execute("""
+        INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
+        VALUES (%s,%s,%s,'pago')
+        ON CONFLICT (cliente_id, mes_ref, usuario_id)
+        DO UPDATE SET status='pago'
+    """, (id, mes, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
+
+
+@app.route("/desfazer/<int:id>")
+def desfazer(id):
+    conn = conectar()
+    cur = conn.cursor()
+
+    mes = datetime.now().strftime("%Y-%m")
+
+    cur.execute("""
+        INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
+        VALUES (%s,%s,%s,'em_dia')
+        ON CONFLICT (cliente_id, mes_ref, usuario_id)
+        DO UPDATE SET status='em_dia'
+    """, (id, mes, session["user_id"]))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
 
 
 # ================= USUÁRIOS =================
 @app.route("/usuarios")
 def usuarios():
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
     if not session.get("is_admin"):
-        return "Acesso negado", 403
+        return "Acesso negado"
 
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("SELECT id, usuario, is_admin, ativo FROM usuarios ORDER BY id DESC")
+    cur.execute("SELECT id, usuario, is_admin, ativo FROM usuarios")
     lista = cur.fetchall()
 
     cur.close()
     conn.close()
 
     return render_template("usuarios.html", usuarios=lista)
-
-
-# ================= CONFIG =================
-@app.route("/config", methods=["GET", "POST"])
-def config():
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    user_id = session["user_id"]
-
-    if request.method == "POST":
-        senha = request.form.get("senha")
-        mensagem = request.form.get("mensagem")
-        usar_whatsapp = True if request.form.get("usar_whatsapp") else False
-        instance = request.form.get("zapi_instance")
-        token = request.form.get("zapi_token")
-
-        if senha:
-            cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
-
-        cur.execute("""
-            UPDATE usuarios
-            SET whatsapp_msg=%s,
-                usar_whatsapp=%s,
-                zapi_instance=%s,
-                zapi_token=%s
-            WHERE id=%s
-        """, (mensagem, usar_whatsapp, instance, token, user_id))
-
-        conn.commit()
-
-    cur.execute("""
-        SELECT usuario, whatsapp_msg, usar_whatsapp, zapi_instance, zapi_token
-        FROM usuarios WHERE id=%s
-    """, (user_id,))
-
-    user = cur.fetchone()
-
-    usuario = user[0]
-    mensagem = user[1] or ""
-    usar_whatsapp = user[2]
-    zapi_instance = user[3] or ""
-    zapi_token = user[4] or ""
-
-    cur.close()
-    conn.close()
-
-    return render_template("config.html",
-                           usuario=usuario,
-                           mensagem=mensagem,
-                           usar_whatsapp=usar_whatsapp,
-                           zapi_instance=zapi_instance,
-                           zapi_token=zapi_token)
 
 
 # ================= START =================
