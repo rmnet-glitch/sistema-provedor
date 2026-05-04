@@ -90,6 +90,65 @@ def usuarios():
 
     return render_template("usuarios.html", usuarios=lista)
 
+# ================== EDIT USUARIO =======
+
+@app.route("/editar_usuario/<int:id>", methods=["POST"])
+def editar_usuario(id):
+    if not session.get("is_admin"):
+        return redirect(url_for("index"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    senha = request.form.get("senha")
+
+    if senha:
+        cur.execute("""
+            UPDATE usuarios
+            SET usuario=%s, senha=%s, is_admin=%s
+            WHERE id=%s
+        """, (
+            request.form["usuario"],
+            senha,
+            request.form["is_admin"] == "true",
+            id
+        ))
+    else:
+        cur.execute("""
+            UPDATE usuarios
+            SET usuario=%s, is_admin=%s
+            WHERE id=%s
+        """, (
+            request.form["usuario"],
+            request.form["is_admin"] == "true",
+            id
+        ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("usuarios"))
+
+# ================ EXCLUIR USUARIO =========
+
+
+@app.route("/delete_usuario/<int:id>")
+def delete_usuario(id):
+    if not session.get("is_admin"):
+        return redirect(url_for("index"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM usuarios WHERE id=%s", (id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("usuarios"))
+
 # ================= GASTOS ======
 
 @app.route("/gastos", methods=["GET", "POST"])
