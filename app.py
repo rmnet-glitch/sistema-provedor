@@ -152,6 +152,32 @@ def config():
 
     conn.commit()
 
+cur.execute("""
+    SELECT usuario, whatsapp_msg, usar_whatsapp, zapi_instance, zapi_token
+    FROM usuarios
+    WHERE id=%s
+""", (user_id,))
+
+user = cur.fetchone()
+
+usuario = user[0]
+mensagem = user[1] or ""
+usar_whatsapp = user[2]
+zapi_instance = user[3] or ""
+zapi_token = user[4] or ""
+
+cur.close()
+conn.close()
+
+return render_template("config.html",
+                       usuario=usuario,
+                       mensagem=mensagem,
+                       usar_whatsapp=usar_whatsapp,
+                       zapi_instance=zapi_instance,
+                       zapi_token=zapi_token)
+
+    conn.commit()
+
         if senha:
             cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
 
