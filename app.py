@@ -155,6 +155,51 @@ def edit(id):
 
     return redirect(url_for("index"))
 
+# ================== ATIVAR API =============
+
+
+@app.route("/ativar_api/<int:id>")
+def ativar_api(id):
+    if not session.get("is_admin"):
+        return redirect(url_for("index"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE usuarios
+        SET plano_whatsapp=TRUE
+        WHERE id=%s
+    """, (id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("usuarios"))
+
+# ================ DESATIVAR API =============
+
+@app.route("/desativar_api/<int:id>")
+def desativar_api(id):
+    if not session.get("is_admin"):
+        return redirect(url_for("index"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE usuarios
+        SET plano_whatsapp=FALSE
+        WHERE id=%s
+    """, (id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("usuarios"))
+
 # ================= CONFIG (BLINDADO) =================
 @app.route("/config", methods=["GET", "POST"])
 def config():
