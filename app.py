@@ -422,6 +422,7 @@ def index():
 
     try:
         user_id = session["user_id"]
+
         mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
         busca = request.args.get("busca", "").lower()
         filtro = request.args.get("filtro", "")
@@ -444,8 +445,8 @@ def index():
         total = recebido = atrasado = emdia = 0
         alertas = []
 
-        hoje = datetime.now().day
-        mes_atual = datetime.now().strftime("%Y-%m")
+        hoje = datetime.now()
+        mes_atual = hoje.strftime("%Y-%m")
 
         ordem = {
             "atrasado": 0,
@@ -453,47 +454,50 @@ def index():
             "pago": 2
         }
 
+        # ================= PROCESSAMENTO =================
         for c in dados:
             cid, nome, tel, valor, venc, status = c
 
             valor = float(valor or 0)
             venc = int(venc or 1)
 
-            # ================= REGRA DE STATUS =================
-            if not status:
-                # se não tem cobrança registrada
+            # ================= REGRA DE STATUS REAL =================
+            if status == "pago":
+                final_status = "pago"
+
+            else:
                 if mes < mes_atual:
-                    status = "atrasado"
+                    final_status = "atrasado"
                 elif mes == mes_atual:
-                    status = "atrasado" if hoje > venc else "em_dia"
+                    final_status = "atrasado" if hoje.day > venc else "em_dia"
                 else:
-                    status = "em_dia"
+                    final_status = "em_dia"
 
             # ================= BUSCA =================
             if busca and busca not in (nome or "").lower():
                 continue
 
             # ================= FILTRO =================
-            if filtro == "atrasado" and status != "atrasado":
+            if filtro == "atrasado" and final_status != "atrasado":
                 continue
 
             # ================= ALERTAS =================
-            if status == "atrasado":
+            if final_status == "atrasado":
                 alertas.append(f"🔴 {nome} está atrasado")
-            elif status == "em_dia" and mes == mes_atual and hoje == venc:
+            elif final_status == "em_dia" and mes == mes_atual and hoje.day == venc:
                 alertas.append(f"⚠️ {nome} vence hoje")
 
             # ================= SOMAS =================
             total += valor
 
-            if status == "pago":
+            if final_status == "pago":
                 recebido += valor
-            elif status == "atrasado":
+            elif final_status == "atrasado":
                 atrasado += valor
             else:
                 emdia += valor
 
-            clientes.append((cid, nome, tel, valor, venc, status))
+            clientes.append((cid, nome, tel, valor, venc, final_status))
 
         # ================= GASTOS =================
         cur.execute("""
@@ -515,7 +519,7 @@ def index():
         res = cur.fetchone()
         mensagem = res[0] if res else ""
 
-        # ================= ORDEM (ATRASADO PRIMEIRO) =================
+        # ================= ORDEM (ATRASADOS PRIMEIRO) =================
         clientes.sort(key=lambda x: ordem.get(x[5], 1))
 
         return render_template(
@@ -539,6 +543,7 @@ def index():
     finally:
         cur.close()
         conn.close()
+
 
 
 # ================= PAGO =================
