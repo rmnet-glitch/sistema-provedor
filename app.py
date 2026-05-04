@@ -390,7 +390,6 @@ def desfazer(id):
 
     return redirect(url_for("index", mes=mes))
 
-
 @app.route("/cobrar/<int:id>")
 def cobrar(id):
     if not session.get("logado"):
@@ -415,6 +414,15 @@ def cobrar(id):
         if usar:
             mensagem = (msg or "").replace("{nome}", nome)
             enviar_whatsapp(tel, mensagem, instance, token)
+
+            # ⚠️ OPCIONAL: registrar envio manual (sem bloquear automático)
+            cur.execute("""
+                INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
+                VALUES (%s,%s,%s,'manual')
+                ON CONFLICT DO NOTHING
+            """, (id, datetime.now().strftime("%Y-%m"), session["user_id"]))
+
+            conn.commit()
 
     cur.close()
     conn.close()
