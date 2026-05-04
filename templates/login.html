@@ -28,24 +28,51 @@ body{
 }
 
 .logo{
-    font-size:28px;
+    font-size:30px;
     font-weight:bold;
-    margin-bottom:10px;
 }
 
 .logo span{
     color:#3b82f6;
 }
 
-.subtitle{
+.slogan{
     font-size:14px;
+    margin-top:5px;
     opacity:0.9;
-    margin-bottom:20px;
+}
+
+.price{
+    margin-top:15px;
+    font-size:13px;
+    background:#1e293b;
+    padding:8px;
+    border-radius:6px;
+    display:inline-block;
 }
 
 .feature{
     margin-top:10px;
     font-size:13px;
+}
+
+.cta{
+    margin-top:20px;
+}
+
+.cta button{
+    background:#22c55e;
+    border:none;
+    padding:10px;
+    border-radius:6px;
+    color:#fff;
+    font-weight:bold;
+    cursor:pointer;
+    width:200px;
+}
+
+.cta button:hover{
+    background:#16a34a;
 }
 
 /* ⚪ LADO LOGIN */
@@ -122,14 +149,24 @@ button:hover{
 
 <div class="logo">RM <span>Gestão</span></div>
 
-<div class="subtitle">
-Sistema completo para controle financeiro e cobrança de clientes.
+<div class="slogan">
+Controle total do seu negócio em um só lugar
+</div>
+
+<div class="price">
+💰 Planos a partir de R$29/mês
 </div>
 
 <div class="feature">✔ Gestão de clientes</div>
 <div class="feature">✔ Controle de pagamentos</div>
 <div class="feature">✔ Cobrança automática via WhatsApp</div>
 <div class="feature">✔ Relatórios e lucro em tempo real</div>
+
+<div class="cta">
+<button onclick="alert('Entre em contato para solicitar acesso')">
+🚀 Solicitar acesso
+</button>
+</div>
 
 </div>
 
