@@ -24,6 +24,8 @@ font-size:12px;
 .excluir{background:#dc3545;}
 .admin{background:#007bff;}
 .salvar{background:#17a2b8;}
+.api-on{background:#28a745;}
+.api-off{background:#dc3545;}
 
 input, select{padding:5px;margin-top:5px;width:100%;font-size:12px;}
 .hidden{display:none;}
@@ -34,7 +36,7 @@ input, select{padding:5px;margin-top:5px;width:100%;font-size:12px;}
 
 <h3>👥 Usuários</h3>
 
-<!-- ✅ CORRIGIDO -->
+<!-- Voltar -->
 <a href="{{ url_for('index') }}">
 <button>⬅ Voltar</button>
 </a>
@@ -60,6 +62,7 @@ input, select{padding:5px;margin-top:5px;width:100%;font-size:12px;}
 
 <div class="card">
 
+<!-- VISUAL -->
 <div id="view{{u[0]}}">
 <b>👤 {{u[1]}}</b><br>
 
@@ -78,14 +81,24 @@ Admin
 {% else %}
 Usuário
 {% endif %}
+
+<br><br>
+
+<!-- 🔥 NOVO: STATUS API -->
+API WhatsApp:
+{% if u[4] %}
+<span style="color:green;">Liberada</span>
+{% else %}
+<span style="color:red;">Bloqueada</span>
+{% endif %}
+
 </div>
 
+<!-- EDIT -->
 <div id="edit{{u[0]}}" class="hidden">
 <form action="/editar_usuario/{{u[0]}}" method="post">
 
 <input name="usuario" value="{{u[1]}}" required>
-
-<!-- ✅ NOVO CAMPO SENHA -->
 <input name="senha" placeholder="Nova senha (opcional)">
 
 <select name="is_admin">
@@ -97,6 +110,7 @@ Usuário
 </form>
 </div>
 
+<!-- AÇÕES -->
 <div class="actions">
 
 <button onclick="toggleEdit({{u[0]}})" class="admin">✏ Editar</button>
@@ -108,6 +122,17 @@ Usuário
 {% else %}
 <a href="/desativar_usuario/{{u[0]}}">
 <button class="desativar">Desativar</button>
+</a>
+{% endif %}
+
+<!-- 🔥 NOVO: API WHATSAPP -->
+{% if u[4] %}
+<a href="/desativar_api/{{u[0]}}">
+<button class="api-off">🔒 Bloquear API</button>
+</a>
+{% else %}
+<a href="/ativar_api/{{u[0]}}">
+<button class="api-on">🔓 Liberar API</button>
 </a>
 {% endif %}
 
