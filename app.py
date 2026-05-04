@@ -62,7 +62,21 @@ def usuarios():
     if not session.get("is_admin"):
         return redirect(url_for("index"))
 
-    return render_template("usuarios.html")
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT id, usuario, is_admin, ativo
+        FROM usuarios
+        ORDER BY id DESC
+    """)
+
+    lista = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template("usuarios.html", usuarios=lista)
 
 
 # ================= CONFIG =================
