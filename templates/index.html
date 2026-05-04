@@ -53,7 +53,11 @@ background:#fff3cd;padding:10px;border-radius:8px;margin-bottom:10px;font-size:1
 
 <div style="display:flex; gap:5px; flex-wrap:wrap;">
 
+<!-- 🔥 SOMENTE ADMIN -->
+{% if session.is_admin %}
 <a href="/usuarios"><button style="background:#007bff;color:#fff">👥 Usuários</button></a>
+{% endif %}
+
 <a href="/gastos"><button style="background:#ffc107">💸 Gastos</button></a>
 <a href="/config"><button style="background:#6c757d;color:#fff">⚙️</button></a>
 <a href="/logout"><button style="background:#dc3545;color:#fff">🚪 Sair</button></a>
@@ -152,7 +156,6 @@ href="https://wa.me/55{{c[2]}}?text={{ mensagem | urlencode }}">
 
 </div>
 
-<!-- 🔧 SÓ CORRIGIDO AQUI (NOT FOUND FIX) -->
 <div id="e{{c[0]}}" class="hidden">
 <form action="/edit/{{c[0]}}?mes={{mes_ref}}" method="post">
 <input name="nome" value="{{c[1]}}" required>
