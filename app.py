@@ -413,10 +413,17 @@ def index():
         clientes = []
         total = recebido = atrasado = emdia = 0
         alertas = []
-
+ordem = {
+    "atrasado": 0,
+    "em_dia": 1,
+    "pago": 2
+}
         for c in dados:
             cid, nome, tel, valor, venc, status = c
 
+# 🔴 FILTRO SOMENTE ATRASADOS
+if filtro == "atrasado" and status != "atrasado":
+    continue
             valor = float(valor or 0)
 
             total += valor
@@ -442,7 +449,7 @@ def index():
         cur.execute("SELECT whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
         res = cur.fetchone()
         mensagem = res[0] if res else ""
-
+clientes.sort(key=lambda x: ordem.get(x[5], 1))
         return render_template(
             "index.html",
             clientes=clientes,
