@@ -194,10 +194,10 @@ def config():
             plano_whatsapp=plano_whatsapp
         )
 
-    except Exception as e:
+    
+except Exception as e:
     print("ERRO CONFIG:", str(e))
     return f"Erro real: {str(e)}", 500
-
     finally:
         cur.close()
         conn.close()
