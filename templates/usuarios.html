@@ -23,10 +23,9 @@ font-size:12px;
 .desativar{background:#ffc107;color:#000;}
 .excluir{background:#dc3545;}
 .admin{background:#007bff;}
-.reset{background:#6f42c1;}
 .salvar{background:#17a2b8;}
 
-input{padding:5px;margin-top:5px;width:100%;font-size:12px;}
+input, select{padding:5px;margin-top:5px;width:100%;font-size:12px;}
 .hidden{display:none;}
 </style>
 </head>
@@ -35,30 +34,32 @@ input{padding:5px;margin-top:5px;width:100%;font-size:12px;}
 
 <h3>👥 Usuários</h3>
 
-<a href="/"><button>⬅ Voltar</button></a>
+<!-- ✅ CORRIGIDO -->
+<a href="{{ url_for('index') }}">
+<button>⬅ Voltar</button>
+</a>
 
 <hr>
 
-<!-- ✅ CRIAR USUÁRIO -->
 <h4>➕ Novo Usuário</h4>
 <form action="/criar_usuario" method="post">
 <input name="usuario" placeholder="Usuário" required>
 <input name="senha" placeholder="Senha" required>
+
 <select name="is_admin">
 <option value="false">Usuário</option>
 <option value="true">Admin</option>
 </select>
+
 <button class="admin">Criar</button>
 </form>
 
 <hr>
 
-<!-- ✅ LISTA -->
 {% for u in usuarios %}
 
 <div class="card">
 
-<!-- VISUAL -->
 <div id="view{{u[0]}}">
 <b>👤 {{u[1]}}</b><br>
 
@@ -79,10 +80,13 @@ Usuário
 {% endif %}
 </div>
 
-<!-- EDIT -->
 <div id="edit{{u[0]}}" class="hidden">
 <form action="/editar_usuario/{{u[0]}}" method="post">
+
 <input name="usuario" value="{{u[1]}}" required>
+
+<!-- ✅ NOVO CAMPO SENHA -->
+<input name="senha" placeholder="Nova senha (opcional)">
 
 <select name="is_admin">
 <option value="false" {% if not u[2] %}selected{% endif %}>Usuário</option>
@@ -106,10 +110,6 @@ Usuário
 <button class="desativar">Desativar</button>
 </a>
 {% endif %}
-
-<a href="/reset_senha/{{u[0]}}">
-<button class="reset">🔑 Reset</button>
-</a>
 
 <a href="/delete_usuario/{{u[0]}}">
 <button class="excluir">Excluir</button>
