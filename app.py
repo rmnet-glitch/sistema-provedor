@@ -198,30 +198,56 @@ def config():
     user_id = session["user_id"]
 
     if request.method == "POST":
+
         senha = request.form.get("senha")
         mensagem = request.form.get("mensagem")
+        usar_whatsapp = True if request.form.get("usar_whatsapp") else False
+        zapi_instance = request.form.get("zapi_instance")
+        zapi_token = request.form.get("zapi_token")
 
         if senha:
             cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
 
-        try:
+        if mensagem is not None:
             cur.execute("UPDATE usuarios SET whatsapp_msg=%s WHERE id=%s", (mensagem, user_id))
+
+        # 🔥 NOVOS CAMPOS
+        try:
+            cur.execute("""
+                UPDATE usuarios
+                SET usar_whatsapp=%s,
+                    zapi_instance=%s,
+                    zapi_token=%s
+                WHERE id=%s
+            """, (usar_whatsapp, zapi_instance, zapi_token, user_id))
         except:
             pass
 
         conn.commit()
 
-    cur.execute("SELECT usuario, whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
+    cur.execute("""
+        SELECT usuario, whatsapp_msg, usar_whatsapp, zapi_instance, zapi_token
+        FROM usuarios
+        WHERE id=%s
+    """, (user_id,))
+
     user = cur.fetchone()
 
     usuario = user[0]
-    mensagem = user[1] if user and user[1] else ""
+    mensagem = user[1] or ""
+    usar_whatsapp = user[2] if len(user) > 2 else False
+    zapi_instance = user[3] if len(user) > 3 else ""
+    zapi_token = user[4] if len(user) > 4 else ""
 
     cur.close()
     conn.close()
 
-    return render_template("config.html", usuario=usuario, mensagem=mensagem)
-
+    return render_template("config.html",
+                           usuario=usuario,
+                           mensagem=mensagem,
+                           usar_whatsapp=usar_whatsapp,
+                           zapi_instance=zapi_instance,
+                           zapi_token=zapi_token)
 
 # ================= INDEX =================
 @app.route("/")
