@@ -79,13 +79,83 @@ def usuarios():
     return render_template("usuarios.html", usuarios=lista)
 
 
+# ================= USUÁRIOS - CRUD =================
+
+@app.route("/criar_usuario", methods=["POST"])
+def criar_usuario():
+    if not session.get("is_admin"):
+        return "Acesso negado", 403
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO usuarios (usuario, senha, is_admin, ativo)
+        VALUES (%s,%s,%s,true)
+    """, (
+        request.form.get("usuario"),
+        request.form.get("senha"),
+        request.form.get("is_admin") == "true"
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/usuarios")
+
+
+@app.route("/editar_usuario/<int:id>", methods=["POST"])
+def editar_usuario(id):
+    if not session.get("is_admin"):
+        return "Acesso negado", 403
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE usuarios
+        SET usuario=%s,
+            is_admin=%s
+        WHERE id=%s
+    """, (
+        request.form.get("usuario"),
+        request.form.get("is_admin") == "true",
+        id
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/usuarios")
+
+
+@app.route("/reset_senha/<int:id>")
+def reset_senha(id):
+    if not session.get("is_admin"):
+        return "Acesso negado", 403
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE usuarios
+        SET senha=%s
+        WHERE id=%s
+    """, ("123456", id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect("/usuarios")
+
+
 # ================= USUÁRIOS - AÇÕES =================
 
 @app.route("/ativar_usuario/<int:id>")
 def ativar_usuario(id):
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
     if not session.get("is_admin"):
         return "Acesso negado", 403
 
@@ -98,25 +168,21 @@ def ativar_usuario(id):
     cur.close()
     conn.close()
 
-    return redirect(url_for("usuarios"))
+    return redirect("/usuarios")
 
 
 @app.route("/desativar_usuario/<int:id>")
 def desativar_usuario(id):
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
     if not session.get("is_admin"):
         return "Acesso negado", 403
 
     conn = conectar()
     cur = conn.cursor()
 
-    # 🔒 VERIFICA SE É ADMIN
     cur.execute("SELECT is_admin FROM usuarios WHERE id=%s", (id,))
     user = cur.fetchone()
 
-    if user and user[0]:  # é admin
+    if user and user[0]:
         cur.close()
         conn.close()
         return "Não pode desativar o admin principal", 400
@@ -127,25 +193,20 @@ def desativar_usuario(id):
     cur.close()
     conn.close()
 
-    return redirect(url_for("usuarios"))
+    return redirect("/usuarios")
 
 
 @app.route("/delete_usuario/<int:id>")
 def delete_usuario(id):
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
     if not session.get("is_admin"):
         return "Acesso negado", 403
 
-    # 🔒 NÃO DELETAR A SI MESMO
     if id == session["user_id"]:
         return "Não pode excluir seu próprio usuário", 400
 
     conn = conectar()
     cur = conn.cursor()
 
-    # 🔒 NÃO DELETAR ADMIN
     cur.execute("SELECT is_admin FROM usuarios WHERE id=%s", (id,))
     user = cur.fetchone()
 
@@ -160,7 +221,7 @@ def delete_usuario(id):
     cur.close()
     conn.close()
 
-    return redirect(url_for("usuarios"))
+    return redirect("/usuarios")
 
 
 # ================= CONFIG =================
@@ -197,120 +258,7 @@ def config():
     cur.close()
     conn.close()
 
-    return render_template("config.html",
-                           usuario=usuario,
-                           mensagem=mensagem)
-
-
-# ================= INDEX =================
-@app.route("/")
-def index():
-    if not session.get("logado"):
-        return redirect(url_for("login"))
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    user_id = session["user_id"]
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-    busca = request.args.get("busca", "").lower()
-    filtro = request.args.get("filtro", "")
-
-    cur.execute("""
-        SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
-               COALESCE(cb.status,'em_dia')
-        FROM clientes c
-        LEFT JOIN cobrancas cb
-        ON c.id=cb.cliente_id AND cb.mes_ref=%s AND cb.usuario_id=%s
-        WHERE c.usuario_id=%s
-    """, (mes, user_id, user_id))
-
-    dados = cur.fetchall()
-
-    cur.execute("SELECT whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
-    res = cur.fetchone()
-    mensagem = res[0] if res and res[0] else ""
-
-    clientes = []
-    total = recebido = atrasado = emdia = 0
-    alertas = []
-
-    hoje = datetime.now()
-    hoje_mes = hoje.strftime("%Y-%m")
-    hoje_dia = hoje.day
-
-    for c in dados:
-        id, nome, tel, valor, venc, status = c
-
-        valor = float(valor or 0)
-        venc = int(venc or 1)
-
-        if busca and busca not in (nome or "").lower():
-            continue
-
-        if status != "pago":
-            if mes < hoje_mes:
-                status = "atrasado"
-            elif mes == hoje_mes:
-                if hoje_dia > venc:
-                    status = "atrasado"
-                elif hoje_dia == venc:
-                    alertas.append(f"⚠️ {nome} vence hoje")
-                    status = "em_dia"
-                else:
-                    status = "em_dia"
-            else:
-                status = "em_dia"
-
-        if status == "atrasado":
-            alertas.append(f"🔴 {nome} atrasado")
-
-        total += valor
-
-        if status == "pago":
-            recebido += valor
-        elif status == "atrasado":
-            atrasado += valor
-        else:
-            emdia += valor
-
-        clientes.append((id, nome, tel, valor, venc, status))
-
-    cur.execute("""
-        SELECT COALESCE(SUM(valor),0)
-        FROM gastos
-        WHERE usuario_id=%s AND mes_ref=%s
-    """, (user_id, mes))
-
-    total_gastos = float(cur.fetchone()[0] or 0)
-    lucro = recebido - total_gastos
-
-    ordem = {"atrasado": 0, "em_dia": 1, "pago": 2}
-
-    if filtro == "nome":
-        clientes.sort(key=lambda x: (x[1] or "").lower())
-    elif filtro == "valor":
-        clientes.sort(key=lambda x: x[3], reverse=True)
-    else:
-        clientes.sort(key=lambda x: ordem.get(x[5], 1))
-
-    cur.close()
-    conn.close()
-
-    return render_template("index.html",
-                           clientes=clientes,
-                           mes_ref=mes,
-                           busca=busca,
-                           filtro=filtro,
-                           total_geral=total,
-                           total_recebido=recebido,
-                           total_atrasado=atrasado,
-                           total_em_dia=emdia,
-                           total_gastos=total_gastos,
-                           lucro=lucro,
-                           alertas=alertas,
-                           usuario=session["usuario"],
-                           mensagem=mensagem)
+    return render_template("config.html", usuario=usuario, mensagem=mensagem)
 
 
 # ================= START =================
