@@ -2,6 +2,7 @@ import os
 from flask import Flask, render_template, request, redirect, session, url_for
 import psycopg2
 from datetime import datetime
+from whatsapp_service import enviar_whatsapp
 
 app = Flask(__name__)
 app.secret_key = "segredo"
