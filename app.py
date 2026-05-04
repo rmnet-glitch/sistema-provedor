@@ -131,8 +131,26 @@ def config():
     user_id = session["user_id"]
 
     if request.method == "POST":
-        senha = request.form.get("senha")
-        mensagem = request.form.get("mensagem")
+    senha = request.form.get("senha")
+    mensagem = request.form.get("mensagem")
+
+    usar_whatsapp = True if request.form.get("usar_whatsapp") else False
+    instance = request.form.get("zapi_instance")
+    token = request.form.get("zapi_token")
+
+    if senha:
+        cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
+
+    cur.execute("""
+        UPDATE usuarios 
+        SET whatsapp_msg=%s,
+            usar_whatsapp=%s,
+            zapi_instance=%s,
+            zapi_token=%s
+        WHERE id=%s
+    """, (mensagem, usar_whatsapp, instance, token, user_id))
+
+    conn.commit()
 
         if senha:
             cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
