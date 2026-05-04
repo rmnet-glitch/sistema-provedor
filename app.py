@@ -168,12 +168,24 @@ def index():
             cid, nome, tel, valor, venc, status = c
             clientes.append((cid, nome, tel, float(valor or 0), venc, status))
 
-        return render_template(
-            "index.html",
-            clientes=clientes,
-            usuario=session["usuario"]
-        )
-
+        
+return render_template(
+    "index.html",
+    clientes=clientes,
+    mes_ref=mes,
+    busca=busca,
+    filtro=filtro,
+    total_geral=total,
+    total_recebido=recebido,
+    total_atrasado=atrasado,
+    total_em_dia=emdia,
+    total_gastos=total_gastos,
+    lucro=lucro,
+    alertas=alertas,
+    usuario=session.get("usuario"),
+    mensagem=mensagem,
+    session=session
+)
     finally:
         cur.close()
         conn.close()
