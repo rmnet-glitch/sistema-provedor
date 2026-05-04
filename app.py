@@ -2,8 +2,13 @@ import os
 from flask import Flask, render_template, request, redirect, session, url_for
 import psycopg2
 from datetime import datetime
-import requests
 import time
+
+# ✅ IMPORT SEGURO
+try:
+    import requests
+except:
+    requests = None
 
 app = Flask(__name__)
 app.secret_key = "segredo"
@@ -14,6 +19,10 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 ZAPI_URL = "https://api.z-api.io/instances/SUA_INSTANCIA/token/SEU_TOKEN/send-text"
 
 def enviar_whatsapp(numero, mensagem):
+    if not requests:
+        print("requests não instalado - envio WhatsApp desativado")
+        return
+
     try:
         payload = {
             "phone": f"55{numero}",
@@ -21,8 +30,8 @@ def enviar_whatsapp(numero, mensagem):
         }
         requests.post(ZAPI_URL, json=payload)
         time.sleep(2)
-    except:
-        pass
+    except Exception as e:
+        print("Erro WhatsApp:", e)
 
 
 # ================= CONEXÃO =================
@@ -128,7 +137,6 @@ def editar_usuario(id):
     senha = request.form.get("senha")
     is_admin = request.form.get("is_admin") == "true"
 
-    # proteção: não remover admin de si mesmo
     if id == session["user_id"] and not is_admin:
         cur.close()
         conn.close()
@@ -258,9 +266,7 @@ def config():
     cur.close()
     conn.close()
 
-    return render_template("config.html",
-                           usuario=usuario,
-                           mensagem=mensagem)
+    return render_template("config.html", usuario=usuario, mensagem=mensagem)
 
 
 # ================= START =================
