@@ -80,6 +80,7 @@ def usuarios():
 
 
 # ================= ATIVAR USUÁRIO =================
+
 @app.route("/ativar_usuario/<int:id>")
 def ativar_usuario(id):
     if not session.get("logado") or not session.get("is_admin"):
@@ -96,12 +97,15 @@ def ativar_usuario(id):
 
     return redirect(url_for("usuarios"))
 
-
 # ================= DESATIVAR USUÁRIO =================
 @app.route("/desativar_usuario/<int:id>")
 def desativar_usuario(id):
     if not session.get("logado") or not session.get("is_admin"):
         return redirect(url_for("index"))
+
+    # 🚫 BLOQUEIO: não pode desativar a si mesmo
+    if id == session.get("user_id"):
+        return redirect(url_for("usuarios"))
 
     conn = conectar()
     cur = conn.cursor()
