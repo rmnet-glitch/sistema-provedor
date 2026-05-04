@@ -163,121 +163,79 @@ def index():
                            mensagem=mensagem)
 
 
-# ================= ADD CLIENTE (CORREÇÃO PRINCIPAL) =================
-@app.route("/add", methods=["POST"])
-def add():
+# ================= GASTOS =================
+@app.route("/gastos")
+def gastos():
     if not session.get("logado"):
         return redirect(url_for("login"))
 
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("""
-        INSERT INTO clientes (nome, telefone, valor, vencimento_dia, usuario_id)
-        VALUES (%s,%s,%s,%s,%s)
-    """, (
-        request.form.get("nome"),
-        request.form.get("telefone"),
-        request.form.get("valor"),
-        request.form.get("vencimento_dia"),
-        session["user_id"]
-    ))
+    user_id = session["user_id"]
+    mes = datetime.now().strftime("%Y-%m")
 
-    conn.commit()
+    cur.execute("""
+        SELECT id, descricao, material, valor
+        FROM gastos
+        WHERE usuario_id=%s AND mes_ref=%s
+    """, (user_id, mes))
+
+    lista = cur.fetchall()
+
     cur.close()
     conn.close()
 
-    return redirect(url_for("index"))
+    return render_template("gastos.html", gastos=lista)
 
 
-# ================= EDIT =================
-@app.route("/edit/<int:id>", methods=["POST"])
-def edit(id):
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+# ================= CONFIG =================
+@app.route("/config", methods=["GET", "POST"])
+def config():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
 
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("""
-        UPDATE clientes
-        SET nome=%s, telefone=%s, valor=%s, vencimento_dia=%s
-        WHERE id=%s AND usuario_id=%s
-    """, (
-        request.form.get("nome"),
-        request.form.get("telefone"),
-        request.form.get("valor"),
-        request.form.get("vencimento_dia"),
-        id,
-        session["user_id"]
-    ))
+    user_id = session["user_id"]
 
-    conn.commit()
+    if request.method == "POST":
+        senha = request.form.get("senha")
+
+        if senha:
+            cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s",
+                        (senha, user_id))
+            conn.commit()
+
+    cur.execute("SELECT usuario FROM usuarios WHERE id=%s", (user_id,))
+    usuario = cur.fetchone()[0]
+
     cur.close()
     conn.close()
 
-    return redirect(url_for("index", mes=mes))
+    return render_template("config.html", usuario=usuario)
 
 
-# ================= DELETE =================
-@app.route("/delete/<int:id>")
-def delete(id):
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+# ================= USUÁRIOS =================
+@app.route("/usuarios")
+def usuarios():
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin"):
+        return "Acesso negado", 403
 
     conn = conectar()
     cur = conn.cursor()
 
-    cur.execute("DELETE FROM clientes WHERE id=%s AND usuario_id=%s",
-                (id, session["user_id"]))
+    cur.execute("SELECT id, usuario, is_admin, ativo FROM usuarios")
+    lista = cur.fetchall()
 
-    conn.commit()
     cur.close()
     conn.close()
 
-    return redirect(url_for("index", mes=mes))
-
-
-# ================= PAGO =================
-@app.route("/pago/<int:id>")
-def pago(id):
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
-        VALUES (%s,%s,%s,'pago')
-        ON CONFLICT (cliente_id, mes_ref, usuario_id)
-        DO UPDATE SET status='pago'
-    """, (id, mes, session["user_id"]))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index", mes=mes))
-
-
-# ================= DESFAZER =================
-@app.route("/desfazer/<int:id>")
-def desfazer(id):
-    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
-        VALUES (%s,%s,%s,'em_dia')
-        ON CONFLICT (cliente_id, mes_ref, usuario_id)
-        DO UPDATE SET status='em_dia'
-    """, (id, mes, session["user_id"]))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return redirect(url_for("index", mes=mes))
+    return render_template("usuarios.html", usuarios=lista)
 
 
 # ================= START =================
