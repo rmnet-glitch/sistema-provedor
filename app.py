@@ -90,8 +90,8 @@ def usuarios():
 
     return render_template("usuarios.html", usuarios=lista)
 
-@app.route("/criar_usuario", methods=["POST"])
-def criar_usuario():
+@app.route("/add", methods=["POST"])
+def add():
     if not session.get("is_admin"):
         return redirect(url_for("index"))
 
