@@ -391,6 +391,36 @@ def desfazer(id):
     return redirect(url_for("index", mes=mes))
 
 
+@app.route("/cobrar/<int:id>")
+def cobrar(id):
+    if not session.get("logado"):
+        return redirect(url_for("login"))
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT c.nome, c.telefone,
+               u.whatsapp_msg, u.zapi_instance, u.zapi_token, u.usar_whatsapp
+        FROM clientes c
+        JOIN usuarios u ON c.usuario_id = u.id
+        WHERE c.id=%s AND c.usuario_id=%s
+    """, (id, session["user_id"]))
+
+    res = cur.fetchone()
+
+    if res:
+        nome, tel, msg, instance, token, usar = res
+
+        if usar:
+            mensagem = (msg or "").replace("{nome}", nome)
+            enviar_whatsapp(tel, mensagem, instance, token)
+
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
+
 # ================= GASTOS =================
 @app.route("/gastos", methods=["GET", "POST"])
 def gastos():
