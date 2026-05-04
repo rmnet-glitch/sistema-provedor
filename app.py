@@ -90,6 +90,32 @@ def usuarios():
 
     return render_template("usuarios.html", usuarios=lista)
 
+@app.route("/criar_usuario", methods=["POST"])
+def criar_usuario():
+    if not session.get("is_admin"):
+        return redirect(url_for("index"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        usuario = request.form.get("usuario")
+        senha = request.form.get("senha")
+        is_admin = request.form.get("is_admin") == "true"
+
+        cur.execute("""
+            INSERT INTO usuarios (usuario, senha, is_admin, ativo, plano_whatsapp)
+            VALUES (%s, %s, %s, TRUE, FALSE)
+        """, (usuario, senha, is_admin))
+
+        conn.commit()
+
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for("usuarios"))
+
 # ================== EDIT USUARIO =======
 
 @app.route("/editar_usuario/<int:id>", methods=["POST"])
