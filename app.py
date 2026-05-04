@@ -2,12 +2,6 @@ import os
 from flask import Flask, render_template, request, redirect, session, url_for
 import psycopg2
 from datetime import datetime
-import time
-
-try:
-    import requests
-except:
-    requests = None
 
 app = Flask(__name__)
 app.secret_key = "segredo"
@@ -71,6 +65,8 @@ def index():
 
     user_id = session["user_id"]
     mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+    busca = request.args.get("busca", "").lower()
+    filtro = request.args.get("filtro", "")
 
     cur.execute("""
         SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
@@ -81,7 +77,72 @@ def index():
         WHERE c.usuario_id=%s
     """, (mes, user_id, user_id))
 
-    clientes = cur.fetchall()
+    dados = cur.fetchall()
+
+    cur.execute("SELECT whatsapp_msg FROM usuarios WHERE id=%s", (user_id,))
+    res = cur.fetchone()
+    mensagem = res[0] if res and res[0] else ""
+
+    clientes = []
+    total = recebido = atrasado = emdia = 0
+    alertas = []
+
+    hoje = datetime.now()
+    hoje_mes = hoje.strftime("%Y-%m")
+    hoje_dia = hoje.day
+
+    for c in dados:
+        id, nome, tel, valor, venc, status = c
+
+        valor = float(valor or 0)
+        venc = int(venc or 1)
+
+        if busca and busca not in (nome or "").lower():
+            continue
+
+        if status != "pago":
+            if mes < hoje_mes:
+                status = "atrasado"
+            elif mes == hoje_mes:
+                if hoje_dia > venc:
+                    status = "atrasado"
+                elif hoje_dia == venc:
+                    alertas.append(f"⚠️ {nome} vence hoje")
+                    status = "em_dia"
+                else:
+                    status = "em_dia"
+
+        if status == "atrasado":
+            alertas.append(f"🔴 {nome} atrasado")
+
+        total += valor
+
+        if status == "pago":
+            recebido += valor
+        elif status == "atrasado":
+            atrasado += valor
+        else:
+            emdia += valor
+
+        clientes.append((id, nome, tel, valor, venc, status))
+
+    cur.execute("""
+        SELECT COALESCE(SUM(valor),0)
+        FROM gastos
+        WHERE usuario_id=%s AND mes_ref=%s
+    """, (user_id, mes))
+
+    total_gastos = float(cur.fetchone()[0] or 0)
+    lucro = recebido - total_gastos
+
+    ordem = {"atrasado": 0, "em_dia": 1, "pago": 2}
+
+    if filtro == "nome":
+        clientes.sort(key=lambda x: (x[1] or "").lower())
+    elif filtro == "valor":
+        clientes.sort(key=lambda x: x[3], reverse=True)
+    else:
+        clientes.sort(key=lambda x: ordem.get(x[5], 1))
 
     cur.close()
     conn.close()
@@ -89,11 +150,20 @@ def index():
     return render_template("index.html",
                            clientes=clientes,
                            mes_ref=mes,
+                           busca=busca,
+                           filtro=filtro,
+                           total_geral=total,
+                           total_recebido=recebido,
+                           total_atrasado=atrasado,
+                           total_em_dia=emdia,
+                           total_gastos=total_gastos,
+                           lucro=lucro,
+                           alertas=alertas,
                            usuario=session["usuario"],
-                           mensagem="")
+                           mensagem=mensagem)
 
 
-# ================= ADD CLIENTE =================
+# ================= ADD CLIENTE (CORREÇÃO PRINCIPAL) =================
 @app.route("/add", methods=["POST"])
 def add():
     if not session.get("logado"):
@@ -120,11 +190,10 @@ def add():
     return redirect(url_for("index"))
 
 
-# ================= EDIT CLIENTE =================
+# ================= EDIT =================
 @app.route("/edit/<int:id>", methods=["POST"])
 def edit(id):
-    if not session.get("logado"):
-        return redirect(url_for("login"))
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
 
     conn = conectar()
     cur = conn.cursor()
@@ -146,14 +215,13 @@ def edit(id):
     cur.close()
     conn.close()
 
-    return redirect(url_for("index"))
+    return redirect(url_for("index", mes=mes))
 
 
-# ================= DELETE CLIENTE =================
+# ================= DELETE =================
 @app.route("/delete/<int:id>")
 def delete(id):
-    if not session.get("logado"):
-        return redirect(url_for("login"))
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
 
     conn = conectar()
     cur = conn.cursor()
@@ -165,16 +233,16 @@ def delete(id):
     cur.close()
     conn.close()
 
-    return redirect(url_for("index"))
+    return redirect(url_for("index", mes=mes))
 
 
-# ================= PAGAMENTO =================
+# ================= PAGO =================
 @app.route("/pago/<int:id>")
 def pago(id):
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
     conn = conectar()
     cur = conn.cursor()
-
-    mes = datetime.now().strftime("%Y-%m")
 
     cur.execute("""
         INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
@@ -187,15 +255,16 @@ def pago(id):
     cur.close()
     conn.close()
 
-    return redirect(url_for("index"))
+    return redirect(url_for("index", mes=mes))
 
 
+# ================= DESFAZER =================
 @app.route("/desfazer/<int:id>")
 def desfazer(id):
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
     conn = conectar()
     cur = conn.cursor()
-
-    mes = datetime.now().strftime("%Y-%m")
 
     cur.execute("""
         INSERT INTO cobrancas (cliente_id, mes_ref, usuario_id, status)
@@ -208,25 +277,7 @@ def desfazer(id):
     cur.close()
     conn.close()
 
-    return redirect(url_for("index"))
-
-
-# ================= USUÁRIOS =================
-@app.route("/usuarios")
-def usuarios():
-    if not session.get("is_admin"):
-        return "Acesso negado"
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("SELECT id, usuario, is_admin, ativo FROM usuarios")
-    lista = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return render_template("usuarios.html", usuarios=lista)
+    return redirect(url_for("index", mes=mes))
 
 
 # ================= START =================
