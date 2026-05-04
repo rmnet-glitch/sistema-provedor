@@ -12,7 +12,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 def conectar():
     return psycopg2.connect(DATABASE_URL)
 
-================= LOGIN =================
+#================= LOGIN =================
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -51,7 +51,7 @@ def logout():
 session.clear()
 return redirect(url_for("login"))
 
-================= USUÁRIOS =================
+#================= USUÁRIOS =================
 @app.route("/usuarios")
 def usuarios():
     if not session.get("logado"):
@@ -62,7 +62,7 @@ def usuarios():
 
     return render_template("usuarios.html")
 
-================= CONFIG =================
+#================= CONFIG =================
 
 @app.route("/config", methods=["GET", "POST"])
 def config():
@@ -101,7 +101,7 @@ return render_template("config.html",
                        usuario=usuario,  
                        mensagem=mensagem)
 
-================= INDEX =================
+#================= INDEX =================
 
 @app.route("/")
 def index():
@@ -210,7 +210,7 @@ return render_template("index.html",
                        usuario=session["usuario"],  
                        mensagem=mensagem)
 
-================= ROTAS CLIENTES =================
+#================= ROTAS CLIENTES =================
 
 @app.route("/edit/int:id", methods=["POST"])
 def edit(id):
@@ -294,7 +294,7 @@ conn.close()
 
 return redirect(url_for("index", mes=mes))
 
-================= GASTOS =================
+#================= GASTOS =================
 
 @app.route("/gastos", methods=["GET", "POST"])
 def gastos():
