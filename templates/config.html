@@ -6,38 +6,85 @@
 
 <style>
 body{font-family:Arial;background:#f4f6f8;padding:10px;}
+
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:10px;
+}
+
 .box{
-background:#fff;padding:10px;border-radius:8px;
+background:#fff;
+padding:15px;
+border-radius:10px;
+margin-bottom:10px;
 }
-input,button{
-padding:8px;margin:5px 0;width:100%;
+
+input, textarea, button{
+padding:8px;
+margin:5px 0;
+width:100%;
+font-size:14px;
 }
+
+textarea{
+min-height:100px;
+resize:vertical;
+}
+
+.btn{
+border:none;
+border-radius:6px;
+color:#fff;
+}
+
+.salvar{background:#28a745;}
+.voltar{background:#6c757d;color:#fff;padding:6px 10px;width:auto;}
 </style>
 </head>
 
 <body>
 
+<div class="header">
 <h3>⚙️ Configurações</h3>
 
 <a href="{{ url_for('index') }}">
-<button>⬅ Voltar</button>
+<button class="voltar">⬅ Voltar</button>
 </a>
+</div>
 
+<!-- 🔐 SENHA -->
 <div class="box">
-
 <form method="post">
+<h4>🔐 Alterar Senha</h4>
 
-<label>Nova senha:</label>
 <input type="text" name="senha" placeholder="Digite nova senha">
 
-<hr>
+<button class="btn salvar">Salvar senha</button>
+</form>
+</div>
 
-<label>Mensagem WhatsApp:</label>
-<input type="text" name="mensagem" value="{{mensagem}}" placeholder="Mensagem padrão">
+<!-- 📲 WHATSAPP -->
+<div class="box">
+<form method="post">
 
-<hr>
+<h4>📲 Mensagem WhatsApp</h4>
 
-<h4>📲 Integração WhatsApp</h4>
+<textarea name="mensagem" placeholder="Mensagem padrão com emojis 👍">
+{{mensagem}}
+</textarea>
+
+<button class="btn salvar">Salvar mensagem</button>
+
+</form>
+</div>
+
+<!-- 🔌 INTEGRAÇÃO -->
+<div class="box">
+<form method="post">
+
+<h4>🔗 Integração API</h4>
 
 <label>
 <input type="checkbox" name="usar_whatsapp" {% if usar_whatsapp %}checked{% endif %}>
@@ -47,10 +94,9 @@ Ativar envio automático
 <input name="zapi_instance" value="{{zapi_instance}}" placeholder="Instance ID">
 <input name="zapi_token" value="{{zapi_token}}" placeholder="Token API">
 
-<button>Salvar</button>
+<button class="btn salvar">Salvar integração</button>
 
 </form>
-
 </div>
 
 </body>
