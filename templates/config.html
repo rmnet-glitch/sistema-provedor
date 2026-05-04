@@ -83,18 +83,35 @@ color:#fff;
 <!-- 🔌 INTEGRAÇÃO -->
 <div class="box">
 <form method="post">
+{% if not plano_whatsapp %}
+<p style="color:red; font-weight:bold;">
+🚫 Seu plano não inclui automação WhatsApp
+</p>
+{% endif %}
 
 <h4>🔗 Integração API</h4>
 
 <label>
-<input type="checkbox" name="usar_whatsapp" {% if usar_whatsapp %}checked{% endif %}>
+<input type="checkbox" name="usar_whatsapp"
+{% if usar_whatsapp %}checked{% endif %}
+{% if not plano_whatsapp %}disabled{% endif %}>
 Ativar envio automático
 </label>
 
-<input name="zapi_instance" value="{{zapi_instance}}" placeholder="Instance ID">
-<input name="zapi_token" value="{{zapi_token}}" placeholder="Token API">
+<input name="zapi_instance"
+value="{{zapi_instance}}"
+placeholder="Instance ID"
+{% if not plano_whatsapp %}disabled{% endif %}>
 
-<button class="btn salvar">Salvar integração</button>
+<input name="zapi_token"
+value="{{zapi_token}}"
+placeholder="Token API"
+{% if not plano_whatsapp %}disabled{% endif %}>
+
+<button class="btn salvar"
+{% if not plano_whatsapp %}disabled{% endif %}>
+Salvar integração
+</button>
 
 </form>
 </div>
