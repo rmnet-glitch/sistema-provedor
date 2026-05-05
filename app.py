@@ -501,51 +501,49 @@ def index():
         hoje = datetime.now()
         mes_atual = hoje.strftime("%Y-%m")
 
-        for c in dados:
-            cid, nome, tel, valor, venc, status = c
+for c in dados:
+    cid, nome, tel, valor, venc, status = c
 
-            valor = float(valor or 0)
+    valor = float(valor or 0)
 
-            try:
-                venc = int(venc or 1)
-            except:
-                venc = 1
+    try:
+        venc = int(venc or 1)
+    except:
+        venc = 1
 
-            if status == "pago":
-                final_status = "pago"
-            else:
-                if mes < mes_atual:
-                    final_status = "atrasado"
-                elif mes == mes_atual:
-                    final_status = "atrasado" if hoje.day > venc else "em_dia"
-                else:
-                    final_status = "em_dia"
+    if status == "pago":
+        final_status = "pago"
+    else:
+        if mes < mes_atual:
+            final_status = "atrasado"
+        elif mes == mes_atual:
+            final_status = "atrasado" if hoje.day > venc else "em_dia"
+        else:
+            final_status = "em_dia"
 
-            if busca and busca not in (nome or "").lower():
-                continue
+    if busca and busca not in (nome or "").lower():
+        continue
 
-            if filtro == "atrasado" and final_status != "atrasado":
-                continue
+    if filtro == "atrasado" and final_status != "atrasado":
+        continue
 
-            total += valor
+    total += valor
 
-            if final_status == "pago":
-                recebido += valor
-            elif final_status == "atrasado":
-                atrasado += valor
-            else:
-                emdia += valor
+    if final_status == "pago":
+        recebido += valor
+    elif final_status == "atrasado":
+        atrasado += valor
+    else:
+        emdia += valor
 
-    # ================= ALERTAS =================
-if final_status == "atrasado":
-    alertas.append(f"🔴 {nome} está atrasado")
+    # ================= ALERTAS (DENTRO DO FOR) =================
+    if final_status == "atrasado":
+        alertas.append(f"🔴 {nome} está atrasado")
 
-elif final_status == "em_dia" and mes == mes_atual and hoje.day == venc:
-    alertas.append(f"⚠️ {nome} vence hoje")
-## ================= FIM DO ALERTA =============
+    elif final_status == "em_dia" and mes == mes_atual and hoje.day == venc:
+        alertas.append(f"⚠️ {nome} vence hoje")
 
-        clientes.append((cid, nome, tel, valor, venc, final_status))
-
+    clientes.append((cid, nome, tel, valor, venc, final_status))
         clientes.sort(key=lambda x: 0 if x[5] == "atrasado" else 1 if x[5] == "em_dia" else 2)
 
         return render_template(
