@@ -84,16 +84,22 @@ button{
 <hr>
 
 <!-- LISTA -->
+<!-- LISTA DE AVULSOS -->
 {% for a in avulsos %}
 
 <div class="card">
 
-<b>{{a[1]}}</b> <span class="tag">AVULSO</span><br>
+<b>👤 {{ a[1] }} <span class="tag">AVULSO</span></b><br>
 
-📞 {{a[2]}}<br>
-📦 Serviço: {{a[3] or 'Não informado'}}<br>
-💰 R$ {{a[4]}}<br>
-📅 {{a[5] or 'Sem data'}}<br>
+📞 {{ a[2] }}<br>
+💰 R$ {{ a[4] }}<br>
+
+📦 Serviço / Produto: {{ a[3] or 'Não informado' }}<br>
+📅 Data da venda: {{ a[5] or 'Sem data' }}<br>
+
+<a class="btn-danger" href="/delete/{{ a[0] }}">
+🗑 Excluir
+</a>
 
 </div>
 
