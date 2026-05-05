@@ -7,31 +7,50 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
+
 body{
     font-family:Inter;
-    background:#0f172a;
+    background: linear-gradient(135deg, #0f172a, #111827);
     color:#e2e8f0;
     padding:10px;
 }
 
+/* HEADER */
 .header{
     display:flex;
     justify-content:space-between;
+    align-items:center;
     margin-bottom:15px;
 }
 
+/* BOTÕES */
+button{
+    width:100%;
+    padding:8px;
+    margin-top:6px;
+    border-radius:8px;
+    border:none;
+    background:#22c55e;
+    color:#fff;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+button:hover{
+    transform:scale(1.02);
+    opacity:0.9;
+}
+
+/* CARD */
 .card{
     background:#1e293b;
     padding:12px;
-    border-radius:10px;
+    border-radius:12px;
     margin:8px 0;
+    box-shadow:0 0 12px rgba(0,0,0,0.4);
 }
 
-.grid{
-    display:grid;
-    gap:4px;
-}
-
+/* TAG */
 .tag{
     background:#f59e0b;
     color:#000;
@@ -40,34 +59,56 @@ body{
     border-radius:6px;
 }
 
-.small{
-    font-size:12px;
-    opacity:0.8;
-}
-
-input,button{
+/* INPUTS */
+input{
     width:100%;
     padding:8px;
     margin-top:6px;
-    border-radius:6px;
+    border-radius:8px;
     border:none;
+    outline:none;
 }
 
-button{
-    background:#22c55e;
+/* BOTÃO DANGER */
+.btn-danger{
+    background:#ef4444;
+    padding:6px;
+    border-radius:8px;
+    display:inline-block;
+    text-decoration:none;
     color:#fff;
+    margin-top:6px;
 }
+
+/* FORM OCULTO */
+.hidden{
+    display:none;
+}
+
+/* FILTRO */
+.filter-box{
+    margin:10px 0;
+    background:#1e293b;
+    padding:10px;
+    border-radius:10px;
+}
+
 </style>
 </head>
 
 <body>
 
+<!-- HEADER -->
 <div class="header">
 <h3>📦 Avulsos - {{usuario}} ({{mes_ref}})</h3>
 <a href="/"><button>📅 Mensal</button></a>
 </div>
 
-<!-- FORM -->
+<!-- BOTÃO CADASTRAR -->
+<button onclick="toggleForm()">➕ Cadastrar Serviço Avulso</button>
+
+<!-- FORM CADASTRO (HIDDEN) -->
+<div id="formAvulso" class="hidden">
 
 <form action="/add_avulso" method="post">
 
@@ -80,6 +121,11 @@ button{
 
 </form>
 
+</div>
+
+<!-- FILTRO -->
+<div class="filter-box">
+
 <form method="get" action="/avulso">
 
 <input type="month" name="mes" value="{{ mes_ref }}">
@@ -88,10 +134,11 @@ button{
 
 </form>
 
+</div>
+
 <hr>
 
 <!-- LISTA -->
-<!-- LISTA DE AVULSOS -->
 {% for a in avulsos %}
 
 <div class="card">
@@ -103,13 +150,24 @@ button{
 💰 R$ {{ a[3] }}<br>
 📅 Data: {{ a[4] or 'Sem data' }}<br>
 
-<a class="btn btn-danger" href="/delete_avulso/{{ a[0] }}">
+<a class="btn-danger" href="/delete_avulso/{{ a[0] }}">
 🗑 Excluir
 </a>
 
 </div>
 
 {% endfor %}
+
+<script>
+function toggleForm(){
+    let f = document.getElementById("formAvulso");
+    if(f.classList.contains("hidden")){
+        f.classList.remove("hidden");
+    }else{
+        f.classList.add("hidden");
+    }
+}
+</script>
 
 </body>
 </html>
