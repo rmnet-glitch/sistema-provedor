@@ -661,8 +661,8 @@ def avulso():
                 telefone,
                 valor,
                 tipo_cobranca,
-                descricao_servico,
-                data_venda
+                COALESCE(descricao_servico, ''),
+                COALESCE(data_venda, NULL)
             FROM clientes
             WHERE usuario_id = %s
               AND tipo_cobranca = 'avulso'
