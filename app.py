@@ -591,8 +591,16 @@ def index():
         # ✅ lucro real
         lucro = recebido - gasto
 
-        clientes.sort(key=lambda x: 0 if x[5] == "atrasado" else 1 if x[5] == "em_dia" else 2)
+        clientes.sort(key=lambda x: 0 if x[5] ==  "atrasado" else 1 if x[5] == "em_dia" else 2)
+        # 🔹 buscar mensagem do WhatsApp
+        cur.execute("""
+            SELECT whatsapp_msg
+            FROM usuarios
+            WHERE id = %s
+        """, (user_id,))
 
+        msg = cur.fetchone()
+        mensagem = msg[0] if msg else ""
         return render_template(
             "index.html",
             clientes=clientes,
@@ -607,6 +615,7 @@ def index():
             gasto=gasto,
             alertas=alertas,
             usuario=session.get("usuario")
+            mensagem=mensagem
         )
 
     finally:
