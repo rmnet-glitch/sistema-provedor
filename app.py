@@ -615,7 +615,7 @@ def index():
             gasto=gasto,
             alertas=alertas,
             usuario=session.get("usuario")
-            mensagem=mensagem
+            mensagem=mensagem,
         )
 
     finally:
