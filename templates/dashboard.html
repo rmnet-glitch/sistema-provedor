@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+body{
+    font-family:Inter;
+    background:#0f172a;
+    color:#e2e8f0;
+    padding:10px;
+}
+
+.header{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:15px;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+}
+
+.card{
+    background:#1e293b;
+    padding:15px;
+    border-radius:12px;
+    box-shadow:0 0 10px rgba(0,0,0,0.3);
+}
+
+.title{
+    font-size:14px;
+    opacity:0.8;
+}
+
+.value{
+    font-size:22px;
+    font-weight:bold;
+    margin-top:5px;
+}
+
+.mensal{border-left:4px solid #3b82f6;}
+.avulso{border-left:4px solid #f59e0b;}
+.financeiro{border-left:4px solid #22c55e;}
+
+.btn{
+    margin-top:10px;
+    padding:8px;
+    background:#334155;
+    color:#fff;
+    border:none;
+    border-radius:8px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+<h3>📊 Dashboard - {{usuario}}</h3>
+<a href="/"><button class="btn">Voltar</button></a>
+</div>
+
+<div class="grid">
+
+<!-- 📅 MENSAL -->
+<div class="card mensal">
+<div class="title">📅 Clientes Mensais</div>
+<div class="value">{{mensal_total}}</div>
+<div>💰 Total esperado: R$ {{mensal_valor}}</div>
+<div>💵 Recebido mês: R$ {{recebido_mensal}}</div>
+</div>
+
+<!-- 📦 AVULSO -->
+<div class="card avulso">
+<div class="title">📦 Serviços Avulsos</div>
+<div class="value">{{avulso_total}}</div>
+<div>💰 Faturamento: R$ {{avulso_valor}}</div>
+</div>
+
+<!-- 💰 CONSOLIDADO -->
+<div class="card financeiro">
+<div class="title">💰 Faturamento Total</div>
+<div class="value">
+R$ {{mensal_valor + avulso_valor}}
+</div>
+</div>
+
+</div>
+
+</body>
+</html>
