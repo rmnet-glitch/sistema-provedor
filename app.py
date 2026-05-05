@@ -645,8 +645,9 @@ def index():
 
 # ================ AVULSO ================
 
-@app.route("/add_avulso", methods=["POST"])
-def add_avulso():
+
+@app.route("/avulso")
+def avulso():
     if not check_login():
         return redirect(url_for("login"))
 
@@ -655,25 +656,31 @@ def add_avulso():
 
     try:
         cur.execute("""
-            INSERT INTO servicos_avulsos
-            (usuario_id, nome, telefone, descricao_servico, valor, data_venda)
-            VALUES (%s,%s,%s,%s,%s,%s)
-        """, (
-            session["user_id"],
-            request.form.get("nome"),
-            request.form.get("telefone"),
-            request.form.get("descricao_servico"),
-            request.form.get("valor"),
-            request.form.get("data_venda") or datetime.now().date()
-        ))
+            SELECT 
+                id,
+                nome,
+                telefone,
+                descricao_servico,
+                valor,
+                data_venda
+            FROM servicos_avulsos
+            WHERE usuario_id = %s
+            ORDER BY id DESC
+        """, (session["user_id"],))
 
-        conn.commit()
+        avulsos = cur.fetchall()
+
+        return render_template(
+            "avulso.html",
+            avulsos=avulsos,
+            usuario=session.get("usuario")
+        )
 
     finally:
         cur.close()
         conn.close()
 
-    return redirect(url_for("avulso"))
+# ========= LISTAR AVULSO =========
 
 @app.route("/avulso")
 def avulso():
