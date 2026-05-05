@@ -133,13 +133,14 @@ def add_cliente():
     cur = conn.cursor()
 
     cur.execute("""
-        INSERT INTO clientes (nome, telefone, valor, vencimento_dia, usuario_id)
+        INSERT INTO clientes (nome, telefone, valor, vencimento_dia, tipo_cobranca, usuario_id)
         VALUES (%s,%s,%s,%s,%s)
     """, (
         request.form.get("nome"),
         request.form.get("telefone"),
         request.form.get("valor"),
         request.form.get("vencimento_dia"),
+        request.form.get("tipo_cobranca"),
         session["user_id"]
     ))
 
@@ -492,6 +493,7 @@ def config():
         cur.close()
         conn.close()
 
+
 # ================= INDEX =================
 
 @app.route("/")
@@ -509,8 +511,10 @@ def index():
         busca = request.args.get("busca", "").lower()
         filtro = request.args.get("filtro", "")
 
+        # 🔥 ALTERAÇÃO 1: adiciona tipo_cobranca
         cur.execute("""
             SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
+                   c.tipo_cobranca,
                    cb.status
             FROM clientes c
             LEFT JOIN cobrancas cb
@@ -532,7 +536,8 @@ def index():
         mes_atual = hoje.strftime("%Y-%m")
 
         for c in dados:
-            cid, nome, tel, valor, venc, status = c
+            # 🔥 ALTERAÇÃO 2: adiciona tipo_cobranca no unpack
+            cid, nome, tel, valor, venc, tipo_cobranca, status = c
 
             valor = float(valor or 0)
 
@@ -541,15 +546,20 @@ def index():
             except:
                 venc = 1
 
-            if status == "pago":
-                final_status = "pago"
+            # 🔥 ALTERAÇÃO 3: regra avulso vs mensal (NÃO mexe no resto)
+            if tipo_cobranca == "avulso":
+                final_status = status or "em_dia"
+
             else:
-                if mes < mes_atual:
-                    final_status = "atrasado"
-                elif mes == mes_atual:
-                    final_status = "atrasado" if hoje.day > venc else "em_dia"
+                if status == "pago":
+                    final_status = "pago"
                 else:
-                    final_status = "em_dia"
+                    if mes < mes_atual:
+                        final_status = "atrasado"
+                    elif mes == mes_atual:
+                        final_status = "atrasado" if hoje.day > venc else "em_dia"
+                    else:
+                        final_status = "em_dia"
 
             # busca
             if busca and busca not in (nome or "").lower():
@@ -578,7 +588,7 @@ def index():
 
             clientes.append((cid, nome, tel, valor, venc, final_status))
 
-        # ✅ NOVO: buscar gastos reais do mês
+        # gastos
         cur.execute("""
             SELECT COALESCE(SUM(valor), 0)
             FROM gastos
@@ -588,11 +598,11 @@ def index():
 
         gasto = float(cur.fetchone()[0] or 0)
 
-        # ✅ lucro real
         lucro = recebido - gasto
 
-        clientes.sort(key=lambda x: 0 if x[5] ==  "atrasado" else 1 if x[5] == "em_dia" else 2)
-        # 🔹 buscar mensagem do WhatsApp
+        clientes.sort(key=lambda x: 0 if x[5] == "atrasado" else 1 if x[5] == "em_dia" else 2)
+
+        # mensagem whatsapp
         cur.execute("""
             SELECT whatsapp_msg
             FROM usuarios
@@ -601,6 +611,7 @@ def index():
 
         msg = cur.fetchone()
         mensagem = msg[0] if msg else ""
+
         return render_template(
             "index.html",
             clientes=clientes,
@@ -621,7 +632,6 @@ def index():
     finally:
         cur.close()
         conn.close()
-
 
 # ================= PAGO =================
 @app.route("/pago/<int:id>")
