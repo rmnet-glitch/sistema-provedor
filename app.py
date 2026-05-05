@@ -534,39 +534,41 @@ def index():
 
             # alertas
 
-if final_status == "atrasado":
-    alertas.append(f"🔴 {nome} está atrasado")
+try:
+    if final_status == "atrasado":
+        alertas.append(f"🔴 {nome} está atrasado")
 
-elif final_status == "em_dia" and mes == hoje.month and venc == hoje.day:
-    alertas.append(f"⚠️ {nome} vence hoje")
-            total += valor
+    elif final_status == "em_dia" and mes == hoje.month and venc == hoje.day:
+        alertas.append(f"⚠️ {nome} vence hoje")
 
-            if final_status == "pago":
-                recebido += valor
-            elif final_status == "atrasado":
-                atrasado += valor
-            else:
-                emdia += valor
+    total += valor
 
-            clientes.append((cid, nome, tel, valor, venc, final_status))
+    if final_status == "pago":
+        recebido += valor
+    elif final_status == "atrasado":
+        atrasado += valor
+    else:
+        emdia += valor
 
-        clientes.sort(key=lambda x: 0 if x[5] == "atrasado" else 1 if x[5] == "em_dia" else 2)
+    clientes.append((cid, nome, tel, valor, venc, final_status))
 
-        return render_template(
-            "index.html",
-            clientes=clientes,
-            mes_ref=mes,
-            busca=busca,
-            filtro=filtro,
-            total_geral=total,
-            total_recebido=recebido,
-            total_atrasado=atrasado,
-            total_em_dia=emdia,
-            alertas=alertas,
-            usuario=session.get("usuario")
-        )
+    clientes.sort(key=lambda x: 0 if x[5] == "atrasado" else 1 if x[5] == "em_dia" else 2)
 
-    finally:
+    return render_template(
+        "index.html",
+        clientes=clientes,
+        mes_ref=mes,
+        busca=busca,
+        filtro=filtro,
+        total_geral=total,
+        total_recebido=recebido,
+        total_atrasado=atrasado,
+        total_em_dia=emdia,
+        alertas=alertas,
+        usuario=session.get("usuario")
+    )
+
+finally:
         cur.close()
         conn.close()
 
