@@ -1,13 +1,13 @@
-<!-- ================= AVULSO ================= -->
 <!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Clientes Avulsos</title>
+<title>Avulsos</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
+
 body{
     font-family: Inter;
     background:#0f172a;
@@ -18,54 +18,80 @@ body{
 .header{
     display:flex;
     justify-content:space-between;
+    align-items:center;
     margin-bottom:15px;
 }
 
 .card{
     background:#1e293b;
-    padding:10px;
-    margin:6px 0;
+    padding:12px;
+    margin:8px 0;
     border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,0.3);
 }
 
-.actions{
-    display:flex;
-    gap:5px;
+.form{
+    background:#111827;
+    padding:10px;
+    border-radius:10px;
+    margin-bottom:15px;
+}
+
+input, button{
+    width:100%;
+    padding:8px;
     margin-top:6px;
-}
-
-.btn{
-    flex:1;
-    padding:6px;
-    font-size:11px;
     border-radius:6px;
-    color:#fff;
     border:none;
 }
 
-.btn-success{background:#22c55e}
-.btn-info{background:#3b82f6}
-.btn-danger{background:#ef4444}
+button{
+    background:#22c55e;
+    color:#fff;
+    font-weight:bold;
+}
 
-.avulso-tag{
+.btn-danger{
+    background:#ef4444;
+    color:#fff;
+    padding:6px;
+    border-radius:6px;
+    text-decoration:none;
     display:inline-block;
-    padding:2px 6px;
-    font-size:10px;
+    margin-top:6px;
+}
+
+.tag{
+    display:inline-block;
     background:#f59e0b;
     color:#000;
+    padding:2px 6px;
+    font-size:10px;
     border-radius:6px;
 }
+
+.small{
+    font-size:12px;
+    opacity:0.8;
+}
+
+.grid{
+    display:grid;
+    gap:4px;
+}
+
 </style>
 </head>
 
 <body>
 
 <div class="header">
-<h3>📦 Avulsos - {{usuario}}</h3>
+<h3>📦 Avulsos</h3>
 <a href="/"><button>📅 Mensal</button></a>
 </div>
 
-<!-- FORM CADASTRO AVULSO -->
+<!-- FORM -->
+<div class="form">
 
 <form action="/add_cliente" method="post">
 
@@ -82,30 +108,35 @@ body{
 
 </form>
 
+</div>
+
 <hr>
 
+<!-- LISTA -->
 {% for c in clientes %}
 
 {% if c[5] == 'avulso' %}
 
 <div class="card">
 
-<b>{{c[1]}} <span class="avulso-tag">AVULSO</span></b><br>
+<div class="grid">
 
-📞 {{c[2]}}<br>
-💰 {{c[3]}}<br>
+<b>{{c[1]}} <span class="tag">AVULSO</span></b>
 
-<!-- NOVOS CAMPOS FUTUROS -->
-📦 Serviço: {{c[6] if c|length > 6 else 'N/A'}}<br>
-📅 Venda: {{c[7] if c|length > 7 else 'N/A'}}
+<div class="small">📞 {{c[2]}}</div>
+<div>💰 R$ {{c[3]}}</div>
 
-<div class="actions">
+<div class="small">
+📦 Serviço: {{c[6] if c|length > 6 else 'Não informado'}}
+</div>
 
-<a href="/delete/{{c[0]}}">
-<button class="btn btn-danger">🗑 Excluir</button>
-</a>
+<div class="small">
+📅 Data: {{c[7] if c|length > 7 else 'Não informado'}}
+</div>
 
 </div>
+
+<a class="btn-danger" href="/delete/{{c[0]}}">🗑 Excluir</a>
 
 </div>
 
