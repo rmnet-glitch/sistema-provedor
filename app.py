@@ -533,8 +533,6 @@ def index():
                 continue
 
             # alertas
-            
-hoje = hoje_brasil()
 
 if final_status == "atrasado":
     alertas.append(f"🔴 {nome} está atrasado")
