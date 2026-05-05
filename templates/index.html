@@ -13,6 +13,7 @@ body{
     color:#e2e8f0;
     padding:10px;
 }
+
 .header{
     display:flex;
     justify-content:space-between;
@@ -77,34 +78,32 @@ button:hover{
     margin-top:6px;
 }
 
-.actions a {
+.actions a{
     flex:1;
     text-decoration:none;
 }
 
-.actions a button {
+.actions a button{
     width:100%;
 }
 
+/* 🔥 BOTÃO PADRÃO (TODOS IGUAIS) */
 .btn{
-flex:1;
-padding:6px;
-font-size:11px;
-border:none;
-border-radius:6px;
-color:#fff;
-text-align:center;
-display:flex;
-align-items:center;
-justify-content:center;
-gap:4px;
+    width:100%;
+    padding:6px;
+    font-size:11px;
+    border:none;
+    border-radius:6px;
+    color:#fff;
+    text-align:center;
 }
 
+/* garante mesmo tamanho */
 .actions .btn{
-flex:1;
-min-width:0;
+    height:32px;
 }
 
+/* cores */
 .btn-success{background:#22c55e}
 .btn-danger{background:#ef4444}
 .btn-info{background:#3b82f6}
@@ -127,26 +126,33 @@ min-width:0;
 }
 
 .hidden{display:none;}
+
+/* 🔥 TIPO COBRANÇA */
+.tag{
+    font-size:11px;
+    padding:2px 6px;
+    border-radius:5px;
+    margin-left:5px;
+}
+
+.mensal{background:#1d4ed8;}
+.avulso{background:#f59e0b; color:#000;}
+
 </style>
 </head>
 
 <body>
 
 <div class="header">
-
 <h3>👤 {{usuario}}</h3>
 
 <div style="display:flex; gap:5px; flex-wrap:wrap;">
-
-<!-- 🔥 SOMENTE ADMIN -->
 {% if session.get('is_admin') %}
 <a href="/usuarios"><button style="background:#007bff;color:#fff">👥 Usuários</button></a>
 {% endif %}
-
 <a href="/gastos"><button style="background:#ffc107">💸 Gastos</button></a>
 <a href="/config"><button style="background:#6c757d;color:#fff">⚙️</button></a>
 <a href="/logout"><button style="background:#dc3545;color:#fff">🚪 Sair</button></a>
-
 </div>
 </div>
 
@@ -174,9 +180,7 @@ min-width:0;
 
 💸 Gastos: {{ "%.2f"|format(gasto) }}<br>
 
-<b style="color:green">
-💰 Lucro: {{lucro}}
-</b>
+<b style="color:green">💰 Lucro: {{lucro}}</b>
 </div>
 
 {% if alertas %}
@@ -208,7 +212,14 @@ min-width:0;
 
 <b {% if c[5]=='atrasado' %}style="color:red"{% endif %}>
 👤 {{c[1]}}
-</b><br>
+</b>
+
+<!-- 🔥 TIPO DE COBRANÇA -->
+<span class="tag {{c[6]}}">
+{{c[6]}}
+</span>
+
+<br>
 
 📞 {{c[2]}}<br>
 💰 R$ {{c[3]}} | 📅 Dia {{c[4]}} | ⚡ {{c[5]}}
