@@ -682,6 +682,37 @@ def avulso():
         cur.close()
         conn.close()
 
+# ================ ADD AVULSO ============
+
+@app.route("/add_avulso", methods=["POST"])
+def add_avulso():
+    if not check_login():
+        return redirect(url_for("login"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            INSERT INTO servicos_avulsos
+            (cliente_id, descricao, valor, data_venda, usuario_id)
+            VALUES (%s,%s,%s,%s,%s)
+        """, (
+            request.form.get("cliente_id") or 0,
+            request.form.get("descricao"),
+            request.form.get("valor"),
+            request.form.get("data_venda"),
+            session["user_id"]
+        ))
+
+        conn.commit()
+
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for("avulso"))
+
 # ================= PAGO =================
 @app.route("/pago/<int:id>")
 def pago(id):
