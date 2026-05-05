@@ -532,43 +532,42 @@ def index():
             if filtro == "atrasado" and final_status != "atrasado":
                 continue
 
-            # alertas
+            # alertas (CORRIGIDO - dentro do loop)
+            if final_status == "atrasado":
+                alertas.append(f"🔴 {nome} está atrasado")
 
-try:
-    if final_status == "atrasado":
-        alertas.append(f"🔴 {nome} está atrasado")
+            elif final_status == "em_dia" and mes == mes_atual and hoje.day == venc:
+                alertas.append(f"⚠️ {nome} vence hoje")
 
-    elif final_status == "em_dia" and mes == hoje.month and venc == hoje.day:
-        alertas.append(f"⚠️ {nome} vence hoje")
+            # totais
+            total += valor
 
-    total += valor
+            if final_status == "pago":
+                recebido += valor
+            elif final_status == "atrasado":
+                atrasado += valor
+            else:
+                emdia += valor
 
-    if final_status == "pago":
-        recebido += valor
-    elif final_status == "atrasado":
-        atrasado += valor
-    else:
-        emdia += valor
+            clientes.append((cid, nome, tel, valor, venc, final_status))
 
-    clientes.append((cid, nome, tel, valor, venc, final_status))
+        clientes.sort(key=lambda x: 0 if x[5] == "atrasado" else 1 if x[5] == "em_dia" else 2)
 
-    clientes.sort(key=lambda x: 0 if x[5] == "atrasado" else 1 if x[5] == "em_dia" else 2)
+        return render_template(
+            "index.html",
+            clientes=clientes,
+            mes_ref=mes,
+            busca=busca,
+            filtro=filtro,
+            total_geral=total,
+            total_recebido=recebido,
+            total_atrasado=atrasado,
+            total_em_dia=emdia,
+            alertas=alertas,
+            usuario=session.get("usuario")
+        )
 
-    return render_template(
-        "index.html",
-        clientes=clientes,
-        mes_ref=mes,
-        busca=busca,
-        filtro=filtro,
-        total_geral=total,
-        total_recebido=recebido,
-        total_atrasado=atrasado,
-        total_em_dia=emdia,
-        alertas=alertas,
-        usuario=session.get("usuario")
-    )
-
-finally:
+    finally:
         cur.close()
         conn.close()
 
