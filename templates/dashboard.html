@@ -17,7 +17,8 @@ body{
 .header{
     display:flex;
     justify-content:space-between;
-    margin-bottom:15px;
+    align-items:center;
+    margin-bottom:10px;
 }
 
 .grid{
@@ -50,61 +51,88 @@ body{
     margin-top:4px;
 }
 
+/* cores */
 .recebido{border-left:4px solid #22c55e;}
 .avulso{border-left:4px solid #f59e0b;}
 .inad{border-left:4px solid #ef4444;}
+.gastos{border-left:4px solid #f97316;}
 .total{border-left:4px solid #3b82f6;}
 
-.btn{
-    margin-top:10px;
-    padding:8px;
-    background:#334155;
-    color:#fff;
+/* filtro */
+.filter{
+    margin:10px 0;
+    background:#1e293b;
+    padding:10px;
+    border-radius:10px;
+}
+
+button{
+    padding:6px 10px;
     border:none;
     border-radius:8px;
+    background:#334155;
+    color:#fff;
+    cursor:pointer;
 }
 </style>
 </head>
 
 <body>
 
+<!-- HEADER -->
 <div class="header">
-<h3>📊 Dashboard - {{usuario}}</h3>
-<a href="/"><button class="btn">Voltar</button></a>
+<h3>📊 Dashboard - {{usuario}} ({{mes_ref}})</h3>
+<a href="/"><button>Voltar</button></a>
+</div>
+
+<!-- 🔎 HISTÓRICO MÊS -->
+<div class="filter">
+<form method="get" action="/dashboard">
+
+<input type="month" name="mes" value="{{mes_ref}}">
+
+<button>Filtrar</button>
+
+</form>
 </div>
 
 <div class="grid">
 
-<!-- 💵 RECEBIDO MENSAL -->
+<!-- 💵 RECEBIDO -->
 <div class="card recebido">
-<div class="title">💵 Recebido Mensal (Real)</div>
+<div class="title">💵 Recebido Mensal</div>
 <div class="value">R$ {{recebido_mensal}}</div>
-<div class="sub">Somente clientes pagos no mês</div>
+<div class="sub">Somente pagamentos confirmados</div>
 </div>
 
-<!-- 📦 AVULSOS (REALIZADOS) -->
+<!-- 📦 AVULSOS -->
 <div class="card avulso">
 <div class="title">📦 Serviços Avulsos</div>
 <div class="value">R$ {{avulso_valor}}</div>
-<div class="sub">Faturamento de serviços feitos</div>
+<div class="sub">Serviços já realizados</div>
+</div>
+
+<!-- 💸 GASTOS -->
+<div class="card gastos">
+<div class="title">💸 Gastos do Mês</div>
+<div class="value">R$ {{gasto}}</div>
+<div class="sub">Saídas registradas</div>
 </div>
 
 <!-- 🔴 INADIMPLÊNCIA -->
 <div class="card inad">
-<div class="title">🔴 Em Aberto (Mensal)</div>
-<div class="value">
-R$ {{mensal_valor - recebido_mensal}}
-</div>
-<div class="sub">Valor que ainda não entrou</div>
+<div class="title">🔴 Em Aberto</div>
+<div class="value">R$ {{mensal_valor - recebido_mensal}}</div>
+<div class="sub">Valores ainda não recebidos</div>
 </div>
 
 <!-- 💰 CAIXA REAL -->
 <div class="card total">
-<div class="title">💰 Caixa Real do Sistema</div>
+<div class="title">💰 Caixa Real</div>
 <div class="value">
-R$ {{recebido_mensal + avulso_valor}}
+R$ {{ (recebido_mensal + avulso_valor) - gasto }}
 </div>
-<div class="sub">Dinheiro efetivamente recebido</div>
+<div class="sub">Dinheiro líquido no mês</div>
 </div>
 
 </div>
