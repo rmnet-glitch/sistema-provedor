@@ -134,17 +134,19 @@ def add_cliente():
 
     try:
         cur.execute("""
-            INSERT INTO clientes 
-            (nome, telefone, valor, vencimento_dia, tipo_cobranca, usuario_id)
-            VALUES (%s,%s,%s,%s,%s,%s)
-        """, (
-            request.form.get("nome"),
-            request.form.get("telefone"),
-            request.form.get("valor"),
-            request.form.get("vencimento_dia"),
-            request.form.get("tipo_cobranca"),
-            session["user_id"]
-        ))
+    INSERT INTO clientes 
+    (nome, telefone, valor, vencimento_dia, tipo_cobranca, descricao_servico, data_venda, usuario_id)
+    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+""", (
+    request.form.get("nome"),
+    request.form.get("telefone"),
+    request.form.get("valor"),
+    request.form.get("vencimento_dia"),
+    request.form.get("tipo_cobranca"),
+    request.form.get("descricao_servico"),
+    request.form.get("data_venda"),
+    session["user_id"]
+))
 
         conn.commit()
 
@@ -653,9 +655,17 @@ def avulso():
 
     try:
         cur.execute("""
-            SELECT id, nome, telefone, valor, tipo_cobranca
+            SELECT 
+                id,
+                nome,
+                telefone,
+                valor,
+                tipo_cobranca,
+                descricao_servico,
+                data_venda
             FROM clientes
             WHERE usuario_id = %s
+              AND tipo_cobranca = 'avulso'
             ORDER BY id DESC
         """, (session["user_id"],))
 
