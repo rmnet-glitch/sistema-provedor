@@ -1,8 +1,12 @@
 import os
 from flask import Flask, render_template, request, redirect, session, url_for
 import psycopg2
-from datetime import datetime
 from whatsapp_service import enviar_whatsapp
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+def hoje_brasil():
+    return datetime.now(ZoneInfo("America/Sao_Paulo")).date()
 
 app = Flask(__name__)
 app.secret_key = "segredo"
@@ -529,11 +533,14 @@ def index():
                 continue
 
             # alertas
-            if final_status == "atrasado":
-                alertas.append(f"🔴 {nome} está atrasado")
-            elif final_status == "em_dia" and mes == mes_atual and hoje.day == venc:
-                alertas.append(f"⚠️ {nome} vence hoje")
+            
+hoje = hoje_brasil()
 
+if final_status == "atrasado":
+    alertas.append(f"🔴 {nome} está atrasado")
+
+elif final_status == "em_dia" and mes == hoje.month and venc == hoje.day:
+    alertas.append(f"⚠️ {nome} vence hoje")
             total += valor
 
             if final_status == "pago":
