@@ -552,7 +552,8 @@ def index():
                 emdia += valor
 
             # gasto (exemplo)
-            gasto += valor * 0.3
+            if final_status == "pago":
+    gasto += valor * 0.3
 
             clientes.append((cid, nome, tel, valor, venc, final_status))
 
