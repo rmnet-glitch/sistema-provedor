@@ -132,21 +132,29 @@ def add_cliente():
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("""
-        INSERT INTO clientes (nome, telefone, valor, vencimento_dia, tipo_cobranca, usuario_id)
-        VALUES (%s,%s,%s,%s,%s)
-    """, (
-        request.form.get("nome"),
-        request.form.get("telefone"),
-        request.form.get("valor"),
-        request.form.get("vencimento_dia"),
-        request.form.get("tipo_cobranca"),
-        session["user_id"]
-    ))
+    try:
+        cur.execute("""
+            INSERT INTO clientes 
+            (nome, telefone, valor, vencimento_dia, tipo_cobranca, usuario_id)
+            VALUES (%s,%s,%s,%s,%s,%s)
+        """, (
+            request.form.get("nome"),
+            request.form.get("telefone"),
+            request.form.get("valor"),
+            request.form.get("vencimento_dia"),
+            request.form.get("tipo_cobranca"),
+            session["user_id"]
+        ))
 
-    conn.commit()
-    cur.close()
-    conn.close()
+        conn.commit()
+
+    finally:
+        cur.close()
+        conn.close()
+
+    # 🔥 separa fluxo mensal e avulso
+    if request.form.get("tipo_cobranca") == "avulso":
+        return redirect("/avulso")
 
     return redirect(url_for("index"))
 
