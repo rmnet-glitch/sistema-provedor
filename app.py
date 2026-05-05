@@ -551,13 +551,19 @@ def index():
             else:
                 emdia += valor
 
-            # gasto (exemplo)
-            if final_status == "pago":
-                gasto += valor * 0.3
-
             clientes.append((cid, nome, tel, valor, venc, final_status))
 
-        # lucro fora do loop (correto)
+        # ✅ NOVO: buscar gastos reais do mês
+        cur.execute("""
+            SELECT COALESCE(SUM(valor), 0)
+            FROM gastos
+            WHERE usuario_id = %s
+            AND mes_ref = %s
+        """, (user_id, mes))
+
+        gasto = float(cur.fetchone()[0] or 0)
+
+        # ✅ lucro real
         lucro = recebido - gasto
 
         clientes.sort(key=lambda x: 0 if x[5] == "atrasado" else 1 if x[5] == "em_dia" else 2)
