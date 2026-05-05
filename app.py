@@ -659,7 +659,7 @@ def avulso():
                 id,
                 nome,
                 telefone,
-                descricao,
+                descricao_servico,
                 valor,
                 data_venda
             FROM servicos_avulsos
