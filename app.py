@@ -645,6 +645,36 @@ def index():
 
 # ================ AVULSO ================
 
+@app.route("/add_avulso", methods=["POST"])
+def add_avulso():
+    if not check_login():
+        return redirect(url_for("login"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            INSERT INTO servicos_avulsos
+            (usuario_id, nome, telefone, descricao_servico, valor, data_venda)
+            VALUES (%s,%s,%s,%s,%s,%s)
+        """, (
+            session["user_id"],
+            request.form.get("nome"),
+            request.form.get("telefone"),
+            request.form.get("descricao_servico"),
+            request.form.get("valor"),
+            request.form.get("data_venda") or datetime.now().date()
+        ))
+
+        conn.commit()
+
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for("avulso"))
+
 @app.route("/avulso")
 def avulso():
     if not check_login():
@@ -655,25 +685,17 @@ def avulso():
 
     try:
         cur.execute("""
-            SELECT 
-                id,
-                nome,
-                telefone,
-                valor,
-                tipo_cobranca,
-                COALESCE(descricao_servico, ''),
-                COALESCE(data_venda, NULL)
-            FROM clientes
+            SELECT id, nome, telefone, descricao_servico, valor, data_venda
+            FROM servicos_avulsos
             WHERE usuario_id = %s
-              AND tipo_cobranca = 'avulso'
             ORDER BY id DESC
         """, (session["user_id"],))
 
-        clientes = cur.fetchall()
+        avulsos = cur.fetchall()
 
         return render_template(
             "avulso.html",
-            clientes=clientes,
+            avulsos=avulsos,
             usuario=session.get("usuario")
         )
 
