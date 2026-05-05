@@ -465,8 +465,6 @@ def config():
 
 # ================= INDEX =================
 
-
-
 @app.route("/")
 def index():
     if not check_login():
@@ -496,9 +494,8 @@ def index():
         dados = cur.fetchall()
 
         clientes = []
-        alertas = []
-
         total = recebido = atrasado = emdia = 0
+        alertas = []
 
         hoje = datetime.now()
         mes_atual = hoje.strftime("%Y-%m")
@@ -513,7 +510,6 @@ def index():
             except:
                 venc = 1
 
-            # ================= STATUS =================
             if status == "pago":
                 final_status = "pago"
             else:
@@ -524,22 +520,20 @@ def index():
                 else:
                     final_status = "em_dia"
 
-            # ================= BUSCA =================
+            # busca
             if busca and busca not in (nome or "").lower():
                 continue
 
-            # ================= FILTRO =================
+            # filtro
             if filtro == "atrasado" and final_status != "atrasado":
                 continue
 
-            # ================= ALERTAS (CORRETO) =================
+            # alertas
             if final_status == "atrasado":
                 alertas.append(f"🔴 {nome} está atrasado")
-
             elif final_status == "em_dia" and mes == mes_atual and hoje.day == venc:
                 alertas.append(f"⚠️ {nome} vence hoje")
 
-            # ================= SOMAS =================
             total += valor
 
             if final_status == "pago":
@@ -551,12 +545,7 @@ def index():
 
             clientes.append((cid, nome, tel, valor, venc, final_status))
 
-        # ================= ORDEM =================
-        clientes.sort(
-            key=lambda x: 0 if x[5] == "atrasado"
-            else 1 if x[5] == "em_dia"
-            else 2
-        )
+        clientes.sort(key=lambda x: 0 if x[5] == "atrasado" else 1 if x[5] == "em_dia" else 2)
 
         return render_template(
             "index.html",
@@ -569,13 +558,13 @@ def index():
             total_atrasado=atrasado,
             total_em_dia=emdia,
             alertas=alertas,
-            usuario=session.get("usuario"),
-            session=session
+            usuario=session.get("usuario")
         )
 
     finally:
         cur.close()
         conn.close()
+
 
 # ================= PAGO =================
 @app.route("/pago/<int:id>")
