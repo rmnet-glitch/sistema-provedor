@@ -618,6 +618,7 @@ def pago(id):
 
 
 # ================= COBRAR =================
+
 @app.route("/cobrar/<int:id>")
 def cobrar(id):
     if not check_login():
@@ -638,21 +639,37 @@ def cobrar(id):
 
         res = cur.fetchone()
 
-        if res:
-            nome, tel, msg, instance, token, usar, plano = res
+        if not res:
+            return "Cliente não encontrado"
 
-            if usar and plano:
-                try:
-                    enviar_whatsapp(tel, (msg or "").replace("{nome}", nome), instance, token)
-                except:
-                    pass
+        nome, tel, msg, instance, token, usar, plano = res
+
+        print("DEBUG:", usar, plano, instance, token, tel)
+
+        if not plano:
+            return "❌ Seu plano não permite WhatsApp"
+
+        if not usar:
+            return "⚠️ WhatsApp desativado nas configurações"
+
+        if not instance or not token:
+            return "⚠️ Configure a API no painel"
+
+        ok = enviar_whatsapp(
+            tel,
+            (msg or "").replace("{nome}", nome),
+            instance,
+            token
+        )
+
+        if ok:
+            return "✅ Mensagem enviada"
+        else:
+            return "❌ Erro ao enviar (ver logs)"
 
     finally:
         cur.close()
         conn.close()
-
-    return redirect(url_for("index"))
-
 
 # ================= START =================
 if __name__ == "__main__":
