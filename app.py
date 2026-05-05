@@ -508,31 +508,32 @@ def index():
         }
 
         # ================= PROCESSAMENTO =================
-        for c in dados:
-            cid, nome, tel, valor, venc, status = c
+     for c in dados:
+    cid, nome, tel, valor, venc, status = c
 
-            valor = float(valor or 0)
-            
-try:
-    venc = int(venc)
-except:
-    venc = 1
+    valor = float(valor or 0)
 
-            # ================= REGRA DE STATUS REAL =================
-            if status == "pago":
-                final_status = "pago"
+    # ================= CONVERSÃO SEGURA =================
+    try:
+        venc = int(venc)
+    except:
+        venc = 1
 
-            else:
-                if mes < mes_atual:
-                    final_status = "atrasado"
-                elif mes == mes_atual:
-                    final_status = "atrasado" if hoje.day > venc else "em_dia"
-                else:
-                    final_status = "em_dia"
+    # ================= REGRA DE STATUS REAL =================
+    if status == "pago":
+        final_status = "pago"
 
-            # ================= BUSCA =================
-            if busca and busca not in (nome or "").lower():
-                continue
+    else:
+        if mes < mes_atual:
+            final_status = "atrasado"
+        elif mes == mes_atual:
+            final_status = "atrasado" if hoje.day > venc else "em_dia"
+        else:
+            final_status = "em_dia"
+
+    # ================= BUSCA =================
+    if busca and busca not in (nome or "").lower():
+        continue
 
             # ================= FILTRO =================
             if filtro == "atrasado" and final_status != "atrasado":
