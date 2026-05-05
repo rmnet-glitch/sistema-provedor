@@ -680,36 +680,6 @@ def avulso():
         cur.close()
         conn.close()
 
-# ========= LISTAR AVULSO =========
-
-@app.route("/avulso")
-def avulso():
-    if not check_login():
-        return redirect(url_for("login"))
-
-    conn = get_conn()
-    cur = conn.cursor()
-
-    try:
-        cur.execute("""
-            SELECT id, nome, telefone, descricao_servico, valor, data_venda
-            FROM servicos_avulsos
-            WHERE usuario_id = %s
-            ORDER BY id DESC
-        """, (session["user_id"],))
-
-        avulsos = cur.fetchall()
-
-        return render_template(
-            "avulso.html",
-            avulsos=avulsos,
-            usuario=session.get("usuario")
-        )
-
-    finally:
-        cur.close()
-        conn.close()
-
 # ================= PAGO =================
 @app.route("/pago/<int:id>")
 def pago(id):
