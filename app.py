@@ -63,7 +63,7 @@ def logout():
 def check_login():
     return session.get("logado") and session.get("user_id")
 
-# ================= USUARIOS ======
+# ================= USUARIOS SISTEMA ======
 
 
 @app.route("/usuarios")
@@ -89,6 +89,8 @@ def usuarios():
     conn.close()
 
     return render_template("usuarios.html", usuarios=lista)
+
+# ================== ADD CLIENTES =======
 
 @app.route("/add", methods=["POST"])
 def add_cliente():
