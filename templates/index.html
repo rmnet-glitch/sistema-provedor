@@ -77,6 +77,15 @@ button:hover{
     margin-top:6px;
 }
 
+.actions a {
+    flex:1;
+    text-decoration:none;
+}
+
+.actions a button {
+    width:100%;
+}
+
 .btn{
 flex:1;
 padding:6px;
@@ -226,18 +235,18 @@ href="https://wa.me/55{{c[2]}}?text={{ mensagem | urlencode }}">
 
 </div>
 
+
 <div class="actions">
 
-<button class="btn btn-info" style="font-size:10px;padding:4px 6px;" onclick="toggle('e{{c[0]}}')">
-✏ Editar
-</button>
+<a href="javascript:void(0)" onclick="toggle('e{{c[0]}}')">
+    <button class="btn btn-info">✏ Editar</button>
+</a>
 
 <a href="/delete/{{c[0]}}">
-<button class="btn btn-danger">🗑 Excluir</button>
+    <button class="btn btn-danger">🗑 Excluir</button>
 </a>
 
 </div>
-
 <div id="e{{c[0]}}" class="hidden">
 <form action="/edit/{{c[0]}}?mes={{mes_ref}}" method="post">
 <input name="nome" value="{{c[1]}}" required>
