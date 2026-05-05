@@ -233,20 +233,16 @@ href="https://wa.me/55{{c[2]}}?text={{ mensagem | urlencode }}">
 <button class="btn btn-info">📩 Cobrar</button>
 </a>
 
-</div>
-
-
-<div class="actions">
-
 <a href="javascript:void(0)" onclick="toggle('e{{c[0]}}')">
-    <button class="btn btn-info">✏ Editar</button>
+<button class="btn btn-info">✏ Editar</button>
 </a>
 
 <a href="/delete/{{c[0]}}">
-    <button class="btn btn-danger">🗑 Excluir</button>
+<button class="btn btn-danger">🗑 Excluir</button>
 </a>
 
 </div>
+
 <div id="e{{c[0]}}" class="hidden">
 <form action="/edit/{{c[0]}}?mes={{mes_ref}}" method="post">
 <input name="nome" value="{{c[1]}}" required>
