@@ -89,15 +89,14 @@ button{
 
 <div class="card">
 
-<b>👤 {{ a[1] }} <span class="tag">AVULSO</span></b><br>
+<b>📦 Avulso #{{ a[0] }}</b> <span class="tag">AVULSO</span><br>
 
-📞 {{ a[2] }}<br>
-💰 R$ {{ a[4] }}<br>
+🆔 Cliente ID: {{ a[1] }}<br>
+📦 Descrição: {{ a[2] or 'Não informado' }}<br>
+💰 R$ {{ a[3] }}<br>
+📅 Data: {{ a[4] or 'Sem data' }}<br>
 
-📦 Serviço / Produto: {{ a[3] or 'Não informado' }}<br>
-📅 Data da venda: {{ a[5] or 'Sem data' }}<br>
-
-<a class="btn-danger" href="/delete/{{ a[0] }}">
+<a class="btn-danger" href="/delete_avulso/{{ a[0] }}">
 🗑 Excluir
 </a>
 
