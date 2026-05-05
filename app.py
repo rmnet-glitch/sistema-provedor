@@ -656,17 +656,18 @@ def avulso():
 
     try:
         cur.execute("""
-            SELECT 
-                id,
-                nome,
-                telefone,
-                descricao,
-                valor,
-                data_venda
-            FROM servicos_avulsos
-            WHERE usuario_id = %s
-            ORDER BY id DESC
-        """, (session["user_id"],))
+    SELECT 
+        id,
+        nome,
+        telefone,
+        descricao,
+        valor,
+        data_venda
+    FROM servicos_avulsos
+    WHERE usuario_id = %s
+    ORDER BY id DESC
+""", (session["user_id"],))
+          
 
         avulsos = cur.fetchall()
 
