@@ -92,8 +92,8 @@ def usuarios():
 
 # ================== ADD USER SISTEMA =======
 
-@app.route("/add_usuario", methods=["POST"])
-def add_usuario():
+@app.route("/add", methods=["POST"])
+def add():
     if not session.get("is_admin"):
         return redirect(url_for("index"))
 
