@@ -657,9 +657,8 @@ def avulso():
         cur.execute("""
             SELECT 
                 id,
-                nome,
-                telefone,
-                descricao_servico,
+                cliente_id,
+                descricao,
                 valor,
                 data_venda
             FROM servicos_avulsos
@@ -674,6 +673,10 @@ def avulso():
             avulsos=avulsos,
             usuario=session.get("usuario")
         )
+
+    except Exception as e:
+        print("🔥 ERRO AVULSO:", str(e))
+        return f"Erro avulso: {str(e)}", 500
 
     finally:
         cur.close()
