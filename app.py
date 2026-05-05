@@ -508,21 +508,20 @@ def index():
         }
 
         # ================= PROCESSAMENTO =================
-     for c in dados:
+   for c in dados:
     cid, nome, tel, valor, venc, status = c
 
     valor = float(valor or 0)
 
-    # ================= CONVERSÃO SEGURA =================
+    # garante inteiro seguro
     try:
-        venc = int(venc)
+        venc = int(venc or 1)
     except:
         venc = 1
 
-    # ================= REGRA DE STATUS REAL =================
+# ============ REGRA DE STATUS REAL ==========
     if status == "pago":
         final_status = "pago"
-
     else:
         if mes < mes_atual:
             final_status = "atrasado"
@@ -535,29 +534,29 @@ def index():
     if busca and busca not in (nome or "").lower():
         continue
 
-            # ================= FILTRO =================
-            if filtro == "atrasado" and final_status != "atrasado":
-                continue
+    # ================= FILTRO =================
+    if filtro == "atrasado" and final_status != "atrasado":
+        continue
 
-            # ================= ALERTAS =================
-            if final_status == "atrasado":
-                alertas.append(f"🔴 {nome} está atrasado")
-            elif final_status == "em_dia" and mes == mes_atual and hoje.day == venc:
-                alertas.append(f"⚠️ {nome} vence hoje")
+    # ================= ALERTAS =================
+    if final_status == "atrasado":
+        alertas.append(f"🔴 {nome} está atrasado")
+    elif final_status == "em_dia" and mes == mes_atual and hoje.day == venc:
+        alertas.append(f"⚠️ {nome} vence hoje")
 
-            # ================= SOMAS =================
-            total += valor
+    # ================= SOMAS =================
+    total += valor
 
-            if final_status == "pago":
-                recebido += valor
-            elif final_status == "atrasado":
-                atrasado += valor
-            else:
-                emdia += valor
+    if final_status == "pago":
+        recebido += valor
+    elif final_status == "atrasado":
+        atrasado += valor
+    else:
+        emdia += valor
 
-            clientes.append((cid, nome, tel, valor, venc, final_status))
+    clientes.append((cid, nome, tel, valor, venc, final_status))
 
-        # ================= GASTOS =================
+        # ================= GASTOS ================
         cur.execute("""
             SELECT COALESCE(SUM(valor),0)
             FROM gastos
