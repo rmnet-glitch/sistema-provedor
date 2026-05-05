@@ -92,8 +92,8 @@ def usuarios():
 
 # ================== ADD CLIENTES =======
 
-@app.route("/add", methods=["POST"])
-def add_cliente():
+@app.route("/add_usuario", methods=["POST"])
+def add_usuario():
     if not session.get("is_admin"):
         return redirect(url_for("index"))
 
@@ -117,6 +117,33 @@ def add_cliente():
         conn.close()
 
     return redirect(url_for("usuarios"))
+
+# ================== ADD CLIENTE PROVEDOR =======
+
+@app.route("/add_cliente", methods=["POST"])
+def add_cliente():
+    if not check_login():
+        return redirect(url_for("login"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO clientes (nome, telefone, valor, vencimento_dia, usuario_id)
+        VALUES (%s,%s,%s,%s,%s)
+    """, (
+        request.form.get("nome"),
+        request.form.get("telefone"),
+        request.form.get("valor"),
+        request.form.get("vencimento_dia"),
+        session["user_id"]
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return redirect(url_for("index"))
 
 # ================== EDIT USUARIO =======
 
