@@ -654,6 +654,8 @@ def avulso():
     cur = conn.cursor()
 
     try:
+        mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
         cur.execute("""
             SELECT 
                 id,
@@ -663,20 +665,18 @@ def avulso():
                 data_venda
             FROM servicos_avulsos
             WHERE usuario_id = %s
+              AND TO_CHAR(data_venda, 'YYYY-MM') = %s
             ORDER BY id DESC
-        """, (session["user_id"],))
+        """, (session["user_id"], mes))
 
         avulsos = cur.fetchall()
 
         return render_template(
             "avulso.html",
             avulsos=avulsos,
+            mes_ref=mes,
             usuario=session.get("usuario")
         )
-
-    except Exception as e:
-        print("🔥 ERRO AVULSO:", str(e))
-        return f"Erro avulso: {str(e)}", 500
 
     finally:
         cur.close()
