@@ -14,5 +14,6 @@ def enviar_whatsapp(numero, mensagem, instance, token):
     try:
         requests.post(url, json=payload, timeout=10)
         return True
-    except:
+    except Exception as e:
+        print("ERRO WHATSAPP:", str(e))
         return False
