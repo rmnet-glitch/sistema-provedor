@@ -90,7 +90,7 @@ def usuarios():
 
     return render_template("usuarios.html", usuarios=lista)
 
-# ================== ADD CLIENTES =======
+# ================== ADD USER SISTEMA =======
 
 @app.route("/add_usuario", methods=["POST"])
 def add_usuario():
@@ -142,6 +142,30 @@ def add_cliente():
     conn.commit()
     cur.close()
     conn.close()
+
+    return redirect(url_for("index"))
+
+# ================= EXCLUIR CLIENTE PROVEDOR =====
+
+@app.route("/delete/<int:id>")
+def delete_cliente(id):
+    if not check_login():
+        return redirect(url_for("login"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            DELETE FROM clientes
+            WHERE id=%s AND usuario_id=%s
+        """, (id, session["user_id"]))
+
+        conn.commit()
+
+    finally:
+        cur.close()
+        conn.close()
 
     return redirect(url_for("index"))
 
