@@ -126,16 +126,9 @@ button{
 <div class="small">📞 {{c[2]}}</div>
 <div>💰 R$ {{c[3]}}</div>
 
+
 📦 Serviço: {{c[5] or 'Não informado'}}<br>
 📅 Venda: {{c[6] or 'Sem data'}}<br>
-
-<div class="small">
-📦 Serviço: {{c[6] if c|length > 6 else 'Não informado'}}
-</div>
-
-<div class="small">
-📅 Data: {{c[7] if c|length > 7 else 'Não informado'}}
-</div>
 
 </div>
 
