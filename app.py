@@ -534,7 +534,7 @@ def index():
             if filtro == "atrasado" and final_status != "atrasado":
                 continue
 
-            # alertas (CORRIGIDO - dentro do loop)
+            # alertas
             if final_status == "atrasado":
                 alertas.append(f"🔴 {nome} está atrasado")
 
@@ -544,19 +544,20 @@ def index():
             # totais
             total += valor
 
-if final_status == "pago":
-    recebido += valor
-elif final_status == "atrasado":
-    atrasado += valor
-else:
-    emdia += valor
+            if final_status == "pago":
+                recebido += valor
+            elif final_status == "atrasado":
+                atrasado += valor
+            else:
+                emdia += valor
 
-# 💡 AJUSTE DE GASTO (exemplo padrão)
-gasto += valor * 0.3  # ajuste sua margem real aqui
+            # gasto (exemplo)
+            gasto += valor * 0.3
 
             clientes.append((cid, nome, tel, valor, venc, final_status))
 
-lucro = recebido - gasto
+        # lucro fora do loop (correto)
+        lucro = recebido - gasto
 
         clientes.sort(key=lambda x: 0 if x[5] == "atrasado" else 1 if x[5] == "em_dia" else 2)
 
@@ -570,8 +571,8 @@ lucro = recebido - gasto
             total_recebido=recebido,
             total_atrasado=atrasado,
             total_em_dia=emdia,
-            lucro=lucro
-            gasto=gasto
+            lucro=lucro,
+            gasto=gasto,
             alertas=alertas,
             usuario=session.get("usuario")
         )
