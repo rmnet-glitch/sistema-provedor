@@ -655,17 +655,17 @@ def avulso():
     cur = conn.cursor()
 
     try:
-        cur.execute("""
-    SELECT 
-        id,
-        nome,
-        telefone,
-        descricao,
-        valor,
-        data_venda
-    FROM servicos_avulsos
-    WHERE usuario_id = %s
-    ORDER BY id DESC
+       cur.execute("""
+        SELECT 
+         id,
+         nome,
+         telefone,
+         descricao,
+         valor,
+         data_venda
+        FROM servicos_avulsos
+        WHERE usuario_id = %s
+        ORDER BY id DESC
 """, (session["user_id"],))
           
 
