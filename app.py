@@ -633,6 +633,36 @@ def index():
         cur.close()
         conn.close()
 
+# ================ AVULSO ================
+
+@app.route("/avulso")
+def avulso():
+    if not check_login():
+        return redirect(url_for("login"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            SELECT id, nome, telefone, valor, tipo_cobranca
+            FROM clientes
+            WHERE usuario_id = %s
+            ORDER BY id DESC
+        """, (session["user_id"],))
+
+        clientes = cur.fetchall()
+
+        return render_template(
+            "avulso.html",
+            clientes=clientes,
+            usuario=session.get("usuario")
+        )
+
+    finally:
+        cur.close()
+        conn.close()
+
 # ================= PAGO =================
 @app.route("/pago/<int:id>")
 def pago(id):
