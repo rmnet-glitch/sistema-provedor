@@ -34,19 +34,26 @@ body{
 }
 
 .title{
-    font-size:14px;
-    opacity:0.8;
+    font-size:13px;
+    opacity:0.7;
 }
 
 .value{
-    font-size:22px;
+    font-size:24px;
     font-weight:bold;
     margin-top:5px;
 }
 
-.mensal{border-left:4px solid #3b82f6;}
+.sub{
+    font-size:13px;
+    opacity:0.8;
+    margin-top:4px;
+}
+
+.recebido{border-left:4px solid #22c55e;}
 .avulso{border-left:4px solid #f59e0b;}
-.financeiro{border-left:4px solid #22c55e;}
+.inad{border-left:4px solid #ef4444;}
+.total{border-left:4px solid #3b82f6;}
 
 .btn{
     margin-top:10px;
@@ -68,27 +75,36 @@ body{
 
 <div class="grid">
 
-<!-- 📅 MENSAL -->
-<div class="card mensal">
-<div class="title">📅 Clientes Mensais</div>
-<div class="value">{{mensal_total}}</div>
-<div>💰 Total esperado: R$ {{mensal_valor}}</div>
-<div>💵 Recebido mês: R$ {{recebido_mensal}}</div>
+<!-- 💵 RECEBIDO MENSAL -->
+<div class="card recebido">
+<div class="title">💵 Recebido Mensal (Real)</div>
+<div class="value">R$ {{recebido_mensal}}</div>
+<div class="sub">Somente clientes pagos no mês</div>
 </div>
 
-<!-- 📦 AVULSO -->
+<!-- 📦 AVULSOS (REALIZADOS) -->
 <div class="card avulso">
 <div class="title">📦 Serviços Avulsos</div>
-<div class="value">{{avulso_total}}</div>
-<div>💰 Faturamento: R$ {{avulso_valor}}</div>
+<div class="value">R$ {{avulso_valor}}</div>
+<div class="sub">Faturamento de serviços feitos</div>
 </div>
 
-<!-- 💰 CONSOLIDADO -->
-<div class="card financeiro">
-<div class="title">💰 Faturamento Total</div>
+<!-- 🔴 INADIMPLÊNCIA -->
+<div class="card inad">
+<div class="title">🔴 Em Aberto (Mensal)</div>
 <div class="value">
-R$ {{mensal_valor + avulso_valor}}
+R$ {{mensal_valor - recebido_mensal}}
 </div>
+<div class="sub">Valor que ainda não entrou</div>
+</div>
+
+<!-- 💰 CAIXA REAL -->
+<div class="card total">
+<div class="title">💰 Caixa Real do Sistema</div>
+<div class="value">
+R$ {{recebido_mensal + avulso_valor}}
+</div>
+<div class="sub">Dinheiro efetivamente recebido</div>
 </div>
 
 </div>
