@@ -91,7 +91,7 @@ def usuarios():
     return render_template("usuarios.html", usuarios=lista)
 
 @app.route("/add", methods=["POST"])
-def add():
+def add_cliente():
     if not session.get("is_admin"):
         return redirect(url_for("index"))
 
