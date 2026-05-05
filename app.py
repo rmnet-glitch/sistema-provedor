@@ -512,7 +512,11 @@ def index():
             cid, nome, tel, valor, venc, status = c
 
             valor = float(valor or 0)
-            venc = int(venc or 1)
+            
+try:
+    venc = int(venc)
+except:
+    venc = 1
 
             # ================= REGRA DE STATUS REAL =================
             if status == "pago":
