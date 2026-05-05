@@ -536,7 +536,15 @@ def index():
             else:
                 emdia += valor
 
-            clientes.append((cid, nome, tel, valor, venc, final_status))
+    # ================= ALERTAS =================
+if final_status == "atrasado":
+    alertas.append(f"🔴 {nome} está atrasado")
+
+elif final_status == "em_dia" and mes == mes_atual and hoje.day == venc:
+    alertas.append(f"⚠️ {nome} vence hoje")
+## ================= FIM DO ALERTA =============
+
+        clientes.append((cid, nome, tel, valor, venc, final_status))
 
         clientes.sort(key=lambda x: 0 if x[5] == "atrasado" else 1 if x[5] == "em_dia" else 2)
 
