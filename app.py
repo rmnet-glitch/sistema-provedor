@@ -393,7 +393,7 @@ def desativar_api(id):
 
     return redirect(url_for("usuarios"))
 
-# ================= CONFIG (BLINDADO) =================
+# ================= CONFIG (BLINDADO) =============
 @app.route("/config", methods=["GET", "POST"])
 def config():
     if not check_login():
@@ -553,7 +553,7 @@ def index():
 
             # gasto (exemplo)
             if final_status == "pago":
-    gasto += valor * 0.3
+                gasto += valor * 0.3
 
             clientes.append((cid, nome, tel, valor, venc, final_status))
 
