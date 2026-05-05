@@ -406,11 +406,31 @@ def config():
         user_id = session.get("user_id")
 
         if request.method == "POST":
-            senha = request.form.get("senha")
-            mensagem = request.form.get("mensagem")
-            usar_whatsapp = bool(request.form.get("usar_whatsapp"))
-            instance = request.form.get("zapi_instance")
-            token = request.form.get("zapi_token")
+            # pega valores atuais do banco
+cur.execute("""
+    SELECT whatsapp_msg, usar_whatsapp, zapi_instance, zapi_token
+    FROM usuarios WHERE id=%s
+""", (user_id,))
+
+atual = cur.fetchone()
+
+msg_atual = atual[0]
+usar_atual = atual[1]
+inst_atual = atual[2]
+token_atual = atual[3]
+
+# pega o que veio do form (ou mantém o atual)
+senha = request.form.get("senha")
+
+mensagem = request.form.get("mensagem") or msg_atual
+
+if "usar_whatsapp" in request.form:
+    usar_whatsapp = True
+else:
+    usar_whatsapp = usar_atual
+
+instance = request.form.get("zapi_instance") or inst_atual
+token = request.form.get("zapi_token") or token_atual
 
             # plano seguro
             cur.execute("SELECT plano_whatsapp FROM usuarios WHERE id=%s", (user_id,))
