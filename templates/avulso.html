@@ -63,7 +63,7 @@ button{
 <body>
 
 <div class="header">
-<h3>📦 Avulsos - {{usuario}}</h3>
+<h3>📦 Avulsos - {{usuario}} ({{mes_ref}})</h3>
 <a href="/"><button>📅 Mensal</button></a>
 </div>
 
@@ -79,6 +79,15 @@ button{
 <button>Salvar Avulso</button>
 
 </form>
+
+<form method="get" action="/avulso">
+
+<input type="month" name="mes" value="{{ mes_ref }}">
+
+<button>Filtrar</button>
+
+</form>
+
 <hr>
 
 <!-- LISTA -->
