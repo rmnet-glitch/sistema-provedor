@@ -713,6 +713,31 @@ def add_avulso():
 
     return redirect(url_for("avulso"))
 
+# =============== EXCLUIR SERV AVULSO =====
+
+
+@app.route("/delete_avulso/<int:id>")
+def delete_avulso(id):
+    if not check_login():
+        return redirect(url_for("login"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            DELETE FROM servicos_avulsos
+            WHERE id=%s AND usuario_id=%s
+        """, (id, session["user_id"]))
+
+        conn.commit()
+
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for("avulso"))
+
 # ================= PAGO =================
 @app.route("/pago/<int:id>")
 def pago(id):
