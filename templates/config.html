@@ -1,3 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configurações</title>
+
+<style>
+body{
+    font-family:'Segoe UI', Arial;
+    background:#0f172a;
+    color:#e2e8f0;
+    padding:10px;
+}
+
+.header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:15px;
+}
+
+.box{
+    background:#1e293b;
+    padding:15px;
+    border-radius:12px;
+    margin-bottom:12px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.3);
+}
+
+h3,h4{
+    margin:0 0 10px 0;
+}
+
+input, textarea{
+    width:100%;
+    padding:10px;
+    margin:6px 0;
+    border-radius:8px;
+    border:none;
+    background:#0f172a;
+    color:#e2e8f0;
+    font-size:14px;
+}
+
+textarea{
+    min-height:100px;
+    resize:vertical;
+}
+
+label{
+    font-size:13px;
+}
+
+button{
+    border:none;
+    border-radius:8px;
+    padding:10px;
+    font-size:14px;
+    cursor:pointer;
+}
+
+.salvar{
+    background:#22c55e;
+    color:#fff;
+    width:100%;
+    margin-top:10px;
+}
+
+.voltar{
+    background:#334155;
+    color:#fff;
+    padding:6px 10px;
+}
+
+.alerta{
+    background:#7f1d1d;
+    color:#fecaca;
+    padding:10px;
+    border-radius:8px;
+    margin-bottom:10px;
+    font-size:13px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+<h3>⚙️ Configurações</h3>
+
+<a href="{{ url_for('index') }}">
+<button class="voltar">⬅ Voltar</button>
+</a>
+</div>
+
 <form method="post">
 
 <!-- 🔐 SENHA -->
@@ -10,17 +105,16 @@
 <div class="box">
 <h4>📲 Mensagem WhatsApp</h4>
 
-<textarea name="mensagem" placeholder="Mensagem padrão com emojis 👍">
-{{mensagem}}
-</textarea>
+<textarea name="mensagem" placeholder="Mensagem padrão com emojis 👍">{{mensagem}}</textarea>
 </div>
 
 <!-- 🔌 INTEGRAÇÃO -->
 <div class="box">
+
 {% if not plano_whatsapp %}
-<p style="color:red; font-weight:bold;">
+<div class="alerta">
 🚫 Seu plano não inclui automação WhatsApp
-</p>
+</div>
 {% endif %}
 
 <h4>🔗 Integração API</h4>
@@ -29,7 +123,7 @@
 <input type="checkbox" name="usar_whatsapp"
 {% if usar_whatsapp %}checked{% endif %}
 {% if not plano_whatsapp %}disabled{% endif %}>
-Ativar envio automático
+ Ativar envio automático
 </label>
 
 <input name="zapi_instance"
@@ -41,9 +135,12 @@ placeholder="Instance ID"
 value="{{zapi_token}}"
 placeholder="Token API"
 {% if not plano_whatsapp %}disabled{% endif %}>
+
 </div>
 
-<!-- 💾 BOTÃO ÚNICO -->
-<button class="btn salvar">💾 Salvar tudo</button>
+<button class="salvar">💾 Salvar configurações</button>
 
 </form>
+
+</body>
+</html>
