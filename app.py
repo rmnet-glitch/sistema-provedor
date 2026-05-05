@@ -466,6 +466,7 @@ def config():
 # ================= INDEX =================
 
 
+
 @app.route("/")
 def index():
     if not check_login():
@@ -495,56 +496,67 @@ def index():
         dados = cur.fetchall()
 
         clientes = []
-        total = recebido = atrasado = emdia = 0
         alertas = []
+
+        total = recebido = atrasado = emdia = 0
 
         hoje = datetime.now()
         mes_atual = hoje.strftime("%Y-%m")
 
-for c in dados:
-    cid, nome, tel, valor, venc, status = c
+        for c in dados:
+            cid, nome, tel, valor, venc, status = c
 
-    valor = float(valor or 0)
+            valor = float(valor or 0)
 
-    try:
-        venc = int(venc or 1)
-    except:
-        venc = 1
+            try:
+                venc = int(venc or 1)
+            except:
+                venc = 1
 
-    if status == "pago":
-        final_status = "pago"
-    else:
-        if mes < mes_atual:
-            final_status = "atrasado"
-        elif mes == mes_atual:
-            final_status = "atrasado" if hoje.day > venc else "em_dia"
-        else:
-            final_status = "em_dia"
+            # ================= STATUS =================
+            if status == "pago":
+                final_status = "pago"
+            else:
+                if mes < mes_atual:
+                    final_status = "atrasado"
+                elif mes == mes_atual:
+                    final_status = "atrasado" if hoje.day > venc else "em_dia"
+                else:
+                    final_status = "em_dia"
 
-    if busca and busca not in (nome or "").lower():
-        continue
+            # ================= BUSCA =================
+            if busca and busca not in (nome or "").lower():
+                continue
 
-    if filtro == "atrasado" and final_status != "atrasado":
-        continue
+            # ================= FILTRO =================
+            if filtro == "atrasado" and final_status != "atrasado":
+                continue
 
-    total += valor
+            # ================= ALERTAS (CORRETO) =================
+            if final_status == "atrasado":
+                alertas.append(f"🔴 {nome} está atrasado")
 
-    if final_status == "pago":
-        recebido += valor
-    elif final_status == "atrasado":
-        atrasado += valor
-    else:
-        emdia += valor
+            elif final_status == "em_dia" and mes == mes_atual and hoje.day == venc:
+                alertas.append(f"⚠️ {nome} vence hoje")
 
-    # ================= ALERTAS (DENTRO DO FOR) =================
-    if final_status == "atrasado":
-        alertas.append(f"🔴 {nome} está atrasado")
+            # ================= SOMAS =================
+            total += valor
 
-    elif final_status == "em_dia" and mes == mes_atual and hoje.day == venc:
-        alertas.append(f"⚠️ {nome} vence hoje")
+            if final_status == "pago":
+                recebido += valor
+            elif final_status == "atrasado":
+                atrasado += valor
+            else:
+                emdia += valor
 
-    clientes.append((cid, nome, tel, valor, venc, final_status))
-        clientes.sort(key=lambda x: 0 if x[5] == "atrasado" else 1 if x[5] == "em_dia" else 2)
+            clientes.append((cid, nome, tel, valor, venc, final_status))
+
+        # ================= ORDEM =================
+        clientes.sort(
+            key=lambda x: 0 if x[5] == "atrasado"
+            else 1 if x[5] == "em_dia"
+            else 2
+        )
 
         return render_template(
             "index.html",
@@ -556,13 +568,14 @@ for c in dados:
             total_recebido=recebido,
             total_atrasado=atrasado,
             total_em_dia=emdia,
-            alertas=alertas
+            alertas=alertas,
+            usuario=session.get("usuario"),
+            session=session
         )
 
     finally:
         cur.close()
         conn.close()
-
 
 # ================= PAGO =================
 @app.route("/pago/<int:id>")
