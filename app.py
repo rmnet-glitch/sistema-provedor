@@ -762,6 +762,81 @@ def cobrar(id):
         cur.close()
         conn.close()
 
+# ================= DASHBOARD =============
+
+
+@app.route("/dashboard")
+def dashboard():
+    if not check_login():
+        return redirect(url_for("login"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        user_id = session["user_id"]
+        mes = datetime.now().strftime("%Y-%m")
+
+        # ======================
+        # 📅 MENSAL
+        # ======================
+        cur.execute("""
+            SELECT 
+                COUNT(*),
+                COALESCE(SUM(valor),0)
+            FROM clientes
+            WHERE usuario_id=%s
+              AND tipo_cobranca='mensal'
+        """, (user_id,))
+        mensal_total, mensal_valor = cur.fetchone()
+
+        # ======================
+        # 📦 AVULSO
+        # ======================
+        cur.execute("""
+            SELECT 
+                COUNT(*),
+                COALESCE(SUM(valor),0)
+            FROM servicos_avulsos
+            WHERE usuario_id=%s
+        """, (user_id,))
+        avulso_total, avulso_valor = cur.fetchone()
+
+        # ======================
+        # 💰 COBRANÇAS PAGAS (MENSAL)
+        # ======================
+        cur.execute("""
+            SELECT COALESCE(SUM(c.valor),0)
+            FROM clientes c
+            JOIN cobrancas cb 
+              ON c.id = cb.cliente_id
+            WHERE c.usuario_id=%s
+              AND cb.status='pago'
+              AND cb.mes_ref=%s
+        """, (user_id, mes))
+
+        recebido_mensal = cur.fetchone()[0] or 0
+
+        # ======================
+        # 💸 LUCRO AVULSO (SEM GASTO AQUI SIMPLES)
+        # ======================
+        lucro_avulso = avulso_valor
+
+        return render_template(
+            "dashboard.html",
+            mensal_total=mensal_total,
+            mensal_valor=mensal_valor,
+            avulso_total=avulso_total,
+            avulso_valor=avulso_valor,
+            recebido_mensal=recebido_mensal,
+            lucro_avulso=lucro_avulso,
+            usuario=session.get("usuario")
+        )
+
+    finally:
+        cur.close()
+        conn.close()
+
 # ================= START =================
 if __name__ == "__main__":
     app.run(debug=True)
