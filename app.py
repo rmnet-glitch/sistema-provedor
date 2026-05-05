@@ -393,6 +393,7 @@ def desativar_api(id):
 
     return redirect(url_for("usuarios"))
 
+
 # ================= CONFIG (BLINDADO) =============
 @app.route("/config", methods=["GET", "POST"])
 def config():
@@ -405,34 +406,34 @@ def config():
     try:
         user_id = session.get("user_id")
 
-      if request.method == "POST":
-            # pega valores atuais do banco
-         cur.execute("""
-         SELECT whatsapp_msg, usar_whatsapp,    zapi_instance, zapi_token
-         FROM usuarios WHERE id=%s
-         """, (user_id,))
+        if request.method == "POST":
 
-         atual = cur.fetchone()
+            # 🔎 pega valores atuais do banco
+            cur.execute("""
+                SELECT whatsapp_msg, usar_whatsapp, zapi_instance, zapi_token
+                FROM usuarios WHERE id=%s
+            """, (user_id,))
+            atual = cur.fetchone()
 
-         msg_atual = atual[0]
-         usar_atual = atual[1]
-         inst_atual = atual[2]
-         token_atual = atual[3]
+            msg_atual = atual[0]
+            usar_atual = atual[1]
+            inst_atual = atual[2]
+            token_atual = atual[3]
 
-# pega o que veio do form (ou mantém o atual)
-         senha = request.form.get("senha")
+            # 📥 dados do form (mantém os antigos se vazio)
+            senha = request.form.get("senha")
 
-         mensagem = request.form.get("mensagem") or            msg_atual
+            mensagem = request.form.get("mensagem") or msg_atual
 
-         if "usar_whatsapp" in request.form:
-         usar_whatsapp = True
-         else:
-         usar_whatsapp = usar_atual
+            if "usar_whatsapp" in request.form:
+                usar_whatsapp = True
+            else:
+                usar_whatsapp = usar_atual
 
-         instance =     request.form.get("zapi_instance") or     inst_atual
-         token = request.form.get("zapi_token") or        token_atual
+            instance = request.form.get("zapi_instance") or inst_atual
+            token = request.form.get("zapi_token") or token_atual
 
-            # plano seguro
+            # 🔒 valida plano
             cur.execute("SELECT plano_whatsapp FROM usuarios WHERE id=%s", (user_id,))
             res = cur.fetchone()
             plano = res[0] if res else False
@@ -442,9 +443,13 @@ def config():
                 instance = None
                 token = None
 
+            # 🔐 atualizar senha (se enviada)
             if senha:
-                cur.execute("UPDATE usuarios SET senha=%s WHERE id=%s", (senha, user_id))
+                cur.execute("""
+                    UPDATE usuarios SET senha=%s WHERE id=%s
+                """, (senha, user_id))
 
+            # 💾 salvar config
             cur.execute("""
                 UPDATE usuarios 
                 SET whatsapp_msg=%s,
@@ -456,6 +461,7 @@ def config():
 
             conn.commit()
 
+        # 🔄 carregar dados atualizados
         cur.execute("""
             SELECT usuario, whatsapp_msg, usar_whatsapp,
                    zapi_instance, zapi_token, plano_whatsapp
@@ -485,7 +491,6 @@ def config():
     finally:
         cur.close()
         conn.close()
-
 
 # ================= INDEX =================
 
