@@ -465,6 +465,7 @@ def config():
 
 # ================= INDEX =================
 
+
 @app.route("/")
 def index():
     if not check_login():
@@ -480,7 +481,6 @@ def index():
         busca = request.args.get("busca", "").lower()
         filtro = request.args.get("filtro", "")
 
-        # ================= CLIENTES =================
         cur.execute("""
             SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
                    cb.status
@@ -501,83 +501,44 @@ def index():
         hoje = datetime.now()
         mes_atual = hoje.strftime("%Y-%m")
 
-        ordem = {
-            "atrasado": 0,
-            "em_dia": 1,
-            "pago": 2
-        }
+        for c in dados:
+            cid, nome, tel, valor, venc, status = c
 
-        # ================= PROCESSAMENTO =================
-   for c in dados:
-    cid, nome, tel, valor, venc, status = c
+            valor = float(valor or 0)
 
-    valor = float(valor or 0)
+            try:
+                venc = int(venc or 1)
+            except:
+                venc = 1
 
-    # garante inteiro seguro
-    try:
-        venc = int(venc or 1)
-    except:
-        venc = 1
+            if status == "pago":
+                final_status = "pago"
+            else:
+                if mes < mes_atual:
+                    final_status = "atrasado"
+                elif mes == mes_atual:
+                    final_status = "atrasado" if hoje.day > venc else "em_dia"
+                else:
+                    final_status = "em_dia"
 
-# ============ REGRA DE STATUS REAL ==========
-    if status == "pago":
-        final_status = "pago"
-    else:
-        if mes < mes_atual:
-            final_status = "atrasado"
-        elif mes == mes_atual:
-            final_status = "atrasado" if hoje.day > venc else "em_dia"
-        else:
-            final_status = "em_dia"
+            if busca and busca not in (nome or "").lower():
+                continue
 
-    # ================= BUSCA =================
-    if busca and busca not in (nome or "").lower():
-        continue
+            if filtro == "atrasado" and final_status != "atrasado":
+                continue
 
-    # ================= FILTRO =================
-    if filtro == "atrasado" and final_status != "atrasado":
-        continue
+            total += valor
 
-    # ================= ALERTAS =================
-    if final_status == "atrasado":
-        alertas.append(f"🔴 {nome} está atrasado")
-    elif final_status == "em_dia" and mes == mes_atual and hoje.day == venc:
-        alertas.append(f"⚠️ {nome} vence hoje")
+            if final_status == "pago":
+                recebido += valor
+            elif final_status == "atrasado":
+                atrasado += valor
+            else:
+                emdia += valor
 
-    # ================= SOMAS =================
-    total += valor
+            clientes.append((cid, nome, tel, valor, venc, final_status))
 
-    if final_status == "pago":
-        recebido += valor
-    elif final_status == "atrasado":
-        atrasado += valor
-    else:
-        emdia += valor
-
-    clientes.append((cid, nome, tel, valor, venc, final_status))
-
-        # ================= GASTOS ================
-        cur.execute("""
-            SELECT COALESCE(SUM(valor),0)
-            FROM gastos
-            WHERE usuario_id=%s AND mes_ref=%s
-        """, (user_id, mes))
-
-        total_gastos = float(cur.fetchone()[0] or 0)
-        lucro = recebido - total_gastos
-
-        # ================= MENSAGEM =================
-        cur.execute("""
-            SELECT whatsapp_msg
-            FROM usuarios
-            WHERE id=%s
-        """, (user_id,))
-
-        res = cur.fetchone()
-        mensagem = res[0] if res else ""
-
-        # ================= ORDEM (ATRASADOS PRIMEIRO) =================
-        clientes.sort(key=lambda x: ordem.get(x[5], 1))
+        clientes.sort(key=lambda x: 0 if x[5] == "atrasado" else 1 if x[5] == "em_dia" else 2)
 
         return render_template(
             "index.html",
@@ -589,18 +550,12 @@ def index():
             total_recebido=recebido,
             total_atrasado=atrasado,
             total_em_dia=emdia,
-            total_gastos=total_gastos,
-            lucro=lucro,
-            alertas=alertas,
-            usuario=session.get("usuario"),
-            mensagem=mensagem,
-            session=session
+            alertas=alertas
         )
 
     finally:
         cur.close()
         conn.close()
-
 
 
 # ================= PAGO =================
