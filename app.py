@@ -804,8 +804,11 @@ def cobrar(id):
     cur = conn.cursor()
 
     try:
+        # 🔥 agora inclui dias_cobranca e vencimento_dia
         cur.execute("""
             SELECT c.nome, c.telefone,
+                   c.dias_cobranca,
+                   c.vencimento_dia,
                    u.whatsapp_msg, u.zapi_instance, u.zapi_token,
                    u.usar_whatsapp, u.plano_whatsapp
             FROM clientes c
@@ -818,10 +821,13 @@ def cobrar(id):
         if not res:
             return "Cliente não encontrado"
 
-        nome, tel, msg, instance, token, usar, plano = res
+        nome, tel, dias_cobranca, vencimento_dia, msg, instance, token, usar, plano = res
 
         print("DEBUG:", usar, plano, instance, token, tel)
 
+        # =========================
+        # 🔐 VALIDAÇÕES DO USUÁRIO
+        # =========================
         if not plano:
             return "❌ Seu plano não permite WhatsApp"
 
@@ -831,6 +837,26 @@ def cobrar(id):
         if not instance or not token:
             return "⚠️ Configure a API no painel"
 
+        # =========================
+        # 🧠 REGRA DE COBRANÇA
+        # =========================
+        from datetime import datetime
+
+        hoje = datetime.now().day
+        dias_cobranca = int(dias_cobranca or 0)
+        vencimento_dia = int(vencimento_dia or 0)
+
+        # 🔥 lógica simples de controle de envio
+        # (evita disparo antes do vencimento + dias configurados)
+        if dias_cobranca > 0:
+            limite = vencimento_dia + dias_cobranca
+
+            if hoje < limite:
+                return f"⏳ Cobrança ainda não liberada (libera no dia {limite})"
+
+        # =========================
+        # 📲 ENVIO WHATSAPP
+        # =========================
         ok = enviar_whatsapp(
             tel,
             (msg or "").replace("{nome}", nome),
