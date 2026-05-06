@@ -145,4 +145,9 @@ placeholder="Token API"
 </form>
 
 </body>
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js');
+}
+</script>
 </html>
