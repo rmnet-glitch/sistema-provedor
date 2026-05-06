@@ -804,7 +804,9 @@ def cobrar(id):
     cur = conn.cursor()
 
     try:
-        # 🔥 agora inclui dias_cobranca e vencimento_dia
+        # =========================
+        # 🔎 BUSCA CLIENTE + CONFIG USUÁRIO
+        # =========================
         cur.execute("""
             SELECT c.nome, c.telefone,
                    c.dias_cobranca,
@@ -826,7 +828,7 @@ def cobrar(id):
         print("DEBUG:", usar, plano, instance, token, tel)
 
         # =========================
-        # 🔐 VALIDAÇÕES DO USUÁRIO
+        # 🔐 VALIDAÇÕES USUÁRIO
         # =========================
         if not plano:
             return "❌ Seu plano não permite WhatsApp"
@@ -838,19 +840,21 @@ def cobrar(id):
             return "⚠️ Configure a API no painel"
 
         # =========================
-        # 🧠 REGRA DE COBRANÇA
+        # 🧠 REGRA DE COBRANÇA (DIAS DO CLIENTE)
         # =========================
         from datetime import datetime
 
         hoje = datetime.now().day
+
         dias_cobranca = int(dias_cobranca or 0)
         vencimento_dia = int(vencimento_dia or 0)
 
-        # 🔥 lógica simples de controle de envio
-        # (evita disparo antes do vencimento + dias configurados)
+        # 🔥 se cliente não definiu regra, libera normal
         if dias_cobranca > 0:
+
             limite = vencimento_dia + dias_cobranca
 
+            # evita cobrança antes do prazo
             if hoje < limite:
                 return f"⏳ Cobrança ainda não liberada (libera no dia {limite})"
 
