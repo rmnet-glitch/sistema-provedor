@@ -552,9 +552,7 @@ def index():
 
         # 🔥 ALTERAÇÃO 1: adiciona tipo_cobranca
         cur.execute("""
-            SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
-                   c.tipo_cobranca,
-                   cb.status
+            SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,dias_cobranca, c.tipo_cobranca, cb.status
             FROM clientes c
             LEFT JOIN cobrancas cb
               ON c.id = cb.cliente_id
