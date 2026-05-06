@@ -283,5 +283,11 @@ e.style.display = e.style.display==="block"?"none":"block";
 }
 </script>
 
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js');
+}
+</script>
+
 </body>
 </html>
