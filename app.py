@@ -135,8 +135,8 @@ def add_cliente():
     try:
         cur.execute("""
     INSERT INTO clientes 
-    (nome, telefone, valor, vencimento_dia, tipo_cobranca, descricao_servico, data_venda, usuario_id)
-    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+    (nome, telefone, valor, vencimento_dia, tipo_cobranca, descricao_servico, data_venda, usuario_id, dias_cobranca)
+    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
 """, (
     request.form.get("nome"),
     request.form.get("telefone"),
@@ -145,8 +145,8 @@ def add_cliente():
     request.form.get("tipo_cobranca"),
     request.form.get("descricao_servico"),
     request.form.get("data_venda"),
-    request.form.get("dias_cobranca"),
-    session["user_id"]
+    session["user_id"],
+    request.form.get("dias_cobranca") or 0
 ))
 
         conn.commit()
