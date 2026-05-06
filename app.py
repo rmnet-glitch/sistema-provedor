@@ -720,19 +720,35 @@ def add_avulso():
     cur = conn.cursor()
 
     try:
+        cliente_id = request.form.get("cliente_id")
+
+        if not cliente_id:
+            cliente_id = 0
+        else:
+            cliente_id = int(cliente_id)
+
+        descricao = request.form.get("descricao")
+        valor = request.form.get("valor")
+        data_venda = request.form.get("data_venda")
+
         cur.execute("""
             INSERT INTO servicos_avulsos
             (cliente_id, descricao, valor, data_venda, usuario_id)
             VALUES (%s,%s,%s,%s,%s)
         """, (
-            request.form.get("cliente_id") or 0,
-            request.form.get("descricao"),
-            request.form.get("valor"),
-            request.form.get("data_venda"),
+            cliente_id,
+            descricao,
+            float(valor),
+            data_venda,
             session["user_id"]
         ))
 
         conn.commit()
+
+        print("✔ AVULSO SALVO COM SUCESSO")
+
+    except Exception as e:
+        print("❌ ERRO AVULSO:", e)
 
     finally:
         cur.close()
