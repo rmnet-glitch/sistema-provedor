@@ -888,7 +888,7 @@ def dashboard():
             avulso_valor=avulso_valor,
             recebido_mensal=recebido_mensal,
             lucro_avulso=lucro_avulso,
-            usuario=session.get("usuario")
+            usuario=session.get("usuario"),
             mes_ref=mes
         )
 
