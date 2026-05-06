@@ -145,6 +145,7 @@ def add_cliente():
     request.form.get("tipo_cobranca"),
     request.form.get("descricao_servico"),
     request.form.get("data_venda"),
+    request.form.get("dias_cobranca")
     session["user_id"]
 ))
 
