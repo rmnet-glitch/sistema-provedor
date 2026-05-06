@@ -196,6 +196,10 @@ Controle total do seu negócio em um só lugar
 </div>
 
 </div>
-
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js');
+}
+</script>
 </body>
 </html>
