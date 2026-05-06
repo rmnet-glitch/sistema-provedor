@@ -163,12 +163,15 @@ input{
 <script>
 function toggleForm(){
     let f = document.getElementById("formAvulso");
+
     if(f.classList.contains("hidden")){
         f.classList.remove("hidden");
-    }else{
+    } else {
         f.classList.add("hidden");
     }
 }
+</script>
+
 <script>
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/static/sw.js');
