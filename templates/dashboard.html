@@ -128,5 +128,11 @@ R$ {{ ((recebido_mensal or 0) + (avulso_valor or 0)) - (gasto or 0) }}
 
 </div>
 
+
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/static/sw.js');
+}
+</script>
 </body>
 </html>
