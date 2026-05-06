@@ -58,41 +58,28 @@ body{
 .gastos{border-left:4px solid #f97316;}
 .total{border-left:4px solid #3b82f6;}
 
-/* filtro */
-.filter{
-    margin:10px 0;
-    background:#1e293b;
-    padding:10px;
-    border-radius:10px;
-}
-
 button{
     padding:6px 10px;
     border:none;
     border-radius:8px;
     background:#334155;
     color:#fff;
-    cursor:pointer;
 }
 </style>
 </head>
 
 <body>
 
-<!-- HEADER -->
 <div class="header">
-<h3>📊 Dashboard - {{usuario}} ({{mes_ref}})</h3>
+<h3>📊 Dashboard - {{usuario}}</h3>
 <a href="/"><button>Voltar</button></a>
 </div>
 
-<!-- 🔎 HISTÓRICO MÊS -->
-<div class="filter">
+<!-- 🔎 FILTRO MÊS -->
+<div style="margin-bottom:10px;">
 <form method="get" action="/dashboard">
-
-<input type="month" name="mes" value="{{mes_ref}}">
-
-<button>Filtrar</button>
-
+    <input type="month" name="mes" value="{{mes_ref}}">
+    <button>Filtrar</button>
 </form>
 </div>
 
@@ -100,39 +87,41 @@ button{
 
 <!-- 💵 RECEBIDO -->
 <div class="card recebido">
-<div class="title">💵 Recebido Mensal</div>
-<div class="value">R$ {{recebido_mensal}}</div>
-<div class="sub">Somente pagamentos confirmados</div>
+<div class="title">💵 Recebido Mensal (Real)</div>
+<div class="value">R$ {{recebido_mensal or 0}}</div>
+<div class="sub">Somente clientes pagos no mês</div>
 </div>
 
 <!-- 📦 AVULSOS -->
 <div class="card avulso">
 <div class="title">📦 Serviços Avulsos</div>
-<div class="value">R$ {{avulso_valor}}</div>
-<div class="sub">Serviços já realizados</div>
+<div class="value">R$ {{avulso_valor or 0}}</div>
+<div class="sub">Faturamento de serviços feitos</div>
 </div>
 
 <!-- 💸 GASTOS -->
 <div class="card gastos">
 <div class="title">💸 Gastos do Mês</div>
-<div class="value">R$ {{gasto}}</div>
+<div class="value">R$ {{gasto or 0}}</div>
 <div class="sub">Saídas registradas</div>
 </div>
 
-<!-- 🔴 INADIMPLÊNCIA -->
+<!-- 🔴 EM ABERTO -->
 <div class="card inad">
-<div class="title">🔴 Em Aberto</div>
-<div class="value">R$ {{mensal_valor - recebido_mensal}}</div>
-<div class="sub">Valores ainda não recebidos</div>
+<div class="title">🔴 Em Aberto (Mensal)</div>
+<div class="value">
+R$ {{ (mensal_valor or 0) - (recebido_mensal or 0) }}
+</div>
+<div class="sub">Valor que ainda não entrou</div>
 </div>
 
 <!-- 💰 CAIXA REAL -->
 <div class="card total">
-<div class="title">💰 Caixa Real</div>
+<div class="title">💰 Caixa Real do Sistema</div>
 <div class="value">
-R$ {{ (recebido_mensal + avulso_valor) - gasto }}
+R$ {{ ((recebido_mensal or 0) + (avulso_valor or 0)) - (gasto or 0) }}
 </div>
-<div class="sub">Dinheiro líquido no mês</div>
+<div class="sub">Dinheiro efetivamente recebido</div>
 </div>
 
 </div>
