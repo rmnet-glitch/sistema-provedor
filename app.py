@@ -852,7 +852,7 @@ def cobrar(id):
 @app.route("/dashboard")
 def dashboard():
 
-    mes = request.args.get("mes")
+    
 
     if not check_login():
         return redirect(url_for("login"))
