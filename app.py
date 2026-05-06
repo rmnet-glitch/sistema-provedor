@@ -836,7 +836,7 @@ def dashboard():
 
     try:
         user_id = session["user_id"]
-        mes = datetime.now().strftime("%Y-%m")
+        mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
 
         # ======================
         # 📅 MENSAL
