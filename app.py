@@ -330,6 +330,32 @@ def gastos():
 
     return render_template("gastos.html", gastos=lista, mes_ref=mes)
 
+# ================== DEL GASTOS ==============
+
+@app.route("/del_gasto/<int:id>")
+def del_gasto(id):
+    if not check_login():
+        return redirect(url_for("login"))
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            DELETE FROM gastos
+            WHERE id=%s AND usuario_id=%s
+        """, (id, session["user_id"]))
+
+        conn.commit()
+
+    finally:
+        cur.close()
+        conn.close()
+
+    mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
+
+    return redirect(url_for("gastos", mes=mes))
+
 # ================= EDIT CLIENTE ======= 
 
 @app.route("/edit/<int:id>", methods=["POST"])
