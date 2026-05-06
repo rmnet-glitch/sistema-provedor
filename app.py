@@ -825,6 +825,7 @@ def cobrar(id):
 
 @app.route("/dashboard")
 def dashboard():
+mes = request.args.get("mes") or datetime.now().strftime("%Y-%m")
     if not check_login():
         return redirect(url_for("login"))
 
