@@ -146,7 +146,7 @@ def add_cliente():
     request.form.get("descricao_servico"),
     request.form.get("data_venda"),
     session["user_id"],
-    request.form.get("dias_cobranca") or 0
+    request.form.get("dias_cobranca")
 ))
 
         conn.commit()
@@ -369,7 +369,7 @@ def edit(id):
 
     cur.execute("""
         UPDATE clientes
-        SET nome=%s, telefone=%s, valor=%s, vencimento_dia=%s
+        SET nome=%s, telefone=%s, valor=%s, vencimento_dia=%s, dias_cobranca=%s
         WHERE id=%s AND usuario_id=%s
     """, (
         request.form.get("nome"),
@@ -377,7 +377,8 @@ def edit(id):
         request.form.get("valor"),
         request.form.get("vencimento_dia"),
         id,
-        session["user_id"]
+        session["user_id"],
+        request.form.get("dias_cobranca")
     ))
 
     conn.commit()
