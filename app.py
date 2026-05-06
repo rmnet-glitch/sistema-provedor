@@ -376,9 +376,10 @@ def edit(id):
         request.form.get("telefone"),
         request.form.get("valor"),
         request.form.get("vencimento_dia"),
+        request.form.get("dias_cobranca"),
         id,
-        session["user_id"],
-        request.form.get("dias_cobranca")
+        session["user_id"]
+        
     ))
 
     conn.commit()
