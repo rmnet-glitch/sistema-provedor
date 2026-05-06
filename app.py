@@ -876,6 +876,17 @@ def dashboard():
               AND tipo_cobranca='mensal'
         """, (user_id,))
         mensal_total, mensal_valor = cur.fetchone()
+        # ======================
+        # 💸 GASTOS DO MÊS
+        # ======================
+        cur.execute("""
+            SELECT COALESCE(SUM(valor),0)
+            FROM gastos
+            WHERE usuario_id=%s
+            AND mes_ref=%s
+        """, (user_id, mes))
+
+        gasto = cur.fetchone()[0] or 0
 
         # ======================
         # 📦 AVULSO
@@ -919,6 +930,7 @@ def dashboard():
             lucro_avulso=lucro_avulso,
             usuario=session.get("usuario"),
             mes_ref=mes
+            gasto=gasto
         )
 
     finally:
