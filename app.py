@@ -929,7 +929,7 @@ def dashboard():
             recebido_mensal=recebido_mensal,
             lucro_avulso=lucro_avulso,
             usuario=session.get("usuario"),
-            mes_ref=mes
+            mes_ref=mes,
             gasto=gasto
         )
 
