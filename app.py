@@ -550,9 +550,9 @@ def index():
         busca = request.args.get("busca", "").lower()
         filtro = request.args.get("filtro", "")
 
-        # 🔥 ALTERAÇÃO 1: adiciona tipo_cobranca
         cur.execute("""
-            SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,dias_cobranca, c.tipo_cobranca, cb.status
+            SELECT c.id, c.nome, c.telefone, c.valor, c.vencimento_dia,
+                   c.dias_cobranca, c.tipo_cobranca, cb.status
             FROM clientes c
             LEFT JOIN cobrancas cb
               ON c.id = cb.cliente_id
@@ -573,8 +573,7 @@ def index():
         mes_atual = hoje.strftime("%Y-%m")
 
         for c in dados:
-            # 🔥 ALTERAÇÃO 2: adiciona tipo_cobranca no unpack
-            cid, nome, tel, valor, venc, tipo_cobranca, status = c
+            cid, nome, tel, valor, venc, dias_cobranca, tipo_cobranca, status = c
 
             valor = float(valor or 0)
 
@@ -583,10 +582,9 @@ def index():
             except:
                 venc = 1
 
-            # 🔥 ALTERAÇÃO 3: regra avulso vs mensal (NÃO mexe no resto)
+            # status final
             if tipo_cobranca == "avulso":
                 final_status = status or "em_dia"
-
             else:
                 if status == "pago":
                     final_status = "pago"
@@ -598,22 +596,18 @@ def index():
                     else:
                         final_status = "em_dia"
 
-            # busca
             if busca and busca not in (nome or "").lower():
                 continue
 
-            # filtro
             if filtro == "atrasado" and final_status != "atrasado":
                 continue
 
-            # alertas
             if final_status == "atrasado":
                 alertas.append(f"🔴 {nome} está atrasado")
 
             elif final_status == "em_dia" and mes == mes_atual and hoje.day == venc:
                 alertas.append(f"⚠️ {nome} vence hoje")
 
-            # totais
             total += valor
 
             if final_status == "pago":
@@ -623,9 +617,8 @@ def index():
             else:
                 emdia += valor
 
-            clientes.append((cid, nome, tel, valor, venc, final_status))
+            clientes.append((cid, nome, tel, valor, venc, final_status, tipo_cobranca, dias_cobranca))
 
-        # gastos
         cur.execute("""
             SELECT COALESCE(SUM(valor), 0)
             FROM gastos
@@ -634,12 +627,10 @@ def index():
         """, (user_id, mes))
 
         gasto = float(cur.fetchone()[0] or 0)
-
         lucro = recebido - gasto
 
         clientes.sort(key=lambda x: 0 if x[5] == "atrasado" else 1 if x[5] == "em_dia" else 2)
 
-        # mensagem whatsapp
         cur.execute("""
             SELECT whatsapp_msg
             FROM usuarios
